@@ -66,3 +66,20 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Prevent viewport bounce/overscroll and ensure full-height root background */
+html, body, #root {
+  height: 100%;
+  background-color: #ffffff; /* keep background consistent when overscrolling */
+  overscroll-behavior-x: none; /* avoid horizontal bounce */
+  overscroll-behavior-y: contain; /* prevent pull-to-refresh / rubber-band on supported browsers */
+  overflow-x: hidden; /* guard against horizontal overflow */
+  overflow-y: hidden;
+}
+
+/* iOS Safari: move scrolling into the root element to avoid rubber-band bounce */
+@supports (-webkit-overflow-scrolling: touch) {
+  html, body { height: 100%; overflow: hidden; }
+  #root { height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
+}
+
