@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Navbar from "../../components/layout/Navbar";
 import LoginPage from "./LoginPage";
 import { supabase } from "../../services/supabase";
 import { useAuth } from "../../context/AuthContext";
 
 const BUCKET = "cite-tms-backend-bucket";
-export const papersCache = { data: null }; // exported so AdminDashboard can bust it
+export const papersCache = { data: null };
 
 const TIME_FILTERS = [
   { key: "any",       label: "Any time"      },
@@ -22,17 +22,23 @@ const SORT_OPTIONS = [
 
 export default function PapersPage() {
   const { user } = useAuth();
-  const [papers, setPapers]               = useState([]);
-  const [loading, setLoading]             = useState(true);
-  const [error, setError]                 = useState("");
-  const [showLogin, setShowLogin]         = useState(false);
-  const [query, setQuery]                 = useState("");
-  const [timeFilter, setTimeFilter]       = useState("any");
-  const [sortBy, setSortBy]               = useState("relevance");
-  const [fromYear, setFromYear]           = useState("");
-  const [toYear, setToYear]               = useState("");
+  const [papers, setPapers]         = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState("");
+  const [showLogin, setShowLogin]   = useState(false);
+  const [query, setQuery]           = useState("");
+  const [timeFilter, setTimeFilter] = useState("any");
+  const [sortBy, setSortBy]         = useState("relevance");
+  const [fromYear, setFromYear]     = useState("");
+  const [toYear, setToYear]         = useState("");
 
-  // ── fetch ──────────────────────────────────────────────────
+  // bookmarks: Set of bookmarked paper IDs
+  const [bookmarked, setBookmarked]   = useState(new Set());
+  // map of paper_id → bookmark row id (needed for deletion)
+  const [bookmarkIds, setBookmarkIds] = useState({});
+  const [bmLoading, setBmLoading]     = useState(new Set()); // paper IDs currently toggling
+
+  // ── fetch papers ──────────────────────────────────────────
   useEffect(() => {
     const load = async () => {
       setLoading(true); setError("");
@@ -59,7 +65,55 @@ export default function PapersPage() {
     load();
   }, []);
 
-  // ── filter + sort ───────────────────────────────────────────
+  // ── fetch user's bookmarks ────────────────────────────────
+  useEffect(() => {
+    if (!user) { setBookmarked(new Set()); setBookmarkIds({}); return; }
+    const load = async () => {
+      const { data } = await supabase
+        .from("bookmarks")
+        .select("id, paper_id")
+        .eq("user_id", user.id);
+      if (!data) return;
+      setBookmarked(new Set(data.map((b) => b.paper_id)));
+      setBookmarkIds(Object.fromEntries(data.map((b) => [b.paper_id, b.id])));
+    };
+    load();
+  }, [user]);
+
+  // ── toggle bookmark ───────────────────────────────────────
+  const toggleBookmark = useCallback(async (e, paperId) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!user) { setShowLogin(true); return; }
+    if (bmLoading.has(paperId)) return;
+
+    setBmLoading((prev) => new Set(prev).add(paperId));
+    const isMarked = bookmarked.has(paperId);
+
+    try {
+      if (isMarked) {
+        const bmId = bookmarkIds[paperId];
+        const { error } = await supabase.from("bookmarks").delete().eq("id", bmId);
+        if (error) throw error;
+        setBookmarked((prev) => { const s = new Set(prev); s.delete(paperId); return s; });
+        setBookmarkIds((prev) => { const m = { ...prev }; delete m[paperId]; return m; });
+      } else {
+        const { data, error } = await supabase
+          .from("bookmarks")
+          .insert({ user_id: user.id, paper_id: paperId })
+          .select("id")
+          .single();
+        if (error) throw error;
+        setBookmarked((prev) => new Set(prev).add(paperId));
+        setBookmarkIds((prev) => ({ ...prev, [paperId]: data.id }));
+      }
+    } catch (e) {
+      console.error("Bookmark error:", e.message);
+    } finally {
+      setBmLoading((prev) => { const s = new Set(prev); s.delete(paperId); return s; });
+    }
+  }, [user, bookmarked, bookmarkIds, bmLoading]);
+
+  // ── filter + sort ─────────────────────────────────────────
   const displayed = papers
     .filter((p) => {
       const yr = Number(p.year);
@@ -103,7 +157,6 @@ export default function PapersPage() {
         .sp-hero { background:#fff; border-bottom:1px solid #e8eaed; padding:18px 0 0; }
         .sp-hero-inner { padding:0 40px; }
 
-        /* title + search on same row */
         .sp-top-row {
           display:flex; align-items:center; gap:20px;
           margin-bottom:16px; flex-wrap:wrap;
@@ -123,16 +176,14 @@ export default function PapersPage() {
         .sp-search-wrap {
           flex:1; min-width:220px; max-width:580px;
           display:flex; align-items:center; gap:8px;
-          border-radius:24px; background:#f1f3f4;
-          padding:9px 16px;
+          border-radius:24px; background:#f1f3f4; padding:9px 16px;
           transition:background 0.2s, box-shadow 0.2s;
         }
         .sp-search-wrap:focus-within { background:#e8eaed; box-shadow:0 0 0 2px #1a73e833; }
         .sp-search-icon { flex-shrink:0; color:#9aa0a6; display:flex; pointer-events:none; }
         .sp-search-input {
           flex:1; border:none; outline:none; font-size:14px;
-          font-family:'DM Sans',sans-serif; color:#202124;
-          background:transparent; min-width:0;
+          font-family:'DM Sans',sans-serif; color:#202124; background:transparent; min-width:0;
         }
         .sp-search-input::placeholder { color:#9aa0a6; }
         .sp-search-clear {
@@ -172,7 +223,6 @@ export default function PapersPage() {
 
         .sp-divider { border:none; border-top:1px solid #e8eaed; margin:14px 0; }
 
-        /* ── Custom range fix ── */
         .sp-custom-range {
           display:flex; align-items:center; gap:6px;
           margin-top:8px; padding:0 10px;
@@ -240,6 +290,23 @@ export default function PapersPage() {
         .sp-action-link:hover { color:#1557b0; text-decoration:underline; }
         .sp-action-muted { font-size:12.5px; color:#9aa0a6; }
 
+        /* ── Bookmark button ── */
+        .sp-bm-btn {
+          display:inline-flex; align-items:center; gap:5px;
+          font-size:12.5px; font-weight:500;
+          background:none; border:none; cursor:pointer; padding:0;
+          font-family:'DM Sans',sans-serif;
+          transition:color 0.15s, opacity 0.15s;
+          color:#9aa0a6;
+        }
+        .sp-bm-btn:hover { color:#1a73e8; }
+        .sp-bm-btn.saved { color:#1a73e8; }
+        .sp-bm-btn.saved:hover { color:#b91c1c; }
+        .sp-bm-btn:disabled { opacity:.45; cursor:default; }
+
+        /* bookmark icon fill animation */
+        .sp-bm-icon { transition:fill 0.15s, stroke 0.15s; }
+
         .sp-pdf-tile {
           flex-shrink:0; display:inline-flex; flex-direction:column;
           align-items:center; justify-content:center;
@@ -286,8 +353,6 @@ export default function PapersPage() {
         {/* ── Hero ── */}
         <div className="sp-hero">
           <div className="sp-hero-inner">
-
-            {/* Logo + Search on same row */}
             <div className="sp-top-row">
               <div className="sp-logo-wrap">
                 <div className="sp-logo-mark">
@@ -406,73 +471,93 @@ export default function PapersPage() {
               </div>
             )}
 
-            {!loading && !error && displayed.map((paper, i) => (
-              <article className="sp-result" key={paper.id} style={{ animationDelay: `${i * 0.035}s` }}>
-                <div className="sp-result-main">
-                  <a href={paper.publicUrl || "#"}
-                    target={paper.publicUrl && user ? "_blank" : undefined}
-                    rel={paper.publicUrl && user ? "noopener noreferrer" : undefined}
-                    className="sp-result-title"
-                    onClick={(e) => paper.publicUrl && handlePdfClick(e)}>
-                    {paper.title || "Untitled paper"}
-                  </a>
+            {!loading && !error && displayed.map((paper, i) => {
+              const isSaved   = bookmarked.has(paper.id);
+              const isBusy    = bmLoading.has(paper.id);
+              return (
+                <article className="sp-result" key={paper.id} style={{ animationDelay: `${i * 0.035}s` }}>
+                  <div className="sp-result-main">
+                    <a href={paper.publicUrl || "#"}
+                      target={paper.publicUrl && user ? "_blank" : undefined}
+                      rel={paper.publicUrl && user ? "noopener noreferrer" : undefined}
+                      className="sp-result-title"
+                      onClick={(e) => paper.publicUrl && handlePdfClick(e)}>
+                      {paper.title || "Untitled paper"}
+                    </a>
 
-                  <div className="sp-result-meta">
-                    {paper.authors?.length > 0 && <span>{paper.authors.join(", ")}</span>}
-                    {paper.year && (
-                      <>
-                        {paper.authors?.length > 0 && <span className="sp-dot"> · </span>}
-                        <span>{paper.year}</span>
-                        <span className="sp-year-pill">{paper.year}</span>
-                      </>
+                    <div className="sp-result-meta">
+                      {paper.authors?.length > 0 && <span>{paper.authors.join(", ")}</span>}
+                      {paper.year && (
+                        <>
+                          {paper.authors?.length > 0 && <span className="sp-dot"> · </span>}
+                          <span>{paper.year}</span>
+                          <span className="sp-year-pill">{paper.year}</span>
+                        </>
+                      )}
+                      {paper.course_or_program && (
+                        <><span className="sp-dot"> · </span><span className="sp-prog-pill">{paper.course_or_program}</span></>
+                      )}
+                    </div>
+
+                    {paper.abstract && (
+                      <p className="sp-snippet">
+                        {paper.abstract.length > 280 ? `${paper.abstract.slice(0, 280)}…` : paper.abstract}
+                      </p>
                     )}
-                    {paper.course_or_program && (
-                      <><span className="sp-dot"> · </span><span className="sp-prog-pill">{paper.course_or_program}</span></>
-                    )}
-                  </div>
 
-                  {paper.abstract && (
-                    <p className="sp-snippet">
-                      {paper.abstract.length > 280 ? `${paper.abstract.slice(0, 280)}…` : paper.abstract}
-                    </p>
-                  )}
+                    <div className="sp-actions">
+                      {paper.publicUrl && (
+                        <a href={paper.publicUrl}
+                          target={user ? "_blank" : undefined}
+                          rel={user ? "noopener noreferrer" : undefined}
+                          className="sp-action-link" onClick={handlePdfClick}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                          </svg>
+                          {user ? "View PDF" : "🔒 Sign in to view"}
+                        </a>
+                      )}
 
-                  <div className="sp-actions">
-                    {paper.publicUrl && (
-                      <a href={paper.publicUrl}
-                        target={user ? "_blank" : undefined}
-                        rel={user ? "noopener noreferrer" : undefined}
-                        className="sp-action-link" onClick={handlePdfClick}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                          <polyline points="14 2 14 8 20 8"/>
+                      {/* ── Bookmark toggle ── */}
+                      <button
+                        className={`sp-bm-btn${isSaved ? " saved" : ""}`}
+                        disabled={isBusy}
+                        onClick={(e) => toggleBookmark(e, paper.id)}
+                        title={isSaved ? "Remove bookmark" : "Save to bookmarks"}>
+                        <svg className="sp-bm-icon" width="13" height="13" viewBox="0 0 24 24"
+                          fill={isSaved ? "currentColor" : "none"}
+                          stroke="currentColor" strokeWidth="2.2"
+                          strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
                         </svg>
-                        {user ? "View PDF" : "🔒 Sign in to view"}
-                      </a>
-                    )}
-                    <span className="sp-action-muted">Cited by — coming soon</span>
-                    <span className="sp-action-muted">Related articles</span>
-                  </div>
-                </div>
+                        {isBusy ? "Saving…" : isSaved ? "Saved" : "Save"}
+                      </button>
 
-                {paper.publicUrl && (
-                  <a href={paper.publicUrl}
-                    target={user ? "_blank" : undefined}
-                    rel={user ? "noopener noreferrer" : undefined}
-                    className="sp-pdf-tile" onClick={handlePdfClick}>
-                    <svg width="28" height="34" viewBox="0 0 28 34" fill="none">
-                      <rect x="1" y="1" width="26" height="32" rx="3" fill="#fff" stroke="#dadce0" strokeWidth="1.5"/>
-                      <path d="M17 1v8h8" fill="none" stroke="#dadce0" strokeWidth="1.5" strokeLinejoin="round"/>
-                      <rect x="4" y="17" width="20" height="10" rx="2" fill="#c62828"/>
-                      <text x="14" y="25.5" textAnchor="middle" fill="white" fontSize="7" fontWeight="800" fontFamily="'DM Sans',sans-serif" letterSpacing="0.5">PDF</text>
-                      <line x1="6" y1="13" x2="22" y2="13" stroke="#e0e0e0" strokeWidth="1.2"/>
-                      <line x1="6" y1="10" x2="14" y2="10" stroke="#e0e0e0" strokeWidth="1.2"/>
-                    </svg>
-                    <span className="sp-pdf-src">dlsl.edu.ph</span>
-                  </a>
-                )}
-              </article>
-            ))}
+                      <span className="sp-action-muted">Cited by — coming soon</span>
+                      <span className="sp-action-muted">Related articles</span>
+                    </div>
+                  </div>
+
+                  {paper.publicUrl && (
+                    <a href={paper.publicUrl}
+                      target={user ? "_blank" : undefined}
+                      rel={user ? "noopener noreferrer" : undefined}
+                      className="sp-pdf-tile" onClick={handlePdfClick}>
+                      <svg width="28" height="34" viewBox="0 0 28 34" fill="none">
+                        <rect x="1" y="1" width="26" height="32" rx="3" fill="#fff" stroke="#dadce0" strokeWidth="1.5"/>
+                        <path d="M17 1v8h8" fill="none" stroke="#dadce0" strokeWidth="1.5" strokeLinejoin="round"/>
+                        <rect x="4" y="17" width="20" height="10" rx="2" fill="#c62828"/>
+                        <text x="14" y="25.5" textAnchor="middle" fill="white" fontSize="7" fontWeight="800" fontFamily="'DM Sans',sans-serif" letterSpacing="0.5">PDF</text>
+                        <line x1="6" y1="13" x2="22" y2="13" stroke="#e0e0e0" strokeWidth="1.2"/>
+                        <line x1="6" y1="10" x2="14" y2="10" stroke="#e0e0e0" strokeWidth="1.2"/>
+                      </svg>
+                      <span className="sp-pdf-src">dlsl.edu.ph</span>
+                    </a>
+                  )}
+                </article>
+              );
+            })}
           </main>
         </div>
       </div>
