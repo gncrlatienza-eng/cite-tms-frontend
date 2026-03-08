@@ -52,7 +52,7 @@ export default function Navbar({ onLoginClick }) {
     }
   };
 
-  const avatarUrl = user?.user_metadata?.avatar_url;
+  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
   const displayName = profile?.full_name
     || user?.user_metadata?.full_name
     || user?.user_metadata?.name

@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import Navbar from "../../components/layout/Navbar";
 import LoginPage from "./LoginPage";
 import { supabase } from "../../services/supabase";
+import { useAuth } from "../../context/AuthContext";
 
 const PAPERS_BUCKET = "cite-tms-backend-bucket";
 const papersCache = { data: null };
 
 export default function PapersPage() {
+  const { user } = useAuth();
   const [papers, setPapers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -17,6 +19,13 @@ export default function PapersPage() {
   const [sortBy, setSortBy] = useState("relevance");
   const [customFromYear, setCustomFromYear] = useState("");
   const [customToYear, setCustomToYear] = useState("");
+
+  const handlePdfClick = (e) => {
+    if (!user) {
+      e.preventDefault();
+      setShowLogin(true);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -412,7 +421,6 @@ export default function PapersPage() {
           <div className="sp-hero-inner">
             <div className="sp-logo-row">
               <div className="sp-logo-mark">
-                {/* Book / scholar icon */}
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                   <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
@@ -423,7 +431,6 @@ export default function PapersPage() {
 
             <div className="sp-search-row">
               <div className="sp-search-wrap">
-                {/* Magnifier icon inside the bar */}
                 <span className="sp-search-icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="11" cy="11" r="8"/>
@@ -442,7 +449,6 @@ export default function PapersPage() {
                   onKeyDown={handleKeyDown}
                   autoComplete="off"
                 />
-                {/* Clear button — only shows when there's text */}
                 {inputValue && (
                   <button
                     className="sp-search-clear"
@@ -550,7 +556,6 @@ export default function PapersPage() {
               </div>
             )}
 
-            {/* Skeleton */}
             {loading && [1, 2, 3, 4].map((i) => (
               <div className="sp-skel-card" key={i}>
                 <div className="sp-skel sp-skel-t" />
@@ -585,11 +590,13 @@ export default function PapersPage() {
                 style={{ animationDelay: `${i * 0.035}s` }}
               >
                 <div className="sp-result-main">
+                  {/* FIX 1: restored missing <a */}
                   <a
                     href={paper.publicUrl || "#"}
-                    target={paper.publicUrl ? "_blank" : undefined}
-                    rel={paper.publicUrl ? "noopener noreferrer" : undefined}
+                    target={paper.publicUrl && user ? "_blank" : undefined}
+                    rel={paper.publicUrl && user ? "noopener noreferrer" : undefined}
                     className="sp-result-title"
+                    onClick={(e) => paper.publicUrl && handlePdfClick(e)}
                   >
                     {paper.title || "Untitled paper"}
                   </a>
@@ -623,17 +630,19 @@ export default function PapersPage() {
 
                   <div className="sp-actions">
                     {paper.publicUrl && (
+                      // FIX 2: restored missing <a
                       <a
                         href={paper.publicUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        target={user ? "_blank" : undefined}
+                        rel={user ? "noopener noreferrer" : undefined}
                         className="sp-action-link"
+                        onClick={handlePdfClick}
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                           <polyline points="14 2 14 8 20 8"/>
                         </svg>
-                        View PDF
+                        {user ? "View PDF" : "🔒 Sign in to view"}
                       </a>
                     )}
                     <span className="sp-action-muted">Cited by — coming soon</span>
@@ -641,13 +650,14 @@ export default function PapersPage() {
                   </div>
                 </div>
 
-                {/* PDF tile — SVG icon, no emoji */}
                 {paper.publicUrl && (
+                  // FIX 3: restored missing <a
                   <a
                     href={paper.publicUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    target={user ? "_blank" : undefined}
+                    rel={user ? "noopener noreferrer" : undefined}
                     className="sp-pdf-tile"
+                    onClick={handlePdfClick}
                   >
                     <svg width="28" height="34" viewBox="0 0 28 34" fill="none">
                       <rect x="1" y="1" width="26" height="32" rx="3" fill="#fff" stroke="#dadce0" strokeWidth="1.5"/>

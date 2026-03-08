@@ -2,72 +2,50 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
 
+const ALLOWED_ADMIN_EMAILS = [
+  "gncrlatienza@gmail.com",
+  "cite.tms.admin@dlsl.edu.ph",
+];
+
 export default function LoginPage({ onClose }) {
   const [mounted, setMounted] = useState(false);
-
-  // 'student' | 'author' | 'admin'
   const [accountType, setAccountType] = useState("student");
-  // 'existing' | 'new'
   const [authMode, setAuthMode] = useState("existing");
 
-  // Admin-only email/password login (kept separate because of extra checks)
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
-  const [adminError, setAdminError] = useState("");
-  const [adminLoading, setAdminLoading] = useState(false);
-
-  // New user (create account)
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newError, setNewError] = useState("");
   const [newLoading, setNewLoading] = useState(false);
 
-  // Existing user (email + password)
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
+
+  const [adminError, setAdminError] = useState("");
+  const [adminLoading, setAdminLoading] = useState(false);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     requestAnimationFrame(() => setMounted(true));
     document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
+    return () => { document.body.style.overflow = ""; };
   }, []);
 
   const handleGoogleLogin = async () => {
-    try {
-      await authService.loginWithGoogle();
-      // Redirect happens via AuthCallback + AuthContext
-    } catch (error) {
-      console.error("Login failed:", error.message);
-    }
+    try { await authService.loginWithGoogle(); }
+    catch (e) { console.error(e.message); }
   };
 
   const handleAdminGoogleLogin = async () => {
-    try {
-      await authService.loginAsAdminWithGoogle();
-      // AuthCallback already redirects to /admin when intent=admin
-    } catch (error) {
-      setAdminError(error.message);
-    }
-  };
-
-  const handleAdminLogin = async (e) => {
-    e.preventDefault();
     setAdminError("");
     setAdminLoading(true);
     try {
-      await authService.loginAsAdmin(adminEmail, adminPassword);
-      navigate("/admin");
-      onClose?.();
-    } catch (error) {
-      setAdminError(error.message);
-    } finally {
+      await authService.loginAsAdminWithGoogle();
+    } catch (e) {
+      setAdminError(e.message);
       setAdminLoading(false);
     }
   };
@@ -76,30 +54,19 @@ export default function LoginPage({ onClose }) {
     if (e.target === e.currentTarget && onClose) onClose();
   };
 
-  const resolveRoleForSignup = () => {
-    if (accountType === "admin") return "admin";
-    if (accountType === "author") return "faculty"; // map "Author" to faculty
-    return "student";
-  };
-
   const handleSignup = async (e) => {
     e.preventDefault();
     setNewError("");
     setNewLoading(true);
     try {
-      const role = resolveRoleForSignup();
       await authService.signupWithEmail({
-        name: newName.trim(),
-        email: newEmail.trim(),
+        name: newName.trim(), email: newEmail.trim(),
         password: newPassword,
-        role,
+        role: accountType === "author" ? "faculty" : "student",
       });
       onClose?.();
-    } catch (error) {
-      setNewError(error.message || "Failed to create account.");
-    } finally {
-      setNewLoading(false);
-    }
+    } catch (e) { setNewError(e.message || "Failed to create account."); }
+    finally { setNewLoading(false); }
   };
 
   const handlePasswordLogin = async (e) => {
@@ -108,618 +75,317 @@ export default function LoginPage({ onClose }) {
     setLoginLoading(true);
     try {
       await authService.loginWithEmail(loginEmail.trim(), loginPassword);
-      if (accountType === "admin") {
-        // Non-admins will still be blocked by backend/admin checks
-        navigate("/admin");
-      }
       onClose?.();
-    } catch (error) {
-      setLoginError(error.message || "Login failed.");
-    } finally {
-      setLoginLoading(false);
-    }
+    } catch (e) { setLoginError(e.message || "Login failed."); }
+    finally { setLoginLoading(false); }
   };
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-        .login-backdrop {
-          position: fixed;
-          inset: 0;
-          z-index: 1000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-          background: rgba(0,0,0,0.4);
-          backdrop-filter: blur(3px);
-          -webkit-backdrop-filter: blur(3px);
-          opacity: 0;
-          transition: opacity 0.3s ease;
-        }
-        .login-backdrop.mounted { opacity: 1; }
-
-        .login-wrapper {
-          display: flex;
-          width: 780px;
-          max-width: 100%;
-          min-height: 480px;
-          max-height: 90vh;
-          border-radius: 24px;
-          overflow: hidden;
-          box-shadow: 0 32px 70px rgba(0,0,0,0.28);
-          transform: translateY(20px) scale(0.97);
-          transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-          position: relative;
-          background: #fff;
-        }
-        .login-backdrop.mounted .login-wrapper {
-          transform: translateY(0) scale(1);
-        }
-
-        .close-btn {
-          position: absolute;
-          top: 14px; right: 14px;
-          z-index: 10;
-          width: 30px; height: 30px;
-          border-radius: 50%;
-          background: rgba(0,0,0,0.08);
-          border: none;
-          cursor: pointer;
+        .lb {
+          position: fixed; inset: 0; z-index: 1000;
           display: flex; align-items: center; justify-content: center;
-          color: #374151;
-          font-size: 14px;
-          transition: background 0.2s;
+          padding: 16px;
+          background: rgba(0,0,0,0.52);
+          backdrop-filter: blur(6px);
+          opacity: 0; transition: opacity 0.22s ease;
         }
-        .close-btn:hover { background: rgba(0,0,0,0.15); }
+        .lb.on { opacity: 1; }
 
-        .left-panel {
-          flex: 1.1;
-          background: linear-gradient(145deg, #004d00 0%, #006400 40%, #1a8a1a 75%, #145214 100%);
-          padding: 52px 44px;
+        .lw {
           display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          position: relative;
-          overflow: hidden;
+          width: 760px; max-width: 100%;
+          /* Fixed height — no scroll needed */
+          height: 500px;
+          border-radius: 20px; overflow: hidden;
+          box-shadow: 0 32px 72px rgba(0,0,0,0.32);
+          transform: translateY(14px) scale(0.98);
+          transition: transform 0.32s cubic-bezier(0.34,1.4,0.64,1);
+          background: #fff; position: relative;
         }
-        .left-panel::before {
-          content: '';
-          position: absolute;
-          top: -80px; right: -80px;
-          width: 300px; height: 300px;
-          border-radius: 50%;
-          background: rgba(255,255,255,0.05);
+        .lb.on .lw { transform: translateY(0) scale(1); }
+
+        .x-btn {
+          position: absolute; top: 14px; right: 14px; z-index: 20;
+          width: 26px; height: 26px; border-radius: 50%;
+          background: rgba(0,0,0,0.07); border: none; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          color: #555; font-size: 12px; transition: background 0.15s;
         }
-        .left-panel::after {
-          content: '';
-          position: absolute;
-          bottom: -60px; left: -40px;
-          width: 220px; height: 220px;
-          border-radius: 50%;
+        .x-btn:hover { background: rgba(0,0,0,0.14); }
+
+        /* LEFT — fixed width, no overflow */
+        .lp {
+          flex: 0 0 260px;
+          background: linear-gradient(160deg,#003800 0%,#005c00 45%,#007000 80%,#003800 100%);
+          padding: 36px 30px;
+          display: flex; flex-direction: column; justify-content: space-between;
+          position: relative; overflow: hidden;
+        }
+        .lp::before {
+          content: ''; position: absolute; top: -70px; right: -70px;
+          width: 240px; height: 240px; border-radius: 50%;
+          background: rgba(255,255,255,0.06);
+        }
+        .lp::after {
+          content: ''; position: absolute; bottom: -50px; left: -30px;
+          width: 180px; height: 180px; border-radius: 50%;
           background: rgba(255,255,255,0.04);
         }
-        .orb { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.04); }
-        .orb-1 { width: 140px; height: 140px; top: 40%; left: 60%; }
-        .orb-2 { width: 80px; height: 80px; top: 20%; left: 15%; }
+        .lp-o { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.04); }
+        .lp-o1 { width: 100px; height: 100px; top: 42%; left: 55%; }
+        .lp-o2 { width: 60px; height: 60px; top: 16%; left: 8%; }
 
-        .left-logo {
-          display: flex; align-items: center; gap: 10px; z-index: 1;
-        }
-        .left-logo-badge {
-          width: 36px; height: 36px;
-          border-radius: 8px;
-          background: rgba(255,255,255,0.18);
-          border: 1px solid rgba(255,255,255,0.25);
+        .lp-logo { display: flex; align-items: center; gap: 9px; z-index: 1; }
+        .lp-box {
+          width: 30px; height: 30px; border-radius: 7px;
+          background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);
           display: flex; align-items: center; justify-content: center;
-          font-weight: 700; font-size: 13px; color: #fff;
+          font-weight: 700; font-size: 11px; color: #fff;
         }
-        .left-logo-text {
-          font-size: 13px; font-weight: 500;
-          color: rgba(255,255,255,0.8);
-          letter-spacing: 1.5px; text-transform: uppercase;
-        }
-        .left-content { z-index: 1; }
-        .left-heading {
-          font-family: 'Playfair Display', serif;
-          font-size: 36px; font-weight: 700;
-          color: #fff; line-height: 1.2; margin-bottom: 16px;
-        }
-        .left-desc {
-          font-size: 14px; color: rgba(255,255,255,0.65);
-          line-height: 1.7; max-width: 280px; font-weight: 300;
-        }
-        .left-footer {
-          z-index: 1; font-size: 12px;
-          color: rgba(255,255,255,0.35); font-weight: 300;
+        .lp-name { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.82); letter-spacing: 2px; text-transform: uppercase; }
+
+        .lp-body { z-index: 1; }
+        .lp-h { font-family: 'DM Serif Display', serif; font-size: 28px; color: #fff; line-height: 1.2; margin-bottom: 12px; }
+        .lp-p { font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.65; font-weight: 300; }
+        .lp-foot { z-index: 1; font-size: 10px; color: rgba(255,255,255,0.25); }
+
+        /* RIGHT — fixed, no scroll */
+        .rp {
+          flex: 1; background: #fff;
+          padding: 28px 34px 24px;
+          display: flex; flex-direction: column;
+          /* No overflow-y */
         }
 
-        .right-panel {
-          flex: 0.9;
-          background: #fff;
-          padding: 36px 40px 28px;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
+        /* Tabs */
+        .tabs {
+          display: flex; background: #f3f4f6;
+          border-radius: 9px; padding: 3px; margin-bottom: 20px; gap: 2px;
+          flex-shrink: 0;
         }
-
-        .toggle-row {
-          display: flex;
-          background: #f3f4f6;
-          border-radius: 10px;
-          padding: 4px;
-          margin-bottom: 32px;
-          gap: 4px;
-        }
-        .toggle-btn {
-          flex: 1; padding: 9px;
-          border: none; border-radius: 7px;
-          font-size: 13px; font-weight: 500;
-          cursor: pointer; transition: all 0.2s ease;
-          font-family: 'DM Sans', sans-serif;
+        .tab {
+          flex: 1; padding: 7px 4px; border: none; border-radius: 7px;
+          font-size: 12.5px; font-weight: 500; cursor: pointer;
+          transition: all 0.15s; font-family: 'DM Sans', sans-serif;
           background: transparent; color: #9ca3af;
         }
-        .toggle-btn.active {
-          background: #fff; color: #111827;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-        }
+        .tab.on { background: #fff; color: #111827; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
 
-        .right-eyebrow {
-          font-size: 11px; font-weight: 600;
-          letter-spacing: 2px; text-transform: uppercase;
-          color: #cc0000; margin-bottom: 8px;
-        }
-        .right-title {
-          font-family: 'Playfair Display', serif;
-          font-size: 26px; font-weight: 600;
-          color: #111827; margin-bottom: 6px;
-        }
-        .right-subtitle {
-          font-size: 13px; color: #9ca3af;
-          margin-bottom: 28px; font-weight: 300; line-height: 1.5;
-        }
+        .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #b91c1c; margin-bottom: 4px; flex-shrink: 0; }
+        .r-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: #111827; margin-bottom: 3px; flex-shrink: 0; }
+        .r-sub { font-size: 12.5px; color: #9ca3af; margin-bottom: 16px; font-weight: 300; line-height: 1.45; flex-shrink: 0; }
 
-        .divider-row {
-          display: flex; align-items: center; gap: 10px; margin: 12px 0;
+        /* Chips */
+        .chips {
+          display: inline-flex; border-radius: 999px; padding: 2px;
+          background: #f3f4f6; margin-bottom: 14px; gap: 2px; flex-shrink: 0;
         }
-        .or-divider {
-          display: flex; align-items: center; gap: 10px;
-          margin: 12px 0;
+        .chip {
+          border: none; border-radius: 999px; font-size: 10.5px;
+          padding: 5px 11px; cursor: pointer; background: transparent;
+          color: #6b7280; font-weight: 500; letter-spacing: 0.05em;
+          text-transform: uppercase; transition: all 0.13s; font-family: 'DM Sans', sans-serif;
         }
-        .divider-line { flex: 1; height: 1px; background: #e5e7eb; }
-        .divider-text {
-          font-size: 11px; color: #d1d5db;
-          letter-spacing: 1px; text-transform: uppercase;
-        }
+        .chip.on { background: #fff; color: #111827; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 
-        .google-btn {
-          display: flex; align-items: center; justify-content: center;
-          gap: 12px; width: 100%; padding: 13px 20px;
-          background: #fff; border: 1.5px solid #e5e7eb;
-          border-radius: 10px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 14px; font-weight: 500; color: #374151;
-          cursor: pointer; transition: all 0.2s ease;
-        }
-        .google-btn:hover {
-          border-color: #006400;
-          box-shadow: 0 4px 16px rgba(0,100,0,0.12);
-          transform: translateY(-1px);
-        }
-        .google-icon { width: 20px; height: 20px; }
-
-        .admin-form { display: flex; flex-direction: column; gap: 12px; }
-        .form-field { display: flex; flex-direction: column; gap: 6px; }
-        .form-label {
-          font-size: 12px; font-weight: 500;
-          color: #6b7280; letter-spacing: 0.5px;
-        }
-        .form-input {
-          padding: 11px 14px;
-          border: 1.5px solid #e5e7eb;
-          border-radius: 8px;
-          font-size: 14px;
-          font-family: 'DM Sans', sans-serif;
+        /* Form */
+        .fgrp { display: flex; flex-direction: column; gap: 9px; margin-bottom: 10px; }
+        .flabel { font-size: 11px; font-weight: 600; color: #6b7280; margin-bottom: 3px; display: block; }
+        .finput {
+          width: 100%; padding: 9px 12px;
+          border: 1.5px solid #e5e7eb; border-radius: 8px;
+          font-size: 13px; font-family: 'DM Sans', sans-serif;
           color: #111827; outline: none;
-          transition: border-color 0.2s;
-          background: #fff;
+          transition: border-color 0.15s, box-shadow 0.15s; background: #fff;
         }
-        .form-input:focus { border-color: #006400; }
-        .form-input:disabled { background: #f9fafb; color: #9ca3af; }
+        .finput:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.1); }
+        .finput:disabled { background: #f9fafb; color: #9ca3af; }
 
-        .admin-submit {
-          padding: 13px;
-          background: #006400; color: #fff;
-          border: none; border-radius: 8px;
-          font-size: 14px; font-weight: 600;
-          font-family: 'DM Sans', sans-serif;
-          cursor: pointer; transition: background 0.2s;
-          margin-top: 4px;
-        }
-        .admin-submit:hover:not(:disabled) { background: #004d00; }
-        .admin-submit:disabled { background: #9ca3af; cursor: not-allowed; }
+        .ferr { font-size: 11.5px; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; border-radius: 7px; padding: 7px 11px; margin-bottom: 8px; }
 
-        .admin-error {
-          font-size: 12px; color: #cc0000;
-          text-align: center;
-          padding: 8px 12px;
-          background: #fff5f5;
-          border-radius: 6px;
-          border: 1px solid #fecaca;
+        .sbtn {
+          width: 100%; padding: 10px; background: #16a34a; color: #fff;
+          border: none; border-radius: 8px; font-size: 13px; font-weight: 600;
+          font-family: 'DM Sans', sans-serif; cursor: pointer; transition: background 0.15s;
         }
+        .sbtn:hover:not(:disabled) { background: #15803d; }
+        .sbtn:disabled { background: #9ca3af; cursor: not-allowed; }
 
-        .right-note {
-          margin-top: 16px;
-          font-size: 11.5px; color: #d1d5db;
-          text-align: center; line-height: 1.6; font-weight: 300;
-        }
-        .right-note span { color: #cc0000; font-weight: 500; }
+        .divrow { display: flex; align-items: center; gap: 8px; margin: 10px 0; flex-shrink: 0; }
+        .divline { flex: 1; height: 1px; background: #e5e7eb; }
+        .divtxt { font-size: 10px; color: #d1d5db; letter-spacing: 1px; text-transform: uppercase; }
 
-        .section-title {
-          font-size: 12px;
-          font-weight: 600;
-          color: #6b7280;
-          text-transform: uppercase;
-          letter-spacing: 1.2px;
-          margin-bottom: 8px;
+        .gbtn {
+          display: flex; align-items: center; justify-content: center; gap: 10px;
+          width: 100%; padding: 10px 16px; background: #fff;
+          border: 1.5px solid #e2e8f0; border-radius: 8px;
+          font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+          color: #374151; cursor: pointer; transition: all 0.15s;
         }
+        .gbtn:hover:not(:disabled) { border-color: #16a34a; box-shadow: 0 2px 10px rgba(22,163,74,0.12); transform: translateY(-1px); }
+        .gbtn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-        .mode-toggle {
-          display: inline-flex;
-          border-radius: 999px;
-          padding: 2px;
-          background: #f3f4f6;
-          margin-bottom: 16px;
-          gap: 2px;
+        .rnote { margin-top: 10px; font-size: 10.5px; color: #c4c9d0; text-align: center; line-height: 1.5; flex-shrink: 0; }
+        .rnote b { color: #ef4444; font-weight: 500; }
+
+        /* Admin panel */
+        .admin-panel { display: flex; flex-direction: column; gap: 12px; flex: 1; justify-content: center; }
+        .admin-info {
+          background: linear-gradient(135deg,#f0fdf4,#dcfce7);
+          border: 1px solid #bbf7d0; border-radius: 10px;
+          padding: 14px 16px; text-align: center;
         }
-        .mode-chip {
-          border: none;
-          border-radius: 999px;
-          font-size: 11px;
-          padding: 6px 10px;
-          cursor: pointer;
-          background: transparent;
-          color: #6b7280;
-          font-weight: 500;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-          transition: all 0.15s ease;
-        }
-        .mode-chip.active {
-          background: #ffffff;
-          color: #111827;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        .admin-info-title { font-size: 12.5px; font-weight: 600; color: #14532d; margin-bottom: 7px; }
+        .admin-info-emails { font-size: 11px; color: #166534; line-height: 1.9; }
+        .admin-info-emails span {
+          display: inline-block; background: #fff; border: 1px solid #86efac;
+          border-radius: 20px; padding: 1px 9px; margin: 2px 2px;
+          font-family: 'DM Sans', monospace; font-size: 10.5px;
         }
 
-        @media (max-width: 820px) {
-          .login-wrapper { flex-direction: column; width: 95vw; max-height: 95vh; }
-          .left-panel { padding: 32px 26px; min-height: 180px; }
-          .left-heading { font-size: 26px; }
-          .right-panel { padding: 32px 24px 26px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 680px) {
+          .lp { display: none; }
+          .rp { padding: 24px 22px 18px; }
+          .lw { width: 95vw; height: auto; max-height: 90vh; }
         }
       `}</style>
 
-      <div
-        className={`login-backdrop ${mounted ? "mounted" : ""}`}
-        onClick={handleBackdropClick}
-      >
-        <div className="login-wrapper">
-          {onClose && (
-            <button className="close-btn" onClick={onClose} aria-label="Close">
-              ✕
-            </button>
-          )}
+      <div className={`lb ${mounted ? "on" : ""}`} onClick={handleBackdropClick}>
+        <div className="lw">
+          {onClose && <button className="x-btn" onClick={onClose}>✕</button>}
 
           {/* LEFT */}
-          <div className="left-panel">
-            <div className="orb orb-1" />
-            <div className="orb orb-2" />
-            <div className="left-logo">
-              <div className="left-logo-badge">CT</div>
-              <span className="left-logo-text">CITE-TMS</span>
+          <div className="lp">
+            <div className="lp-o lp-o1" /><div className="lp-o lp-o2" />
+            <div className="lp-logo">
+              <div className="lp-box">CT</div>
+              <span className="lp-name">CITE-TMS</span>
             </div>
-            <div className="left-content">
-              <h1 className="left-heading">
-                Research.<br />
-                Discover.<br />
-                Innovate.
-              </h1>
-              <p className="left-desc">
-                Access the De La Salle Lipa thesis repository — a curated
-                archive of academic research from the CITE department.
-              </p>
+            <div className="lp-body">
+              <h1 className="lp-h">Research.<br />Discover.<br />Innovate.</h1>
+              <p className="lp-p">Access the De La Salle Lipa thesis repository — a curated archive of academic research from the CITE department.</p>
             </div>
-            <div className="left-footer">
-              © {new Date().getFullYear()} De La Salle Lipa · CITE Department
-            </div>
+            <div className="lp-foot">© {new Date().getFullYear()} De La Salle Lipa · CITE</div>
           </div>
 
           {/* RIGHT */}
-          <div className="right-panel">
-            <div className="toggle-row">
-              <button
-                className={`toggle-btn ${
-                  accountType === "student" ? "active" : ""
-                }`}
-                onClick={() => {
-                  setAccountType("student");
-                  setAdminError("");
-                }}
-              >
-                Student
-              </button>
-              <button
-                className={`toggle-btn ${
-                  accountType === "author" ? "active" : ""
-                }`}
-                onClick={() => {
-                  setAccountType("author");
-                  setAdminError("");
-                }}
-              >
-                Author
-              </button>
-              <button
-                className={`toggle-btn ${
-                  accountType === "admin" ? "active" : ""
-                }`}
-                onClick={() => {
-                  setAccountType("admin");
-                  setAdminError("");
-                }}
-              >
-                Admin
-              </button>
+          <div className="rp">
+            <div className="tabs">
+              {["student","author","admin"].map(t => (
+                <button key={t} className={`tab ${accountType===t?"on":""}`}
+                  onClick={() => { setAccountType(t); setAdminError(""); setLoginError(""); setNewError(""); }}>
+                  {t[0].toUpperCase()+t.slice(1)}
+                </button>
+              ))}
             </div>
 
-            <p className="right-eyebrow">
-              {accountType === "admin"
-                ? "Admin Portal"
-                : accountType === "author"
-                ? "Author Portal"
-                : "Student Portal"}
-            </p>
-            <h2 className="right-title">
-              {accountType === "admin"
-                ? "Admin Sign In"
-                : "Welcome to CITE-TMS"}
-            </h2>
-            <p className="right-subtitle">
-              {accountType === "admin"
-                ? "Use your admin credentials or sign in with Google."
-                : "Sign in to access the research repository, or create a new account."}
-            </p>
-
-            <div style={{ display: "flex", justifyContent: "flex-start" }}>
-              <div className="mode-toggle">
-                <button
-                  type="button"
-                  className={`mode-chip ${authMode === "existing" ? "active" : ""}`}
-                  onClick={() => setAuthMode("existing")}
-                >
-                  Existing user
-                </button>
-                <button
-                  type="button"
-                  className={`mode-chip ${authMode === "new" ? "active" : ""}`}
-                  onClick={() => setAuthMode("new")}
-                >
-                  New user
-                </button>
-              </div>
+            <div className="eyebrow">
+              {accountType==="admin" ? "Admin Portal" : accountType==="author" ? "Author Portal" : "Student Portal"}
+            </div>
+            <div className="r-title">
+              {accountType==="admin" ? "Admin Sign In" : "Welcome back"}
+            </div>
+            <div className="r-sub">
+              {accountType==="admin"
+                ? "Use your authorized Google account to continue."
+                : "Sign in to access the research repository."}
             </div>
 
-            {authMode === "new" ? (
-              <div>
-                <div className="section-title">Create account</div>
-                <form onSubmit={handleSignup} className="admin-form">
-                  <div className="form-field">
-                    <label className="form-label">Name</label>
-                    <input
-                      className="form-input"
-                      type="text"
-                      placeholder="Full name"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      disabled={newLoading}
-                    />
+            {/* ── ADMIN ── */}
+            {accountType === "admin" ? (
+              <div className="admin-panel">
+                <div className="admin-info">
+                  <div className="admin-info-title">🔐 Authorized accounts only</div>
+                  <div className="admin-info-emails">
+                    {ALLOWED_ADMIN_EMAILS.map(e => <span key={e}>{e}</span>)}
                   </div>
-                  <div className="form-field">
-                    <label className="form-label">Gmail</label>
-                    <input
-                      className="form-input"
-                      type="email"
-                      placeholder="you@dlsl.edu.ph"
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                      disabled={newLoading}
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label className="form-label">Password</label>
-                    <input
-                      className="form-input"
-                      type="password"
-                      placeholder="Create a password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      disabled={newLoading}
-                    />
-                  </div>
-                  {newError && <p className="admin-error">{newError}</p>}
-                  <button
-                    type="submit"
-                    className="admin-submit"
-                    disabled={
-                      newLoading ||
-                      !newName.trim() ||
-                      !newEmail.trim() ||
-                      !newPassword
-                    }
-                  >
-                    {newLoading ? "Creating account..." : "Create Account"}
-                  </button>
-                </form>
-
-                <div className="or-divider">
-                  <div className="divider-line" />
-                  <span className="divider-text">or</span>
-                  <div className="divider-line" />
                 </div>
 
-                <div className="divider-row">
-                  <div className="divider-line" />
-                  <span className="divider-text">Continue with</span>
-                  <div className="divider-line" />
-                </div>
-                <button
-                  className="google-btn"
-                  onClick={
-                    accountType === "admin"
-                      ? handleAdminGoogleLogin
-                      : handleGoogleLogin
-                  }
-                >
-                  <img
-                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                    alt="Google"
-                    className="google-icon"
-                  />
-                  Sign up with Google
-                </button>
+                {adminError && <div className="ferr">{adminError}</div>}
 
-                {accountType === "admin" ? (
-                  <p className="right-note">
-                    Only authorized <span>admin accounts</span> are permitted.
-                  </p>
-                ) : (
-                  <p className="right-note">
-                    Only <span>@dlsl.edu.ph</span> accounts are authorized.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div>
-                <div className="section-title">Sign in</div>
-                <form
-                  onSubmit={
-                    accountType === "admin"
-                      ? handleAdminLogin
-                      : handlePasswordLogin
-                  }
-                  className="admin-form"
-                >
-                  <div className="form-field">
-                    <label className="form-label">Email</label>
-                    <input
-                      className="form-input"
-                      type="email"
-                      placeholder={
-                        accountType === "admin"
-                          ? "admin@dlsl.edu.ph"
-                          : "you@dlsl.edu.ph"
-                      }
-                      value={accountType === "admin" ? adminEmail : loginEmail}
-                      onChange={(e) =>
-                        accountType === "admin"
-                          ? setAdminEmail(e.target.value)
-                          : setLoginEmail(e.target.value)
-                      }
-                      disabled={
-                        accountType === "admin" ? adminLoading : loginLoading
-                      }
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label className="form-label">Password</label>
-                    <input
-                      className="form-input"
-                      type="password"
-                      placeholder="••••••••"
-                      value={
-                        accountType === "admin"
-                          ? adminPassword
-                          : loginPassword
-                      }
-                      onChange={(e) =>
-                        accountType === "admin"
-                          ? setAdminPassword(e.target.value)
-                          : setLoginPassword(e.target.value)
-                      }
-                      disabled={
-                        accountType === "admin" ? adminLoading : loginLoading
-                      }
-                      onKeyDown={(e) =>
-                        e.key === "Enter" &&
-                        (accountType === "admin"
-                          ? handleAdminLogin(e)
-                          : handlePasswordLogin(e))
-                      }
-                    />
-                  </div>
-                  {(accountType === "admin" ? adminError : loginError) && (
-                    <p className="admin-error">
-                      {accountType === "admin" ? adminError : loginError}
-                    </p>
+                <button className="gbtn" onClick={handleAdminGoogleLogin} disabled={adminLoading}>
+                  {adminLoading ? (
+                    <div style={{width:16,height:16,borderRadius:"50%",border:"2px solid #e2e8f0",borderTopColor:"#16a34a",animation:"spin 0.8s linear infinite"}} />
+                  ) : (
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width={17} height={17} alt="G" />
                   )}
-                  <button
-                    type="submit"
-                    className="admin-submit"
-                    disabled={
-                      accountType === "admin"
-                        ? adminLoading || !adminEmail || !adminPassword
-                        : loginLoading || !loginEmail || !loginPassword
-                    }
-                  >
-                    {accountType === "admin"
-                      ? adminLoading
-                        ? "Signing in..."
-                        : "Sign In as Admin"
-                      : loginLoading
-                      ? "Signing in..."
-                      : "Sign In"}
-                  </button>
-                </form>
-
-                <div className="or-divider">
-                  <div className="divider-line" />
-                  <span className="divider-text">or</span>
-                  <div className="divider-line" />
-                </div>
-
-                <div className="divider-row">
-                  <div className="divider-line" />
-                  <span className="divider-text">Continue with</span>
-                  <div className="divider-line" />
-                </div>
-                <button
-                  className="google-btn"
-                  onClick={
-                    accountType === "admin"
-                      ? handleAdminGoogleLogin
-                      : handleGoogleLogin
-                  }
-                >
-                  <img
-                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                    alt="Google"
-                    className="google-icon"
-                  />
-                  Sign in with Google
+                  {adminLoading ? "Redirecting…" : "Sign in with Google"}
                 </button>
 
-                {accountType === "admin" ? (
-                  <p className="right-note">
-                    Only authorized <span>admin accounts</span> are permitted.
-                  </p>
-                ) : (
-                  <p className="right-note">
-                    Only <span>@dlsl.edu.ph</span> accounts are authorized.
-                  </p>
-                )}
+                <p className="rnote">Only the accounts listed above can access the admin panel.</p>
               </div>
+
+            ) : (
+              /* ── STUDENT / AUTHOR ── */
+              <>
+                <div className="chips">
+                  <button className={`chip ${authMode==="existing"?"on":""}`} onClick={() => setAuthMode("existing")}>Sign in</button>
+                  <button className={`chip ${authMode==="new"?"on":""}`} onClick={() => setAuthMode("new")}>Create account</button>
+                </div>
+
+                {authMode === "new" ? (
+                  <form onSubmit={handleSignup} style={{display:"flex",flexDirection:"column",flex:1}}>
+                    <div className="fgrp">
+                      <div>
+                        <label className="flabel">Full name</label>
+                        <input className="finput" type="text" placeholder="Juan dela Cruz"
+                          value={newName} onChange={e=>setNewName(e.target.value)} disabled={newLoading} />
+                      </div>
+                      <div>
+                        <label className="flabel">Email</label>
+                        <input className="finput" type="email" placeholder="you@dlsl.edu.ph"
+                          value={newEmail} onChange={e=>setNewEmail(e.target.value)} disabled={newLoading} />
+                      </div>
+                      <div>
+                        <label className="flabel">Password</label>
+                        <input className="finput" type="password" placeholder="Create a password"
+                          value={newPassword} onChange={e=>setNewPassword(e.target.value)} disabled={newLoading} />
+                      </div>
+                    </div>
+                    {newError && <div className="ferr">{newError}</div>}
+                    <button className="sbtn" type="submit" disabled={newLoading||!newName.trim()||!newEmail.trim()||!newPassword}>
+                      {newLoading ? "Creating…" : "Create Account"}
+                    </button>
+                    <div className="divrow"><div className="divline"/><span className="divtxt">or</span><div className="divline"/></div>
+                    <button className="gbtn" type="button" onClick={handleGoogleLogin}>
+                      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width={17} height={17} alt="G" />
+                      Sign up with Google
+                    </button>
+                    <p className="rnote">Only <b>@dlsl.edu.ph</b> accounts are authorized.</p>
+                  </form>
+                ) : (
+                  <form onSubmit={handlePasswordLogin} style={{display:"flex",flexDirection:"column",flex:1}}>
+                    <div className="fgrp">
+                      <div>
+                        <label className="flabel">Email</label>
+                        <input className="finput" type="email" placeholder="you@dlsl.edu.ph"
+                          value={loginEmail} onChange={e=>setLoginEmail(e.target.value)} disabled={loginLoading} />
+                      </div>
+                      <div>
+                        <label className="flabel">Password</label>
+                        <input className="finput" type="password" placeholder="••••••••"
+                          value={loginPassword} onChange={e=>setLoginPassword(e.target.value)} disabled={loginLoading} />
+                      </div>
+                    </div>
+                    {loginError && <div className="ferr">{loginError}</div>}
+                    <button className="sbtn" type="submit" disabled={loginLoading||!loginEmail||!loginPassword}>
+                      {loginLoading ? "Signing in…" : "Sign In"}
+                    </button>
+                    <div className="divrow"><div className="divline"/><span className="divtxt">or</span><div className="divline"/></div>
+                    <button className="gbtn" type="button" onClick={handleGoogleLogin}>
+                      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width={17} height={17} alt="G" />
+                      Sign in with Google
+                    </button>
+                    <p className="rnote">Only <b>@dlsl.edu.ph</b> accounts are authorized.</p>
+                  </form>
+                )}
+              </>
             )}
           </div>
         </div>

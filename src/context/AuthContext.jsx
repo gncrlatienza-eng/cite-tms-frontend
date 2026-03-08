@@ -3,7 +3,10 @@ import { supabase } from '../services/supabase';
 
 const AuthContext = createContext(null);
 
-const ALLOWED_ADMIN_EMAILS = ['cite.tms.admin@dlsl.edu.ph'];
+const ALLOWED_ADMIN_EMAILS = [
+  'cite.tms.admin@dlsl.edu.ph',
+  'gncrlatienza@gmail.com',
+];
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -35,16 +38,22 @@ export function AuthProvider({ children }) {
 
       const email = session.user.email;
 
-      // ✅ DLSL students — trust immediately, fetch profile in background
-      if (email.endsWith('@dlsl.edu.ph')) {
+      // ✅ If we're on the callback page, do NOT interfere — AuthCallback handles everything
+      if (window.location.pathname === '/auth/callback') {
+        console.log('[AuthContext] On callback page — skipping validation');
         setUser(session.user);
-        // Don't await — fetch profile in background so UI unblocks immediately
+        return;
+      }
+
+      // ✅ Admin emails — allow
+      if (ALLOWED_ADMIN_EMAILS.includes(email)) {
+        setUser(session.user);
         fetchProfile(session.user);
         return;
       }
 
-      // Admin check
-      if (ALLOWED_ADMIN_EMAILS.includes(email)) {
+      // ✅ DLSL students — allow
+      if (email.endsWith('@dlsl.edu.ph')) {
         setUser(session.user);
         fetchProfile(session.user);
         return;
@@ -63,7 +72,6 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    // ✅ Reduced from 3000ms to 1000ms — unblocks UI faster
     const timeout = setTimeout(() => {
       console.warn('Auth timeout — forcing loading to false');
       setLoading(false);
@@ -106,36 +114,25 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{ user, profile, logout, loading }}>
       {loading ? (
         <div style={{
-          position: 'fixed',
-          inset: 0,
-          width: '100vw',
-          height: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          position: 'fixed', inset: 0,
+          width: '100vw', height: '100vh',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: 'radial-gradient(circle at top, #f0fdf4 0, #ffffff 52%)',
           zIndex: 9999
         }}>
           <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '10px',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: '10px',
             fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
           }}>
             <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              border: '3px solid #bbf7d0',
-              borderTopColor: '#166534',
+              width: '36px', height: '36px', borderRadius: '50%',
+              border: '3px solid #bbf7d0', borderTopColor: '#166534',
               animation: 'spin 0.9s ease-in-out infinite'
             }} />
             <div style={{
-              fontSize: '13px',
-              color: '#4b5563',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
+              fontSize: '13px', color: '#4b5563',
+              letterSpacing: '0.08em', textTransform: 'uppercase',
               animation: 'fadePulse 1.4s ease-in-out infinite'
             }}>
               Loading CITE‑TMS
