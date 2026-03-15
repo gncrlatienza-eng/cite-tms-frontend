@@ -24,10 +24,9 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
 h1 {
@@ -74,12 +73,11 @@ html, body, #root {
   overscroll-behavior-x: none; /* avoid horizontal bounce */
   overscroll-behavior-y: contain; /* prevent pull-to-refresh / rubber-band on supported browsers */
   overflow-x: hidden; /* guard against horizontal overflow */
-  overflow-y: hidden;
 }
 
 /* iOS Safari: move scrolling into the root element to avoid rubber-band bounce */
 @supports (-webkit-overflow-scrolling: touch) {
-  html, body { height: 100%; overflow: hidden; }
+  html, body { height: 100%; overflow-x: hidden; overflow-y: auto; }
   #root { height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
 }
 
