@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { Link } from "react-router-dom";           // ← ADDED
 import Navbar from "../../components/layout/Navbar";
 import LoginPage from "./LoginPage";
 import { supabase } from "../../services/supabase";
@@ -32,11 +33,9 @@ export default function PapersPage() {
   const [fromYear, setFromYear]     = useState("");
   const [toYear, setToYear]         = useState("");
 
-  // bookmarks: Set of bookmarked paper IDs
   const [bookmarked, setBookmarked]   = useState(new Set());
-  // map of paper_id → bookmark row id (needed for deletion)
   const [bookmarkIds, setBookmarkIds] = useState({});
-  const [bmLoading, setBmLoading]     = useState(new Set()); // paper IDs currently toggling
+  const [bmLoading, setBmLoading]     = useState(new Set());
 
   // ── fetch papers ──────────────────────────────────────────
   useEffect(() => {
@@ -153,7 +152,6 @@ export default function PapersPage() {
 
         .sp-page { min-height:100vh; background:#f8f9fa; font-family:'DM Sans',system-ui,sans-serif; }
 
-        /* ── Hero ── */
         .sp-hero { background:#fff; border-bottom:1px solid #e8eaed; padding:18px 0 0; }
         .sp-hero-inner { padding:0 40px; }
 
@@ -202,10 +200,8 @@ export default function PapersPage() {
         .sp-tab.active { color:#1a73e8; border-bottom-color:#1a73e8; }
         .sp-tab:hover { color:#202124; }
 
-        /* ── Body ── */
         .sp-body { padding:24px 40px 60px; display:grid; grid-template-columns:180px 1fr; gap:40px; }
 
-        /* ── Sidebar ── */
         .sp-sidebar { padding-top:2px; }
         .sp-sb-section { margin-bottom:20px; }
         .sp-sb-label {
@@ -247,7 +243,6 @@ export default function PapersPage() {
         .sp-check-row:hover { background:#f1f3f4; }
         .sp-check-row input[type="checkbox"] { accent-color:#1a73e8; width:14px; height:14px; cursor:pointer; }
 
-        /* ── Results ── */
         .sp-results-meta { font-size:13px; color:#70757a; margin-bottom:14px; }
         .sp-results-meta strong { color:#202124; }
 
@@ -259,6 +254,7 @@ export default function PapersPage() {
         @keyframes spFadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
         .sp-result-main { flex:1; min-width:0; }
 
+        /* ── CHANGED: title now styles as a React Router Link ── */
         .sp-result-title {
           font-size:17px; font-family:'DM Serif Display',serif; color:#1a0dab;
           text-decoration:none; line-height:1.35; display:block; margin-bottom:3px;
@@ -290,7 +286,6 @@ export default function PapersPage() {
         .sp-action-link:hover { color:#1557b0; text-decoration:underline; }
         .sp-action-muted { font-size:12.5px; color:#9aa0a6; }
 
-        /* ── Bookmark button ── */
         .sp-bm-btn {
           display:inline-flex; align-items:center; gap:5px;
           font-size:12.5px; font-weight:500;
@@ -303,8 +298,6 @@ export default function PapersPage() {
         .sp-bm-btn.saved { color:#1a73e8; }
         .sp-bm-btn.saved:hover { color:#b91c1c; }
         .sp-bm-btn:disabled { opacity:.45; cursor:default; }
-
-        /* bookmark icon fill animation */
         .sp-bm-icon { transition:fill 0.15s, stroke 0.15s; }
 
         .sp-pdf-tile {
@@ -318,7 +311,6 @@ export default function PapersPage() {
         .sp-pdf-tile:hover { box-shadow:0 2px 8px rgba(32,33,36,.15); border-color:#1a73e8; }
         .sp-pdf-src { font-size:9px; color:#70757a; max-width:66px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-        /* skeleton */
         .sp-skel-card { padding:16px 0; border-bottom:1px solid #e8eaed; }
         .sp-skel {
           border-radius:4px;
@@ -472,18 +464,16 @@ export default function PapersPage() {
             )}
 
             {!loading && !error && displayed.map((paper, i) => {
-              const isSaved   = bookmarked.has(paper.id);
-              const isBusy    = bmLoading.has(paper.id);
+              const isSaved = bookmarked.has(paper.id);
+              const isBusy  = bmLoading.has(paper.id);
               return (
                 <article className="sp-result" key={paper.id} style={{ animationDelay: `${i * 0.035}s` }}>
                   <div className="sp-result-main">
-                    <a href={paper.publicUrl || "#"}
-                      target={paper.publicUrl && user ? "_blank" : undefined}
-                      rel={paper.publicUrl && user ? "noopener noreferrer" : undefined}
-                      className="sp-result-title"
-                      onClick={(e) => paper.publicUrl && handlePdfClick(e)}>
+
+                    {/* ── CHANGED: was <a href={publicUrl}>, now routes to detail page ── */}
+                    <Link to={`/papers/${paper.id}`} className="sp-result-title">
                       {paper.title || "Untitled paper"}
-                    </a>
+                    </Link>
 
                     <div className="sp-result-meta">
                       {paper.authors?.length > 0 && <span>{paper.authors.join(", ")}</span>}
@@ -519,7 +509,6 @@ export default function PapersPage() {
                         </a>
                       )}
 
-                      {/* ── Bookmark toggle ── */}
                       <button
                         className={`sp-bm-btn${isSaved ? " saved" : ""}`}
                         disabled={isBusy}

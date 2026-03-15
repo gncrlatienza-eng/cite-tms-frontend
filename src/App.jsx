@@ -3,6 +3,7 @@ import LandingPage from "./pages/public/LandingPage";
 import LoginPage from "./pages/public/LoginPage";
 import AuthCallback from "./pages/public/AuthCallback";
 import PapersPage from "./pages/public/PapersPage";
+import ResearchDetails from "./pages/public/ResearchDetails";  // ← ADDED
 import ProfilePage from "./pages/protected/ProfilePage";
 import BookmarksPage from "./pages/protected/BookmarksPage";
 import RequestsPage from "./pages/protected/RequestsPage";
@@ -10,11 +11,9 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminRoute from "./routes/AdminRoute";
 import { useAuth } from "./context/AuthContext";
 
-// Wraps public pages — if logged-in admin visits them, redirect to dashboard
 function PublicRoute({ children }) {
   const { user, profile, loading } = useAuth();
   if (loading) return null;
-  // If user is logged in and their profile role is admin, send to dashboard
   if (user && profile?.role === "admin") {
     return <Navigate to="/admin/dashboard" replace />;
   }
@@ -28,6 +27,7 @@ function App() {
       <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/papers" element={<PublicRoute><PapersPage /></PublicRoute>} />
+      <Route path="/papers/:id" element={<PublicRoute><ResearchDetails /></PublicRoute>} />  {/* ← ADDED */}
 
       {/* Auth callback — no redirect wrapper, handles its own logic */}
       <Route path="/auth/callback" element={<AuthCallback />} />
