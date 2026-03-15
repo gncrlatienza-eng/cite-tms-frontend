@@ -27,6 +27,7 @@ const styles = {
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
+    marginTop: "-170px", // Pull up the content to be more centered with the navbar
 
     // Aesthetic
     backgroundColor: "#ffffff",
