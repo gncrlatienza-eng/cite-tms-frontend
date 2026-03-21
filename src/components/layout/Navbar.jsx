@@ -79,16 +79,37 @@ export default function Navbar({ onLoginClick }) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
 
+        .nb-nav-link {
+          background: none; border: none; cursor: pointer;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 13px; font-weight: 500; color: #6b7280;
+          padding: 6px 10px; border-radius: 8px;
+          transition: color 0.15s, background 0.15s;
+          display: flex; align-items: center; gap: 6px;
+          white-space: nowrap;
+        }
+        .nb-nav-link:hover { color: #111827; background: #f9fafb; }
+        .nb-nav-link:active { background: #f3f4f6; }
+
+        .nb-signin-btn {
+          background: none; border: 1.5px solid #e5e7eb;
+          color: #374151; font-weight: 600; font-size: 13px;
+          font-family: 'DM Sans', sans-serif;
+          padding: 7px 18px; border-radius: 50px; cursor: pointer;
+          transition: border-color 0.15s, color 0.15s, background 0.15s;
+        }
+        .nb-signin-btn:hover { border-color: #9b0000; color: #9b0000; background: #fef2f2; }
+
         .nb-avatar-img {
           width: 30px; height: 30px; border-radius: 50%;
           object-fit: cover; border: 2px solid #e5e7eb; flex-shrink: 0;
         }
         .nb-avatar-initials {
           width: 30px; height: 30px; border-radius: 50%;
-          background: #006400; color: #fff;
+          background: #9b0000; color: #fff;
           font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
           display: flex; align-items: center; justify-content: center;
-          border: 2px solid #d1fae5; flex-shrink: 0;
+          border: 2px solid #fecaca; flex-shrink: 0;
           font-family: 'DM Sans', sans-serif;
         }
         .nb-user-btn {
@@ -98,7 +119,7 @@ export default function Navbar({ onLoginClick }) {
           cursor: pointer; transition: all 0.2s ease;
           font-family: 'DM Sans', sans-serif;
         }
-        .nb-user-btn:hover { border-color: #006400; background: #f0faf0; }
+        .nb-user-btn:hover { border-color: #9b0000; background: #fef2f2; }
         .nb-user-name {
           font-size: 13px; font-weight: 500; color: #374151;
           max-width: 110px; overflow: hidden;
@@ -148,6 +169,11 @@ export default function Navbar({ onLoginClick }) {
         .nb-dropdown-item.danger { color: #dc2626; }
         .nb-dropdown-item.danger:hover { background: #fff5f5; }
         .nb-divider { height: 1px; background: #f3f4f6; }
+
+        .nb-logo-btn:hover .nb-logo-box {
+          transform: scale(1.08);
+          box-shadow: 0 4px 14px rgba(155,0,0,0.35);
+        }
 
         .nb-modal-backdrop {
           position: fixed;
@@ -214,26 +240,27 @@ export default function Navbar({ onLoginClick }) {
 
       <nav style={styles.nav}>
         <div style={styles.leftSection}>
+          {/* Logo — links to landing page */}
+          <button
+            type="button"
+            className="nb-logo-btn"
+            style={styles.logoButton}
+            onClick={() => navigate('/')}
+            aria-label="Go to home"
+          >
+            <div className="nb-logo-box" style={styles.logoPlaceholder}>
+              <span style={styles.logoText}>CITE</span>
+            </div>
+          </button>
+
           <div style={styles.links}>
-            <button
-              type="button"
-              style={styles.linkButton}
-              onClick={() => handleNavClick('papers')}
-            >
+            <button type="button" className="nb-nav-link" onClick={() => handleNavClick('papers')}>
               Papers
             </button>
-            <button
-              type="button"
-              style={styles.linkButton}
-              onClick={() => handleNavClick('bookmark')}
-            >
+            <button type="button" className="nb-nav-link" onClick={() => handleNavClick('bookmark')}>
               Bookmark
             </button>
-            <button
-              type="button"
-              style={styles.linkButton}
-              onClick={() => handleNavClick('requests')}
-            >
+            <button type="button" className="nb-nav-link" onClick={() => handleNavClick('requests')}>
               Requests
             </button>
           </div>
@@ -292,8 +319,8 @@ export default function Navbar({ onLoginClick }) {
               )}
             </>
           ) : (
-            <button style={styles.signInButton} onClick={onLoginClick}>
-              SIGN IN
+            <button className="nb-signin-btn" onClick={onLoginClick}>
+              Sign in
             </button>
           )}
         </div>
@@ -342,22 +369,24 @@ const styles = {
     borderBottom: '1px solid #ebebeb', width: '100%', boxSizing: 'border-box',
   },
   leftSection: { display: 'flex', alignItems: 'center', gap: '20px' },
-  links: { display: 'flex', gap: '25px' },
-  link: {
-    textDecoration: 'none', color: '#5f6368', fontSize: '13px',
-    display: 'flex', alignItems: 'center', gap: '8px',
+  logoButton: {
+    background: 'none', border: 'none', padding: 0,
+    cursor: 'pointer', display: 'flex', alignItems: 'center',
+    marginRight: '8px',
   },
-  linkButton: {
-    textDecoration: 'none', color: '#5f6368', fontSize: '13px',
-    display: 'flex', alignItems: 'center', gap: '8px',
-    background: 'none',
-    border: 'none',
-    padding: 0,
-    cursor: 'pointer',
+  logoPlaceholder: {
+    width: '36px', height: '36px', borderRadius: '10px',
+    background: 'linear-gradient(135deg, #9b0000, #c0392b)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    boxShadow: '0 2px 8px rgba(155,0,0,0.25)',
+    flexShrink: 0,
+    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
   },
+  logoText: {
+    color: '#fff', fontSize: '9px', fontWeight: '800',
+    letterSpacing: '0.5px', fontFamily: "'DM Sans', sans-serif",
+    userSelect: 'none',
+  },
+  links: { display: 'flex', gap: '4px' },
   rightSection: { display: 'flex', alignItems: 'center' },
-  signInButton: {
-    background: 'none', border: 'none', color: '#5f6368',
-    fontWeight: '500', fontSize: '13px', cursor: 'pointer', padding: '5px 10px',
-  },
 };

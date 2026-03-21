@@ -3,6 +3,7 @@ import LandingPage from "./pages/public/LandingPage";
 import LoginPage from "./pages/public/LoginPage";
 import AuthCallback from "./pages/public/AuthCallback";
 import PapersPage from "./pages/public/PapersPage";
+import PaperPreviewPage from "./pages/public/PaperPreviewPage";
 import ProfilePage from "./pages/protected/ProfilePage";
 import BookmarksPage from "./pages/protected/BookmarksPage";
 import RequestsPage from "./pages/protected/RequestsPage";
@@ -28,6 +29,7 @@ function App() {
       <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/papers" element={<PublicRoute><PapersPage /></PublicRoute>} />
+      <Route path="/papers/:id" element={<PaperPreviewPage />} />
 
       {/* Auth callback — no redirect wrapper, handles its own logic */}
       <Route path="/auth/callback" element={<AuthCallback />} />

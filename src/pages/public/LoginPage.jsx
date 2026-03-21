@@ -89,7 +89,7 @@ export default function LoginPage({ onClose }) {
         /* ── LEFT ── */
         .lp {
           flex:0 0 240px;
-          background:linear-gradient(160deg,#003800 0%,#005c00 45%,#007000 80%,#003800 100%);
+          background:linear-gradient(160deg,#3b0000 0%,#5c0000 45%,#7a0000 80%,#3b0000 100%);
           padding:32px 26px;
           display:flex; flex-direction:column; justify-content:space-between;
           position:relative; overflow:hidden;
@@ -150,19 +150,19 @@ export default function LoginPage({ onClose }) {
           font-family:'DM Sans',sans-serif; font-size:13.5px; font-weight:500;
           color:#374151; cursor:pointer; transition:all 0.15s;
         }
-        .gbtn:hover:not(:disabled) { border-color:#16a34a; box-shadow:0 2px 12px rgba(22,163,74,0.14); transform:translateY(-1px); }
+        .gbtn:hover:not(:disabled) { border-color:#9b0000; box-shadow:0 2px 12px rgba(155,0,0,0.14); transform:translateY(-1px); }
         .gbtn:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
 
         .ferr { font-size:11.5px; color:#dc2626; background:#fef2f2; border:1px solid #fecaca; border-radius:7px; padding:7px 11px; }
 
         .rnote { font-size:11px; color:#b0b7c3; text-align:center; line-height:1.55; }
-        .rnote b { color:#16a34a; font-weight:600; }
+        .rnote b { color:#9b0000; font-weight:600; }
 
         .info-box {
-          background:#f0fdf4; border:1px solid #bbf7d0;
+          background:#fef2f2; border:1px solid #fecaca;
           border-radius:10px; padding:12px 14px;
         }
-        .info-box-text { font-size:11.5px; color:#166534; line-height:1.6; }
+        .info-box-text { font-size:11.5px; color:#991b1b; line-height:1.6; }
         .info-box-text strong { font-weight:600; }
 
         @keyframes spin { to { transform:rotate(360deg); } }
@@ -223,7 +223,7 @@ export default function LoginPage({ onClose }) {
                 onClick={accountType === "admin" ? handleAdminGoogleLogin : handleGoogleLogin}
                 disabled={adminLoading}>
                 {adminLoading
-                  ? <div style={{width:16,height:16,borderRadius:"50%",border:"2px solid #e2e8f0",borderTopColor:"#16a34a",animation:"spin 0.8s linear infinite"}} />
+                  ? <div style={{width:16,height:16,borderRadius:"50%",border:"2px solid #e2e8f0",borderTopColor:"#9b0000",animation:"spin 0.8s linear infinite"}} />
                   : <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width={18} height={18} alt="G" />}
                 {adminLoading ? "Redirecting…" : portal.btnLabel}
               </button>
