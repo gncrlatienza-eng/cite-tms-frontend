@@ -4,6 +4,7 @@ import LoginPage from "./pages/public/LoginPage";
 import AuthCallback from "./pages/public/AuthCallback";
 import PapersPage from "./pages/public/PapersPage";
 import PaperPreviewPage from "./pages/public/PaperPreviewPage";
+import ResearchDetails from "./pages/public/ResearchDetails";  // ← ADDED
 import ProfilePage from "./pages/protected/ProfilePage";
 import BookmarksPage from "./pages/protected/BookmarksPage";
 import RequestsPage from "./pages/protected/RequestsPage";
@@ -11,11 +12,9 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminRoute from "./routes/AdminRoute";
 import { useAuth } from "./context/AuthContext";
 
-// Wraps public pages — if logged-in admin visits them, redirect to dashboard
 function PublicRoute({ children }) {
   const { user, profile, loading } = useAuth();
   if (loading) return null;
-  // If user is logged in and their profile role is admin, send to dashboard
   if (user && profile?.role === "admin") {
     return <Navigate to="/admin/dashboard" replace />;
   }

@@ -39,12 +39,10 @@ export default function Navbar({ onLoginClick }) {
       navigate('/papers');
       return;
     }
-
     if (!user) {
       onLoginClick?.();
       return;
     }
-
     if (target === 'bookmark') {
       navigate('/bookmarks');
     } else if (target === 'requests') {
@@ -70,7 +68,7 @@ export default function Navbar({ onLoginClick }) {
     fromProfile || (user?.email?.endsWith('@dlsl.edu.ph') ? 'student' : null);
 
   const roleBadge = effectiveRole === 'admin'   ? { label: 'Admin',   color: '#7c3aed', bg: '#f5f3ff' }
-                  : effectiveRole === 'faculty' ? { label: 'Author', color: '#b45309', bg: '#fffbeb' }
+                  : effectiveRole === 'faculty' ? { label: 'Author',  color: '#b45309', bg: '#fffbeb' }
                   : effectiveRole === 'student' ? { label: 'Student', color: '#006400', bg: '#f0faf0' }
                   : null;
 
@@ -176,65 +174,31 @@ export default function Navbar({ onLoginClick }) {
         }
 
         .nb-modal-backdrop {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.45);
-          backdrop-filter: blur(2px);
-          -webkit-backdrop-filter: blur(2px);
-          z-index: 2000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
+          position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+          backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+          z-index: 2000; display: flex; align-items: center;
+          justify-content: center; padding: 20px;
         }
         .nb-modal {
-          width: 100%;
-          max-width: 420px;
-          background: #fff;
-          border-radius: 16px;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-          border: 1px solid #e5e7eb;
-          overflow: hidden;
+          width: 100%; max-width: 420px; background: #fff;
+          border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+          border: 1px solid #e5e7eb; overflow: hidden;
           font-family: 'DM Sans', sans-serif;
         }
-        .nb-modal-header {
-          padding: 16px 18px 10px;
-          font-size: 15px;
-          font-weight: 600;
-          color: #111827;
-        }
-        .nb-modal-body {
-          padding: 0 18px 16px;
-          font-size: 13px;
-          color: #6b7280;
-          line-height: 1.5;
-        }
+        .nb-modal-header { padding: 16px 18px 10px; font-size: 15px; font-weight: 600; color: #111827; }
+        .nb-modal-body { padding: 0 18px 16px; font-size: 13px; color: #6b7280; line-height: 1.5; }
         .nb-modal-actions {
-          display: flex;
-          gap: 10px;
-          justify-content: flex-end;
-          padding: 14px 18px 16px;
-          border-top: 1px solid #f3f4f6;
-          background: #fff;
+          display: flex; gap: 10px; justify-content: flex-end;
+          padding: 14px 18px 16px; border-top: 1px solid #f3f4f6; background: #fff;
         }
         .nb-modal-btn {
-          border-radius: 10px;
-          padding: 9px 12px;
-          font-size: 13px;
-          font-weight: 600;
-          border: 1px solid #e5e7eb;
-          background: #fff;
-          color: #111827;
-          cursor: pointer;
-          transition: background 0.15s, border-color 0.15s, transform 0.05s;
+          border-radius: 10px; padding: 9px 12px; font-size: 13px; font-weight: 600;
+          border: 1px solid #e5e7eb; background: #fff; color: #111827;
+          cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.05s;
         }
         .nb-modal-btn:hover { background: #f9fafb; border-color: #d1d5db; }
         .nb-modal-btn:active { transform: translateY(1px); }
-        .nb-modal-btn.danger {
-          background: #dc2626;
-          border-color: #dc2626;
-          color: #fff;
-        }
+        .nb-modal-btn.danger { background: #dc2626; border-color: #dc2626; color: #fff; }
         .nb-modal-btn.danger:hover { background: #b91c1c; border-color: #b91c1c; }
       `}</style>
 
@@ -254,13 +218,13 @@ export default function Navbar({ onLoginClick }) {
           </button>
 
           <div style={styles.links}>
-            <button type="button" className="nb-nav-link" onClick={() => handleNavClick('papers')}>
+            <button type="button" style={styles.linkButton} onClick={() => handleNavClick('papers')}>
               Papers
             </button>
-            <button type="button" className="nb-nav-link" onClick={() => handleNavClick('bookmark')}>
+            <button type="button" style={styles.linkButton} onClick={() => handleNavClick('bookmark')}>
               Bookmark
             </button>
-            <button type="button" className="nb-nav-link" onClick={() => handleNavClick('requests')}>
+            <button type="button" style={styles.linkButton} onClick={() => handleNavClick('requests')}>
               Requests
             </button>
           </div>
@@ -269,21 +233,19 @@ export default function Navbar({ onLoginClick }) {
         <div style={{ ...styles.rightSection, position: 'relative' }} ref={dropdownRef}>
           {user ? (
             <>
-              {/* Avatar button — toggles dropdown */}
               <button className="nb-user-btn" onClick={() => setDropdownOpen(o => !o)}>
                 {avatarUrl
-                  ? <img src={avatarUrl} alt="avatar" className="nb-avatar-img" />
+                  ? <img src={avatarUrl} alt="avatar" className="nb-avatar-img" referrerPolicy="no-referrer" />
                   : <div className="nb-avatar-initials">{initials}</div>
                 }
                 <span className="nb-user-name">{displayName.split(' ')[0]}</span>
               </button>
 
-              {/* Dropdown — NO stopPropagation so button clicks fire normally */}
               {dropdownOpen && (
                 <div className="nb-dropdown">
                   <div className="nb-dropdown-header">
                     {avatarUrl
-                      ? <img src={avatarUrl} alt="avatar" className="nb-avatar-img" style={{ width: 36, height: 36 }} />
+                      ? <img src={avatarUrl} alt="avatar" className="nb-avatar-img" style={{ width: 36, height: 36 }} referrerPolicy="no-referrer" />
                       : <div className="nb-avatar-initials" style={{ width: 36, height: 36, fontSize: 13 }}>{initials}</div>
                     }
                     <div style={{ minWidth: 0 }}>
@@ -332,9 +294,7 @@ export default function Navbar({ onLoginClick }) {
           role="dialog"
           aria-modal="true"
           aria-label="Confirm sign out"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setConfirmLogoutOpen(false);
-          }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setConfirmLogoutOpen(false); }}
         >
           <div className="nb-modal" onMouseDown={(e) => e.stopPropagation()}>
             <div className="nb-modal-header">Sign out?</div>
@@ -347,10 +307,7 @@ export default function Navbar({ onLoginClick }) {
               </button>
               <button
                 className="nb-modal-btn danger"
-                onClick={async () => {
-                  setConfirmLogoutOpen(false);
-                  await handleLogout();
-                }}
+                onClick={async () => { setConfirmLogoutOpen(false); await handleLogout(); }}
               >
                 Sign Out
               </button>
@@ -374,13 +331,10 @@ const styles = {
     cursor: 'pointer', display: 'flex', alignItems: 'center',
     marginRight: '8px',
   },
-  logoPlaceholder: {
-    width: '36px', height: '36px', borderRadius: '10px',
-    background: 'linear-gradient(135deg, #9b0000, #c0392b)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    boxShadow: '0 2px 8px rgba(155,0,0,0.25)',
-    flexShrink: 0,
-    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+  linkButton: {
+    textDecoration: 'none', color: '#5f6368', fontSize: '13px',
+    display: 'flex', alignItems: 'center', gap: '8px',
+    background: 'none', border: 'none', padding: 0, cursor: 'pointer',
   },
   logoText: {
     color: '#fff', fontSize: '9px', fontWeight: '800',

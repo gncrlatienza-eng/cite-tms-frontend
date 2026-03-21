@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";           // ← ADDED
 import Navbar from "../../components/layout/Navbar";
 import LoginPage from "./LoginPage";
 import { supabase } from "../../services/supabase";
@@ -44,6 +45,7 @@ export default function PapersPage() {
   const [fromYear, setFromYear]     = useState("");
   const [toYear, setToYear]         = useState("");
   const [program, setProgram]       = useState("all");
+
   const [bookmarked, setBookmarked]   = useState(new Set());
   const [bookmarkIds, setBookmarkIds] = useState({});
   const [bmLoading, setBmLoading]     = useState(new Set());
@@ -308,6 +310,10 @@ export default function PapersPage() {
 
         .sp-sb-group { margin-bottom: 4px; }
 
+        .sp-body { padding:24px 40px 60px; display:grid; grid-template-columns:180px 1fr; gap:40px; }
+
+        .sp-sidebar { padding-top:2px; }
+        .sp-sb-section { margin-bottom:20px; }
         .sp-sb-label {
           font-size: 10.5px;
           font-weight: 700;
@@ -386,10 +392,8 @@ export default function PapersPage() {
         }
         .sp-card:hover::before { transform: scaleY(1); }
 
-        @keyframes spFadeUp {
-          from { opacity: 0; transform: translateY(6px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
+        .sp-results-meta { font-size:13px; color:#70757a; margin-bottom:14px; }
+        .sp-results-meta strong { color:#202124; }
 
         .sp-card-top {
           display: flex;
@@ -399,15 +403,11 @@ export default function PapersPage() {
           margin-bottom: 8px;
         }
 
-        .sp-card-title {
-          font-family: 'DM Serif Display', serif;
-          font-size: 17px;
-          color: #0f1117;
-          text-decoration: none;
-          line-height: 1.4;
-          flex: 1;
-          min-width: 0;
-          transition: color 0.15s;
+        /* ── CHANGED: title now styles as a React Router Link ── */
+        .sp-result-title {
+          font-size:17px; font-family:'DM Serif Display',serif; color:#1a0dab;
+          text-decoration:none; line-height:1.35; display:block; margin-bottom:3px;
+          transition:color 0.15s;
         }
         .sp-card-title:hover { color: #9b0000; }
 
