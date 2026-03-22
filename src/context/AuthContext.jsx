@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../services/supabase';
 
 const AuthContext = createContext(null);
@@ -6,98 +6,102 @@ const AuthContext = createContext(null);
 const ALLOWED_ADMIN_EMAILS = [
   'cite.tms.admin@dlsl.edu.ph',
   'gncrlatienza@gmail.com',
+  'georginaramos0317@gmail.com',
+  'erna.srocha@gmail.com',
 ];
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser]       = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const initializedRef        = useRef(false); // prevent double-init
 
   const fetchProfile = async (authUser) => {
-    if (!authUser) { setProfile(null); return; }
+    if (!authUser) { setProfile(null); return null; }
     try {
       const { data } = await supabase
         .from('users')
-        .select('id, email, full_name, role, department, year_level, student_id, is_active, last_login')
+        .select('id, email, full_name, role, is_author, is_active, secondary_email, department, year_level, student_id, last_login')
         .eq('email', authUser.email)
         .single();
       setProfile(data ?? null);
+      return data ?? null;
     } catch (err) {
       console.warn('fetchProfile error (non-fatal):', err);
       setProfile(null);
+      return null;
     }
   };
 
-  const validateAndSetSession = async (session) => {
-    try {
-      if (!session) {
-        setUser(null);
-        setProfile(null);
-        return;
-      }
+  const isAllowedEmail = (email) =>
+    ALLOWED_ADMIN_EMAILS.includes(email) || email?.endsWith('@dlsl.edu.ph');
 
-      const email = session.user.email;
+  const applySession = async (session) => {
+    if (!session?.user) {
+      setUser(null);
+      setProfile(null);
+      return;
+    }
 
-      // ✅ If we're on the callback page, do NOT interfere — AuthCallback handles everything
-      if (window.location.pathname === '/auth/callback') {
-        console.log('[AuthContext] On callback page — skipping validation');
-        setUser(session.user);
-        return;
-      }
+    const email = session.user.email;
 
-      // ✅ Admin emails — allow
-      if (ALLOWED_ADMIN_EMAILS.includes(email)) {
-        setUser(session.user);
-        fetchProfile(session.user);
-        return;
-      }
-
-      // ✅ DLSL students — allow
-      if (email.endsWith('@dlsl.edu.ph')) {
-        setUser(session.user);
-        fetchProfile(session.user);
-        return;
-      }
-
-      // Unknown email — sign out
-      console.log('Unauthorized session, signing out:', email);
+    if (!isAllowedEmail(email)) {
       await supabase.auth.signOut();
       setUser(null);
       setProfile(null);
-    } catch (err) {
-      console.error('validateAndSetSession error:', err);
-      setUser(null);
-      setProfile(null);
+      return;
     }
+
+    setUser(session.user);
+    await fetchProfile(session.user);
   };
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      console.warn('Auth timeout — forcing loading to false');
-      setLoading(false);
-    }, 1000);
+    if (initializedRef.current) return;
+    initializedRef.current = true;
 
-    supabase.auth.getSession()
-      .then(async ({ data: { session } }) => {
-        await validateAndSetSession(session);
-      })
-      .catch((err) => {
-        console.error('getSession error:', err);
-      })
-      .finally(() => {
-        clearTimeout(timeout);
-        setLoading(false);
-      });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      await validateAndSetSession(session);
-      setLoading(false);
-    });
-
-    return () => {
-      clearTimeout(timeout);
-      subscription.unsubscribe();
+    // ── Step 1: restore session immediately from local storage ───────────────
+    // getSession() reads from localStorage synchronously on first call,
+    // so this resolves fast and prevents the blank-on-refresh bug.
+    const init = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await applySession(session);
+      } catch (err) {
+        console.error('Auth init error:', err);
+        setUser(null);
+        setProfile(null);
+      } finally {
+        setLoading(false); // ← always unblock the UI after first check
+      }
     };
+
+    init();
+
+    // ── Step 2: keep in sync with auth events (refresh, sign-out, etc.) ──────
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        // INITIAL_SESSION fires on first load — already handled by init()
+        // so skip it to avoid double profile fetch
+        if (event === 'INITIAL_SESSION') return;
+
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setProfile(null);
+          return;
+        }
+
+        if (
+          event === 'SIGNED_IN' ||
+          event === 'TOKEN_REFRESHED' ||
+          event === 'USER_UPDATED'
+        ) {
+          await applySession(session);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const logout = async () => {
@@ -110,41 +114,41 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Call after upload/approval to refresh is_author flag without re-login
+  const refreshProfile = async () => {
+    if (!user) return;
+    await fetchProfile(user);
+  };
+
+  const isAdmin  = profile?.role === 'admin' || ALLOWED_ADMIN_EMAILS.includes(user?.email);
+  const isAuthor = profile?.is_author === true;
+
   return (
-    <AuthContext.Provider value={{ user, profile, logout, loading }}>
+    <AuthContext.Provider value={{ user, profile, logout, loading, isAdmin, isAuthor, refreshProfile }}>
       {loading ? (
         <div style={{
           position: 'fixed', inset: 0,
-          width: '100vw', height: '100vh',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: 'radial-gradient(circle at top, #f0fdf4 0, #ffffff 52%)',
-          zIndex: 9999
+          zIndex: 9999,
         }}>
           <div style={{
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', gap: '10px',
-            fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
           }}>
             <div style={{
-              width: '36px', height: '36px', borderRadius: '50%',
+              width: 36, height: 36, borderRadius: '50%',
               border: '3px solid #bbf7d0', borderTopColor: '#166534',
-              animation: 'spin 0.9s ease-in-out infinite'
+              animation: 'spin 0.9s ease-in-out infinite',
             }} />
             <div style={{
-              fontSize: '13px', color: '#4b5563',
+              fontSize: 13, color: '#4b5563',
               letterSpacing: '0.08em', textTransform: 'uppercase',
-              animation: 'fadePulse 1.4s ease-in-out infinite'
             }}>
               Loading CITE‑TMS
             </div>
           </div>
-          <style>{`
-            @keyframes spin { to { transform: rotate(360deg); } }
-            @keyframes fadePulse {
-              0%, 100% { opacity: 0.4; transform: translateY(0); }
-              50% { opacity: 1; transform: translateY(-1px); }
-            }
-          `}</style>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       ) : children}
     </AuthContext.Provider>

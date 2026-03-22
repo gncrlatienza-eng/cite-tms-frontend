@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import authService from "../../services/authService";
 
 export default function LoginPage({ onClose }) {
-  const [mounted, setMounted]           = useState(false);
-  const [accountType, setAccountType]   = useState("student");
-  const [adminError, setAdminError]     = useState("");
-  const [adminLoading, setAdminLoading] = useState(false);
+  const [mounted, setMounted]         = useState(false);
+  const [accountType, setAccountType] = useState("student");
+  const [error, setError]             = useState("");
+  const [loading, setLoading]         = useState(false);
 
   useEffect(() => {
     requestAnimationFrame(() => setMounted(true));
@@ -13,15 +13,16 @@ export default function LoginPage({ onClose }) {
     return () => { document.body.style.overflow = ""; };
   }, []);
 
-  const handleGoogleLogin = async () => {
-    try { await authService.loginWithGoogle(); }
-    catch (e) { console.error(e.message); }
-  };
-
-  const handleAdminGoogleLogin = async () => {
-    setAdminError(""); setAdminLoading(true);
-    try { await authService.loginAsAdminWithGoogle(); }
-    catch (e) { setAdminError(e.message); setAdminLoading(false); }
+  const handleLogin = async () => {
+    setError(""); setLoading(true);
+    try {
+      if (accountType === "admin")  await authService.loginAsAdminWithGoogle();
+      if (accountType === "author") await authService.loginAsAuthorWithGoogle();
+      if (accountType === "student") await authService.loginWithGoogle();
+    } catch (e) {
+      setError(e.message);
+      setLoading(false);
+    }
   };
 
   const PORTALS = {
@@ -36,10 +37,10 @@ export default function LoginPage({ onClose }) {
     author: {
       eyebrow: "Author Portal",
       title: "Welcome back",
-      sub: "Sign in with your institutional Google account.",
-      info: <>Access is exclusive to <strong>De La Salle Lipa</strong> authors and researchers. Sign in using your institutional <strong>@dlsl.edu.ph</strong> Google account.</>,
+      sub: "Sign in with any Google account.",
+      info: <>Access is available to <strong>whitelisted authors and researchers</strong>. Sign in using any Google account that has been authorized by the admin.</>,
       btnLabel: "Sign in as Author",
-      note: <>Only <b>@dlsl.edu.ph</b> Google accounts are authorized.<br />No account creation needed — your DLSL Google account grants access.</>,
+      note: <>Your Google account must be <b>whitelisted by an admin</b> to access the Author Portal.<br />Contact your administrator if you need access.</>,
     },
     admin: {
       eyebrow: "Admin Portal",
@@ -86,7 +87,6 @@ export default function LoginPage({ onClose }) {
         }
         .x-btn:hover { background:#fee2e2; border-color:#fecaca; color:#b91c1c; }
 
-        /* ── LEFT ── */
         .lp {
           flex:0 0 240px;
           background:linear-gradient(160deg,#3b0000 0%,#5c0000 45%,#7a0000 80%,#3b0000 100%);
@@ -118,7 +118,6 @@ export default function LoginPage({ onClose }) {
         .lp-p { font-size:11.5px; color:rgba(255,255,255,0.55); line-height:1.65; font-weight:300; }
         .lp-foot { z-index:1; font-size:10px; color:rgba(255,255,255,0.25); }
 
-        /* ── RIGHT ── */
         .rp {
           flex:1; background:#fff; padding:24px 30px 20px;
           display:flex; flex-direction:column;
@@ -198,7 +197,7 @@ export default function LoginPage({ onClose }) {
               <div className="tabs">
                 {["student", "author", "admin"].map((t) => (
                   <button key={t} className={`tab ${accountType === t ? "on" : ""}`}
-                    onClick={() => { setAccountType(t); setAdminError(""); }}>
+                    onClick={() => { setAccountType(t); setError(""); }}>
                     {t[0].toUpperCase() + t.slice(1)}
                   </button>
                 ))}
@@ -217,15 +216,13 @@ export default function LoginPage({ onClose }) {
                 <div className="info-box-text">{portal.info}</div>
               </div>
 
-              {adminError && <div className="ferr">{adminError}</div>}
+              {error && <div className="ferr">{error}</div>}
 
-              <button className="gbtn"
-                onClick={accountType === "admin" ? handleAdminGoogleLogin : handleGoogleLogin}
-                disabled={adminLoading}>
-                {adminLoading
+              <button className="gbtn" onClick={handleLogin} disabled={loading}>
+                {loading
                   ? <div style={{width:16,height:16,borderRadius:"50%",border:"2px solid #e2e8f0",borderTopColor:"#9b0000",animation:"spin 0.8s linear infinite"}} />
                   : <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width={18} height={18} alt="G" />}
-                {adminLoading ? "Redirecting…" : portal.btnLabel}
+                {loading ? "Redirecting…" : portal.btnLabel}
               </button>
 
               <p className="rnote">{portal.note}</p>

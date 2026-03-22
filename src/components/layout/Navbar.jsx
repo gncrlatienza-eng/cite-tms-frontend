@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Navbar({ onLoginClick }) {
-  const { user, profile, logout } = useAuth();
+  const { user, profile, logout, isAuthor } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -43,34 +43,28 @@ export default function Navbar({ onLoginClick }) {
       onLoginClick?.();
       return;
     }
-    if (target === 'bookmark') {
-      navigate('/bookmarks');
-    } else if (target === 'requests') {
-      navigate('/requests');
-    }
+    if (target === 'bookmark') navigate('/bookmarks');
+    else if (target === 'requests') navigate('/requests');
   };
 
   const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
-  const displayName = profile?.full_name
-    || user?.user_metadata?.full_name
-    || user?.user_metadata?.name
-    || user?.email?.split('@')[0]
-    || 'User';
-  const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const displayName =
+    profile?.full_name ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split('@')[0] ||
+    'User';
+  const initials = displayName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
 
-  const fromProfile =
-    profile?.role ||
-    user?.user_metadata?.role ||
-    user?.app_metadata?.role ||
-    null;
-
-  const effectiveRole =
-    fromProfile || (user?.email?.endsWith('@dlsl.edu.ph') ? 'student' : null);
-
-  const roleBadge = effectiveRole === 'admin'   ? { label: 'Admin',   color: '#7c3aed', bg: '#f5f3ff' }
-                  : effectiveRole === 'faculty' ? { label: 'Author',  color: '#b45309', bg: '#fffbeb' }
-                  : effectiveRole === 'student' ? { label: 'Student', color: '#006400', bg: '#f0faf0' }
-                  : null;
+  // Role badge — use is_author flag for badge, not the role field
+  const isAdmin = profile?.role === 'admin';
+  const roleBadge = isAdmin
+    ? { label: 'Admin',   color: '#7c3aed', bg: '#f5f3ff' }
+    : isAuthor
+    ? { label: 'Author',  color: '#b45309', bg: '#fffbeb' }
+    : user
+    ? { label: 'Student', color: '#006400', bg: '#f0faf0' }
+    : null;
 
   return (
     <>
@@ -87,7 +81,6 @@ export default function Navbar({ onLoginClick }) {
           white-space: nowrap;
         }
         .nb-nav-link:hover { color: #111827; background: #f9fafb; }
-        .nb-nav-link:active { background: #f3f4f6; }
 
         .nb-signin-btn {
           background: none; border: 1.5px solid #e5e7eb;
@@ -166,12 +159,24 @@ export default function Navbar({ onLoginClick }) {
         .nb-dropdown-item:hover { background: #f9fafb; }
         .nb-dropdown-item.danger { color: #dc2626; }
         .nb-dropdown-item.danger:hover { background: #fff5f5; }
-        .nb-divider { height: 1px; background: #f3f4f6; }
 
-        .nb-logo-btn:hover .nb-logo-box {
-          transform: scale(1.08);
-          box-shadow: 0 4px 14px rgba(155,0,0,0.35);
+        /* Locked author item — grayed out, not clickable */
+        .nb-dropdown-item.locked {
+          color: #9ca3af;
+          cursor: not-allowed;
         }
+        .nb-dropdown-item.locked:hover { background: #f9fafb; }
+        .nb-lock-tooltip {
+          margin-left: auto;
+          font-size: 10px;
+          color: #9ca3af;
+          background: #f3f4f6;
+          border-radius: 6px;
+          padding: 2px 7px;
+          white-space: nowrap;
+        }
+
+        .nb-divider { height: 1px; background: #f3f4f6; }
 
         .nb-modal-backdrop {
           position: fixed; inset: 0; background: rgba(0,0,0,0.45);
@@ -194,25 +199,22 @@ export default function Navbar({ onLoginClick }) {
         .nb-modal-btn {
           border-radius: 10px; padding: 9px 12px; font-size: 13px; font-weight: 600;
           border: 1px solid #e5e7eb; background: #fff; color: #111827;
-          cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.05s;
+          cursor: pointer; transition: background 0.15s, border-color 0.15s;
         }
         .nb-modal-btn:hover { background: #f9fafb; border-color: #d1d5db; }
-        .nb-modal-btn:active { transform: translateY(1px); }
         .nb-modal-btn.danger { background: #dc2626; border-color: #dc2626; color: #fff; }
         .nb-modal-btn.danger:hover { background: #b91c1c; border-color: #b91c1c; }
       `}</style>
 
       <nav style={styles.nav}>
         <div style={styles.leftSection}>
-          {/* Logo — links to landing page */}
           <button
             type="button"
-            className="nb-logo-btn"
             style={styles.logoButton}
             onClick={() => navigate('/')}
             aria-label="Go to home"
           >
-            <div className="nb-logo-box" style={styles.logoPlaceholder}>
+            <div style={styles.logoPlaceholder}>
               <span style={styles.logoText}>CITE</span>
             </div>
           </button>
@@ -233,7 +235,7 @@ export default function Navbar({ onLoginClick }) {
         <div style={{ ...styles.rightSection, position: 'relative' }} ref={dropdownRef}>
           {user ? (
             <>
-              <button className="nb-user-btn" onClick={() => setDropdownOpen(o => !o)}>
+              <button className="nb-user-btn" onClick={() => setDropdownOpen((o) => !o)}>
                 {avatarUrl
                   ? <img src={avatarUrl} alt="avatar" className="nb-avatar-img" referrerPolicy="no-referrer" />
                   : <div className="nb-avatar-initials">{initials}</div>
@@ -243,6 +245,7 @@ export default function Navbar({ onLoginClick }) {
 
               {dropdownOpen && (
                 <div className="nb-dropdown">
+                  {/* ── Header ── */}
                   <div className="nb-dropdown-header">
                     {avatarUrl
                       ? <img src={avatarUrl} alt="avatar" className="nb-avatar-img" style={{ width: 36, height: 36 }} referrerPolicy="no-referrer" />
@@ -259,9 +262,37 @@ export default function Navbar({ onLoginClick }) {
                     </div>
                   </div>
 
-                  {profile?.role === 'admin' && (
+                  {/* ── Admin Dashboard ── */}
+                  {isAdmin && (
                     <button className="nb-dropdown-item" onClick={() => { setDropdownOpen(false); navigate('/admin'); }}>
                       ⚙️ &nbsp;Admin Dashboard
+                    </button>
+                  )}
+
+                  {/* ── Author Dashboard — locked or unlocked ── */}
+                  {!isAdmin && (
+                    isAuthor ? (
+                      <button
+                        className="nb-dropdown-item"
+                        onClick={() => { setDropdownOpen(false); navigate('/author/dashboard'); }}
+                      >
+                        ✍️ &nbsp;Author Dashboard
+                      </button>
+                    ) : (
+                      <button className="nb-dropdown-item locked" disabled title="Upload a paper and get approved by admin to unlock">
+                        🔒 &nbsp;Author Dashboard
+                        <span className="nb-lock-tooltip">Not yet author</span>
+                      </button>
+                    )
+                  )}
+
+                  {/* ── Upload paper (students only, not yet author) ── */}
+                  {!isAdmin && !isAuthor && (
+                    <button
+                      className="nb-dropdown-item"
+                      onClick={() => { setDropdownOpen(false); navigate('/student/upload'); }}
+                    >
+                      📄 &nbsp;Become an Author
                     </button>
                   )}
 
@@ -288,12 +319,12 @@ export default function Navbar({ onLoginClick }) {
         </div>
       </nav>
 
+      {/* ── Logout confirm modal ── */}
       {confirmLogoutOpen && (
         <div
           className="nb-modal-backdrop"
           role="dialog"
           aria-modal="true"
-          aria-label="Confirm sign out"
           onMouseDown={(e) => { if (e.target === e.currentTarget) setConfirmLogoutOpen(false); }}
         >
           <div className="nb-modal" onMouseDown={(e) => e.stopPropagation()}>
@@ -331,10 +362,11 @@ const styles = {
     cursor: 'pointer', display: 'flex', alignItems: 'center',
     marginRight: '8px',
   },
-  linkButton: {
-    textDecoration: 'none', color: '#5f6368', fontSize: '13px',
-    display: 'flex', alignItems: 'center', gap: '8px',
-    background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+  logoPlaceholder: {
+    width: 34, height: 34, borderRadius: 8,
+    background: 'linear-gradient(135deg, #9b0000, #c0392b)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    transition: 'transform 0.15s, box-shadow 0.15s',
   },
   logoText: {
     color: '#fff', fontSize: '9px', fontWeight: '800',
@@ -342,5 +374,13 @@ const styles = {
     userSelect: 'none',
   },
   links: { display: 'flex', gap: '4px' },
+  linkButton: {
+    textDecoration: 'none', color: '#5f6368', fontSize: '13px',
+    display: 'flex', alignItems: 'center', gap: '8px',
+    background: 'none', border: 'none', padding: '6px 10px',
+    cursor: 'pointer', borderRadius: '8px',
+    fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+    transition: 'color 0.15s, background 0.15s',
+  },
   rightSection: { display: 'flex', alignItems: 'center' },
 };
