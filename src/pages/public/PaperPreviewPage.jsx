@@ -88,6 +88,7 @@ export default function PaperPreviewPage() {
   const [showModal, setShowModal]   = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [requestStatus, setRequestStatus] = useState(null);
+  const [showPdf, setShowPdf]       = useState(false);
 
   // ── Fetch paper ───────────────────────────────────────────
   useEffect(() => {
@@ -156,11 +157,16 @@ export default function PaperPreviewPage() {
   const isOpen = paper?.access_type === "open";
 
   // ── Owner check — author/admin viewing their own paper ────────────────────
-  // uploaded_by matches auth user id, OR user is admin
   const isOwner = user && paper && (
     paper.uploaded_by === user.id ||
     profile?.role === 'admin'
   );
+
+  // ── Set who is allowed to see the PDF viewer ─────────────────────────────
+  const canViewPdf =
+    isOwner ||                                    // - Owner / admin: always
+    isOpen ||                                     // - Open access paper: always (whether logged in or not)
+    (!isOpen && requestStatus === "approved");    // - Restricted paper: only if access request was approved
 
   return (
     <>
@@ -258,11 +264,24 @@ export default function PaperPreviewPage() {
         .pp-spinner { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff; border-radius: 50%; animation: ppSpin 0.75s linear infinite; flex-shrink: 0; }
         @keyframes ppSpin { to { transform: rotate(360deg); } }
 
+        /* ── PDF viewer styles ───────────────────────────── */
+        .pp-btn-view-pdf { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; border-radius: 10px; border: 1.5px solid #9b0000; background: #fff; color: #9b0000; font-size: 14px; font-weight: 600; font-family: 'DM Sans', system-ui, sans-serif; cursor: pointer; transition: background 0.15s, color 0.15s; margin-top: 8px; width: 100%; }
+        .pp-btn-view-pdf:hover { background: #fef2f2; }
+
+        .pp-pdf-wrapper { margin-top: 12px; border: 1.5px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+        .pp-pdf-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 12.5px; color: #374151; font-weight: 500; gap: 12px; }
+        .pp-pdf-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+        .pp-pdf-tool-btn { background: #fff; border: 1px solid #e5e7eb; border-radius: 7px; padding: 5px 12px; font-size: 12px; font-weight: 600; color: #374151; cursor: pointer; font-family: inherit; white-space: nowrap; transition: border-color 0.15s, color 0.15s; text-decoration: none; display: inline-flex; align-items: center; }
+        .pp-pdf-tool-btn:hover { border-color: #9b0000; color: #9b0000; }
+        .pp-pdf-iframe { width: 100%; height: 780px; border: none; display: block; }
+
         @media (max-width: 768px) {
           .pp-layout { grid-template-columns: 1fr; padding: 24px 20px 60px; gap: 28px; }
           .pp-sidebar-card { position: static; }
           .pp-breadcrumb { padding: 12px 20px; }
           .pp-title { font-size: 24px; }
+          .pp-pdf-iframe { height: 480px; }
+          .pp-pdf-toolbar { flex-direction: column; align-items: flex-start; gap: 8px; }
         }
       `}</style>
 
@@ -313,6 +332,8 @@ export default function PaperPreviewPage() {
 
         {!loading && !error && paper && (
           <div className="pp-layout">
+
+            {/* ── LEFT COLUMN: paper info + PDF viewer ── */}
             <div className="pp-main">
               <div className="pp-pills">
                 {paper.year && <span className="pp-year-pill">{paper.year}</span>}
@@ -336,8 +357,54 @@ export default function PaperPreviewPage() {
               <div className="pp-divider" />
               <div className="pp-section-label">Abstract</div>
               <p className="pp-abstract">{paper.abstract || "No abstract available for this paper."}</p>
+
+              {/* ── PDF Viewer ──────────────────────────── */}
+              {canViewPdf && paper.publicUrl && (
+                <>
+                  <div className="pp-divider" />
+                  <div className="pp-section-label">Research Paper</div>
+
+                  {!showPdf ? (
+                    /* Button shown before the user opens the viewer */
+                    <button className="pp-btn-view-pdf" onClick={() => setShowPdf(true)}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                      </svg>
+                      View Full Paper
+                    </button>
+                  ) : (
+                    /* PDF iframe + small toolbar once the user clicks View */
+                    <div className="pp-pdf-wrapper">
+                      <div className="pp-pdf-toolbar">
+                        <span className="pp-pdf-label">📄 {paper.title}</span>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <a
+                            href={paper.publicUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="pp-pdf-tool-btn"
+                          >
+                            Open in new tab ↗
+                          </a>
+                          <button className="pp-pdf-tool-btn" onClick={() => setShowPdf(false)}>
+                            ✕ Close
+                          </button>
+                        </div>
+                      </div>
+                      {/* The actual PDF rendered inside the page */}
+                      <iframe
+                        src={`${paper.publicUrl}#toolbar=1&navpanes=0`}
+                        className="pp-pdf-iframe"
+                        title={paper.title}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
+            {/* ── RIGHT COLUMN: sidebar card ── */}
             <div className="pp-sidebar-card">
               <div className="pp-sidebar-label">Full Paper</div>
 
@@ -450,6 +517,7 @@ export default function PaperPreviewPage() {
                 <div className="pp-meta-row"><span className="pp-meta-key">Access</span><span className="pp-meta-val">{isOpen ? "Open Access" : "Restricted"}</span></div>
               </div>
             </div>
+
           </div>
         )}
       </div>
