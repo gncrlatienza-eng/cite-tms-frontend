@@ -28,11 +28,28 @@ const PROGRAM_FILTERS = [
   { key: "BSIS", label: "BSIS"         },
 ];
 
+const IconGlobe = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+  </svg>
+);
+const IconUser = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+  </svg>
+);
+const IconLock = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </svg>
+);
+
 // Access type display config
 const ACCESS_META = {
-  open:          { label: "Public",             icon: "🌐", bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
-  students_only: { label: "Sign-in Required",   icon: "🎓", bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
-  restricted:    { label: "Request Required",   icon: "🔒", bg: "#fef2f2", color: "#9b0000", border: "#fecaca" },
+  open:          { label: "Public",           Icon: IconGlobe, bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
+  students_only: { label: "Sign-in Required", Icon: IconUser,  bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
+  restricted:    { label: "Request Required", Icon: IconLock,  bg: "#fef2f2", color: "#9b0000", border: "#fecaca" },
 };
 
 export default function PapersPage() {
@@ -191,7 +208,7 @@ export default function PapersPage() {
 
         .sp-page { min-height:100vh; padding-top:57px; background:#f4f4f5; font-family:'DM Sans',system-ui,sans-serif; }
 
-        .sp-hero { background:transparent; padding:40px 40px 36px; text-align:center; }
+        .sp-hero { position:sticky; top:57px; z-index:50; background:#f4f4f5; padding:40px 40px 36px; text-align:center; }
         .sp-hero-inner { max-width:1120px; margin:0 auto; display:flex; flex-direction:column; align-items:center; }
         .sp-hero-heading { display:flex; align-items:baseline; gap:12px; margin-bottom:20px; }
         .sp-hero-title { font-family:'DM Serif Display',serif; font-size:28px; font-weight:400; color:#0f1117; letter-spacing:-0.4px; line-height:1; }
@@ -209,7 +226,8 @@ export default function PapersPage() {
 
         .sp-layout { max-width:1120px; margin:0 auto; padding:28px 40px 80px; display:grid; grid-template-columns:220px 1fr; gap:24px; align-items:start; }
 
-        .sp-sidebar { position:sticky; top:24px; background:#fff; border:1px solid #ebebeb; border-radius:14px; overflow:hidden; }
+        .sp-sidebar-col { display:block; }
+        .sp-sidebar { position:fixed; top:245px; left:max(40px, calc(50vw - 520px)); width:220px; background:#fff; border:1px solid #ebebeb; border-radius:14px; overflow:hidden; z-index:10; }
         .sp-sidebar-header { padding:14px 18px 12px; border-bottom:1px solid #f3f4f6; display:flex; align-items:center; justify-content:space-between; }
         .sp-sidebar-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#374151; }
         .sp-sidebar-reset { font-size:11.5px; font-weight:600; color:#9b0000; background:none; border:none; cursor:pointer; padding:0; font-family:inherit; transition:color 0.15s; opacity:0; pointer-events:none; }
@@ -285,6 +303,7 @@ export default function PapersPage() {
 
         @media (max-width:900px) {
           .sp-layout { grid-template-columns:1fr; padding:16px 16px 60px; }
+          .sp-sidebar-col { display:none; }
           .sp-sidebar { display:none; }
           .sp-hero { padding:28px 20px 24px; }
         }
@@ -292,7 +311,7 @@ export default function PapersPage() {
 
       <div
         className="sp-page"
-        style={{ filter: showLogin ? "blur(3px)" : "none", transition: "filter 0.3s ease", pointerEvents: showLogin ? "none" : "auto" }}
+        style={showLogin ? { filter: "blur(3px)", transition: "filter 0.3s ease", pointerEvents: "none" } : {}}
       >
         <Navbar onLoginClick={() => setShowLogin(true)} />
 
@@ -329,7 +348,8 @@ export default function PapersPage() {
         {/* Layout */}
         <div className="sp-layout">
           {/* Sidebar */}
-          <aside className="sp-sidebar">
+          <aside className="sp-sidebar-col">
+          <div className="sp-sidebar">
             <div className="sp-sidebar-header">
               <span className="sp-sidebar-title">Filters</span>
               <button
@@ -374,6 +394,7 @@ export default function PapersPage() {
                 ))}
               </div>
             </div>
+          </div>
           </aside>
 
           {/* Results */}
@@ -451,7 +472,7 @@ export default function PapersPage() {
                       className="sp-access-badge"
                       style={{ background: access.bg, color: access.color, borderColor: access.border }}
                     >
-                      {access.icon} {access.label}
+                      <access.Icon /> {access.label}
                     </span>
                   </div>
 
@@ -479,7 +500,7 @@ export default function PapersPage() {
 
                     {pdfAction?.type === "request" && (
                       <Link to={`/papers/${paper.id}`} className="sp-btn-request">
-                        🔒 Request Access
+                        <IconLock /> Request Access
                       </Link>
                     )}
 
