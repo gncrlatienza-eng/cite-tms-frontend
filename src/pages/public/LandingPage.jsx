@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import SearchBar from "../../components/search/SearchBar";
@@ -8,6 +8,11 @@ export default function LandingPage() {
   const [showLogin, setShowLogin] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
   return (
     <>
       <style>{`
@@ -15,6 +20,7 @@ export default function LandingPage() {
 
         .lp-page {
           min-height: 100vh;
+          padding-top: 57px;
           overflow-x: hidden;
           background: #fff;
           font-family: 'DM Sans', system-ui, sans-serif;

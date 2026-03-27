@@ -189,7 +189,7 @@ export default function PapersPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
-        .sp-page { min-height:100vh; background:#f4f4f5; font-family:'DM Sans',system-ui,sans-serif; }
+        .sp-page { min-height:100vh; padding-top:57px; background:#f4f4f5; font-family:'DM Sans',system-ui,sans-serif; }
 
         .sp-hero { background:transparent; padding:40px 40px 36px; text-align:center; }
         .sp-hero-inner { max-width:1120px; margin:0 auto; display:flex; flex-direction:column; align-items:center; }
