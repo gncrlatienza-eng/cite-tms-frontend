@@ -213,7 +213,7 @@ export default function PapersPage() {
         .sp-hero-heading { display:flex; align-items:baseline; gap:12px; margin-bottom:20px; }
         .sp-hero-title { font-family:'DM Serif Display',serif; font-size:28px; font-weight:400; color:#0f1117; letter-spacing:-0.4px; line-height:1; }
 
-        .sp-search-wrap { display:flex; align-items:center; width:100%; max-width:680px; background:#fff; border:1.5px solid #e5e7eb; border-radius:12px; padding:0 10px 0 16px; gap:10px; box-shadow:0 1px 4px rgba(0,0,0,0.05),0 4px 16px rgba(0,0,0,0.04); transition:border-color 0.2s,box-shadow 0.2s; }
+        .sp-search-wrap { display:flex; align-items:center; width:100%; max-width:680px; background:#fff; border:1.5px solid #e5e7eb; border-radius:50px; padding:0 10px 0 16px; gap:10px; box-shadow:0 1px 4px rgba(0,0,0,0.05),0 4px 16px rgba(0,0,0,0.04); transition:border-color 0.2s,box-shadow 0.2s; }
         .sp-search-wrap:focus-within { border-color:#9b0000; box-shadow:0 1px 4px rgba(0,0,0,0.05),0 4px 16px rgba(155,0,0,0.08),0 0 0 3px rgba(155,0,0,0.06); }
         .sp-search-icon { color:#9ca3af; display:flex; flex-shrink:0; pointer-events:none; transition:color 0.2s; }
         .sp-search-wrap:focus-within .sp-search-icon { color:#9b0000; }
@@ -221,13 +221,13 @@ export default function PapersPage() {
         .sp-search-input::placeholder { color:#b0b7c3; }
         .sp-search-clear { background:none; border:none; cursor:pointer; color:#9ca3af; display:flex; align-items:center; padding:5px; border-radius:50%; transition:color 0.15s,background 0.15s; flex-shrink:0; }
         .sp-search-clear:hover { color:#374151; background:#f3f4f6; }
-        .sp-search-btn { background:#9b0000; color:#fff; border:none; border-radius:8px; padding:8px 20px; font-size:13.5px; font-weight:600; font-family:'DM Sans',sans-serif; cursor:pointer; flex-shrink:0; transition:background 0.15s; white-space:nowrap; }
+        .sp-search-btn { background:#9b0000; color:#fff; border:none; border-radius:50px; padding:8px 20px; font-size:13.5px; font-weight:600; font-family:'DM Sans',sans-serif; cursor:pointer; flex-shrink:0; transition:background 0.15s; white-space:nowrap; }
         .sp-search-btn:hover { background:#7f1d1d; }
 
         .sp-layout { max-width:1120px; margin:0 auto; padding:28px 40px 80px; display:grid; grid-template-columns:220px 1fr; gap:24px; align-items:start; }
 
         .sp-sidebar-col { display:block; }
-        .sp-sidebar { position:fixed; top:245px; left:max(40px, calc(50vw - 520px)); width:220px; background:#fff; border:1px solid #ebebeb; border-radius:14px; overflow:hidden; z-index:10; }
+        .sp-sidebar { position:fixed; top:257px; left:max(40px, calc(50vw - 520px)); width:220px; background:#fff; border:1px solid #ebebeb; border-radius:14px; overflow:hidden; z-index:10; }
         .sp-sidebar-header { padding:14px 18px 12px; border-bottom:1px solid #f3f4f6; display:flex; align-items:center; justify-content:space-between; }
         .sp-sidebar-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#374151; }
         .sp-sidebar-reset { font-size:11.5px; font-weight:600; color:#9b0000; background:none; border:none; cursor:pointer; padding:0; font-family:inherit; transition:color 0.15s; opacity:0; pointer-events:none; }
@@ -331,7 +331,7 @@ export default function PapersPage() {
                 className="sp-search-input" type="text"
                 placeholder="Search by title, author, topic, or program…"
                 value={query} onChange={(e) => setQuery(e.target.value)}
-                autoComplete="off" autoFocus
+                autoComplete="off"
               />
               {query && (
                 <button className="sp-search-clear" type="button" onClick={() => setQuery("")}>
