@@ -173,34 +173,43 @@ export default function PaperPreviewPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
-        .pp-page { min-height: 100vh; padding-top: 57px; background: #fafafa; font-family: 'DM Sans', system-ui, sans-serif; }
+        .pp-page { min-height: 100vh; padding-top: 57px; background: #fff; font-family: 'DM Sans', system-ui, sans-serif; }
 
-        .pp-breadcrumb { padding: 14px 40px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #9ca3af; border-bottom: 1px solid #f3f4f6; background: #fff; }
+        .pp-breadcrumb { padding: 12px 40px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #9ca3af; border-bottom: 1px solid #f3f4f6; background: #fff; }
         .pp-breadcrumb-link { background: none; border: none; padding: 0; cursor: pointer; color: #9b0000; font-size: 13px; font-family: inherit; font-weight: 500; transition: color 0.15s; display: flex; align-items: center; gap: 5px; }
         .pp-breadcrumb-link:hover { color: #7f1d1d; }
         .pp-bc-sep { color: #d1d5db; }
 
-        .pp-layout { max-width: 860px; margin: 0 auto; padding: 40px 40px 100px; display: grid; grid-template-columns: 1fr 260px; gap: 40px; align-items: start; }
+        /* ── Header band ── */
+        .pp-header { background: #fff; border-bottom: 1px solid #f3f4f6; padding: 32px 40px 28px; }
+        .pp-header-inner { max-width: 960px; margin: 0 auto; }
+
+        .pp-layout { max-width: 960px; margin: 0 auto; padding: 36px 40px 100px; display: grid; grid-template-columns: 1fr 272px; gap: 48px; align-items: start; }
         .pp-main {}
 
-        .pp-pills { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+        .pp-pills { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
         .pp-year-pill { background: #fef2f2; color: #9b0000; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid #fecaca; }
         .pp-prog-pill { background: #f3f4f6; color: #374151; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
         .pp-access-pill-open { background: #f0fdf4; color: #15803d; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid #bbf7d0; display: inline-flex; align-items: center; gap: 4px; }
         .pp-access-dot { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; }
         .pp-access-pill-restricted { background: #fef2f2; color: #9b0000; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid #fecaca; display: inline-flex; align-items: center; gap: 4px; }
 
-        .pp-title { font-family: 'DM Serif Display', serif; font-size: 30px; font-weight: 400; color: #0f1117; line-height: 1.35; margin-bottom: 16px; letter-spacing: -0.3px; }
-        .pp-authors { font-size: 14px; color: #6b7280; margin-bottom: 6px; line-height: 1.6; }
+        .pp-title { font-family: 'DM Serif Display', serif; font-size: 32px; font-weight: 400; color: #0f1117; line-height: 1.3; margin-bottom: 14px; letter-spacing: -0.4px; }
+        .pp-authors { font-size: 14px; color: #6b7280; line-height: 1.6; margin: 0; }
         .pp-authors strong { color: #374151; font-weight: 600; }
         .pp-divider { height: 1px; background: #f3f4f6; margin: 28px 0; }
-        .pp-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #9ca3af; margin-bottom: 12px; }
-        .pp-abstract { font-size: 15px; color: #374151; line-height: 1.8; }
 
-        .pp-sidebar-card { background: #fff; border: 1px solid #f0f0f0; border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); position: sticky; top: 20px; }
-        .pp-sidebar-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin-bottom: 16px; }
+        /* ── Abstract section header with accent bar ── */
+        .pp-section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+        .pp-section-bar { width: 3px; height: 16px; background: #9b0000; border-radius: 2px; flex-shrink: 0; }
+        .pp-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #374151; margin: 0; }
+        .pp-abstract { font-size: 15px; color: #4b5563; line-height: 1.85; }
 
-        .pp-btn-download { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 18px; border-radius: 10px; border: none; background: linear-gradient(135deg, #166534, #16a34a); color: #fff; font-size: 14px; font-weight: 600; font-family: 'DM Sans', system-ui, sans-serif; cursor: pointer; text-decoration: none; transition: opacity 0.15s, transform 0.1s; box-shadow: 0 4px 14px rgba(22,101,52,0.3); margin-bottom: 10px; }
+        /* ── Sidebar card ── */
+        .pp-sidebar-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04); position: sticky; top: 20px; }
+        .pp-sidebar-body { padding: 20px; }
+
+        .pp-btn-download { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 18px; border-radius: 10px; border: none; background: linear-gradient(135deg, #7f0000, #b91c1c); color: #fff; font-size: 14px; font-weight: 600; font-family: 'DM Sans', system-ui, sans-serif; cursor: pointer; text-decoration: none; transition: opacity 0.15s, transform 0.1s; box-shadow: 0 4px 14px rgba(155,0,0,0.28); margin-bottom: 10px; }
         .pp-btn-download:hover { opacity: 0.92; transform: translateY(-1px); }
 
         /* Owner badge — shown instead of request buttons */
@@ -211,7 +220,7 @@ export default function PaperPreviewPage() {
 
         .pp-btn-pending { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 18px; border-radius: 10px; border: 1.5px solid #fde68a; background: #fffbeb; color: #92400e; font-size: 14px; font-weight: 600; font-family: 'DM Sans', system-ui, sans-serif; cursor: not-allowed; margin-bottom: 10px; opacity: 0.9; }
 
-        .pp-btn-approved { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 18px; border-radius: 10px; border: none; background: linear-gradient(135deg, #166534, #16a34a); color: #fff; font-size: 14px; font-weight: 600; font-family: 'DM Sans', system-ui, sans-serif; cursor: pointer; text-decoration: none; transition: opacity 0.15s, transform 0.1s; box-shadow: 0 4px 14px rgba(22,101,52,0.3); margin-bottom: 10px; }
+        .pp-btn-approved { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 18px; border-radius: 10px; border: none; background: linear-gradient(135deg, #7f0000, #b91c1c); color: #fff; font-size: 14px; font-weight: 600; font-family: 'DM Sans', system-ui, sans-serif; cursor: pointer; text-decoration: none; transition: opacity 0.15s, transform 0.1s; box-shadow: 0 4px 14px rgba(155,0,0,0.28); margin-bottom: 10px; }
         .pp-btn-approved:hover { opacity: 0.92; transform: translateY(-1px); }
 
         .pp-signin-nudge { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 18px; border-radius: 10px; border: 1.5px solid #e5e7eb; background: #fff; color: #374151; font-size: 14px; font-weight: 600; font-family: 'DM Sans', system-ui, sans-serif; cursor: pointer; transition: border-color 0.15s, color 0.15s; margin-bottom: 10px; }
@@ -219,12 +228,12 @@ export default function PaperPreviewPage() {
 
         .pp-access-note { font-size: 11.5px; color: #9ca3af; text-align: center; line-height: 1.55; margin-top: 4px; }
 
-        .pp-meta-list { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .pp-meta-row { display: flex; flex-direction: column; gap: 2px; }
-        .pp-meta-key { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #d1d5db; }
-        .pp-meta-val { font-size: 13px; color: #374151; font-weight: 500; }
+        .pp-meta-list { margin-top: 0; padding-top: 16px; border-top: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 13px; }
+        .pp-meta-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+        .pp-meta-key { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.9px; color: #b0b8c4; flex-shrink: 0; }
+        .pp-meta-val { font-size: 13px; color: #111827; font-weight: 700; text-align: right; }
 
-        .pp-skel-page { max-width: 860px; margin: 0 auto; padding: 40px; }
+        .pp-skel-page { max-width: 960px; margin: 0 auto; padding: 40px; }
         .pp-skel { border-radius: 8px; background: linear-gradient(90deg, #f5f5f5 25%, #ececec 50%, #f5f5f5 75%); background-size: 900px 100%; animation: ppShimmer 1.4s infinite linear; }
         @keyframes ppShimmer { 0%{background-position:-900px 0} 100%{background-position:900px 0} }
 
@@ -279,6 +288,7 @@ export default function PaperPreviewPage() {
           .pp-layout { grid-template-columns: 1fr; padding: 24px 20px 60px; gap: 28px; }
           .pp-sidebar-card { position: static; }
           .pp-breadcrumb { padding: 12px 20px; }
+          .pp-header { padding: 24px 20px 20px; }
           .pp-title { font-size: 24px; }
           .pp-pdf-iframe { height: 480px; }
           .pp-pdf-toolbar { flex-direction: column; align-items: flex-start; gap: 8px; }
@@ -331,38 +341,47 @@ export default function PaperPreviewPage() {
         )}
 
         {!loading && !error && paper && (
+          <>
+            {/* ── Header band ── */}
+            <div className="pp-header">
+              <div className="pp-header-inner">
+                <div className="pp-pills">
+                  {paper.year && <span className="pp-year-pill">{paper.year}</span>}
+                  {paper.course_or_program && <span className="pp-prog-pill">{paper.course_or_program}</span>}
+                  {isOpen
+                    ? <span className="pp-access-pill-open"><span className="pp-access-dot" /> Open Access</span>
+                    : <span className="pp-access-pill-restricted">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Restricted
+                      </span>}
+                </div>
+                <h1 className="pp-title">{paper.title}</h1>
+                {paper.authors?.length > 0 && (
+                  <p className="pp-authors">
+                    <strong>Authors:</strong> {paper.authors.join(", ")}
+                  </p>
+                )}
+              </div>
+            </div>
+
           <div className="pp-layout">
 
-            {/* ── LEFT COLUMN: paper info + PDF viewer ── */}
+            {/* ── LEFT COLUMN: abstract + PDF viewer ── */}
             <div className="pp-main">
-              <div className="pp-pills">
-                {paper.year && <span className="pp-year-pill">{paper.year}</span>}
-                {paper.course_or_program && <span className="pp-prog-pill">{paper.course_or_program}</span>}
-                {isOpen
-                  ? <span className="pp-access-pill-open"><span className="pp-access-dot" /> Open Access</span>
-                  : <span className="pp-access-pill-restricted">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                      Restricted
-                    </span>}
+              <div className="pp-section-header">
+                <div className="pp-section-bar" />
+                <div className="pp-section-label">Abstract</div>
               </div>
-
-              <h1 className="pp-title">{paper.title}</h1>
-
-              {paper.authors?.length > 0 && (
-                <p className="pp-authors">
-                  <strong>Authors:</strong> {paper.authors.join(", ")}
-                </p>
-              )}
-
-              <div className="pp-divider" />
-              <div className="pp-section-label">Abstract</div>
               <p className="pp-abstract">{paper.abstract || "No abstract available for this paper."}</p>
 
               {/* ── PDF Viewer ──────────────────────────── */}
               {canViewPdf && paper.publicUrl && (
                 <>
                   <div className="pp-divider" />
-                  <div className="pp-section-label">Research Paper</div>
+                  <div className="pp-section-header">
+                    <div className="pp-section-bar" />
+                    <div className="pp-section-label">Research Paper</div>
+                  </div>
 
                   {!showPdf ? (
                     /* Button shown before the user opens the viewer */
@@ -377,7 +396,10 @@ export default function PaperPreviewPage() {
                     /* PDF iframe + small toolbar once the user clicks View */
                     <div className="pp-pdf-wrapper">
                       <div className="pp-pdf-toolbar">
-                        <span className="pp-pdf-label">📄 {paper.title}</span>
+                        <span className="pp-pdf-label" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9b0000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                          {paper.title}
+                        </span>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <a
                             href={paper.publicUrl}
@@ -406,7 +428,7 @@ export default function PaperPreviewPage() {
 
             {/* ── RIGHT COLUMN: sidebar card ── */}
             <div className="pp-sidebar-card">
-              <div className="pp-sidebar-label">Full Paper</div>
+              <div className="pp-sidebar-body">
 
               {/* ── Owner: always show download, never show request ── */}
               {isOwner && paper.publicUrl && (
@@ -516,9 +538,11 @@ export default function PaperPreviewPage() {
                 {paper.authors?.length > 0 && <div className="pp-meta-row"><span className="pp-meta-key">Author{paper.authors.length > 1 ? "s" : ""}</span><span className="pp-meta-val">{paper.authors.join(", ")}</span></div>}
                 <div className="pp-meta-row"><span className="pp-meta-key">Access</span><span className="pp-meta-val">{isOpen ? "Open Access" : "Restricted"}</span></div>
               </div>
-            </div>
+              </div>{/* pp-sidebar-body */}
+            </div>{/* pp-sidebar-card */}
 
           </div>
+          </>
         )}
       </div>
 

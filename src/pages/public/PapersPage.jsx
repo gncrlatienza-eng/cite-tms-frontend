@@ -71,6 +71,7 @@ export default function PapersPage() {
   const [fromYear, setFromYear]     = useState("");
   const [toYear, setToYear]         = useState("");
   const [program, setProgram]       = useState("all");
+  const [programOpen, setProgramOpen] = useState(true);
 
   const [bookmarked, setBookmarked]   = useState(new Set());
   const [bookmarkIds, setBookmarkIds] = useState({});
@@ -209,9 +210,9 @@ export default function PapersPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
-        .sp-page { min-height:100vh; padding-top:57px; background:#f4f4f5; font-family:'DM Sans',system-ui,sans-serif; }
+        .sp-page { height:100vh; padding-top:57px; background:#f4f4f5; font-family:'DM Sans',system-ui,sans-serif; display:flex; flex-direction:column; overflow:hidden; }
 
-        .sp-hero { position:sticky; top:57px; z-index:50; background:#f4f4f5; padding:40px 40px 36px; text-align:center; }
+        .sp-hero { flex-shrink:0; background:#f4f4f5; padding:40px 40px 36px; text-align:center; }
         .sp-hero-inner { max-width:1120px; margin:0 auto; display:flex; flex-direction:column; align-items:center; }
         .sp-hero-heading { display:flex; align-items:baseline; gap:12px; margin-bottom:20px; }
         .sp-hero-title { font-family:'DM Serif Display',serif; font-size:28px; font-weight:400; color:#0f1117; letter-spacing:-0.4px; line-height:1; }
@@ -227,22 +228,31 @@ export default function PapersPage() {
         .sp-search-btn { background:#9b0000; color:#fff; border:none; border-radius:50px; padding:8px 20px; font-size:13.5px; font-weight:600; font-family:'DM Sans',sans-serif; cursor:pointer; flex-shrink:0; transition:background 0.15s; white-space:nowrap; }
         .sp-search-btn:hover { background:#7f1d1d; }
 
-        .sp-layout { max-width:1120px; margin:0 auto; padding:28px 40px 80px; display:grid; grid-template-columns:220px 1fr; gap:24px; align-items:start; }
+        .sp-layout { flex:1; min-height:0; width:100%; max-width:1120px; margin:0 auto; padding:5px 40px 0; display:grid; grid-template-columns:220px 1fr; gap:24px; overflow:hidden; }
+        .sp-layout > main { overflow-y:auto; overflow-x:hidden; padding:0 0 80px; scrollbar-width:none; }
+        .sp-layout > main::-webkit-scrollbar { display:none; }
 
-        .sp-sidebar-col { display:block; }
-        .sp-sidebar { position:fixed; top:257px; left:max(40px, calc(50vw - 520px)); width:220px; background:#fff; border:1px solid #ebebeb; border-radius:14px; overflow:hidden; z-index:10; }
-        .sp-sidebar-header { padding:14px 18px 12px; border-bottom:1px solid #f3f4f6; display:flex; align-items:center; justify-content:space-between; }
+        .sp-sidebar-col { display:block; padding:0 0 28px; }
+        .sp-sidebar { width:220px; max-height:calc(100vh - 280px); background:#fff; border:1px solid #ebebeb; border-radius:14px; display:flex; flex-direction:column; }
+        .sp-sidebar-header { flex-shrink:0; background:#fff; border-radius:14px 14px 0 0; padding:14px 18px 12px; border-bottom:1px solid #f3f4f6; display:flex; align-items:center; justify-content:space-between; }
         .sp-sidebar-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#374151; }
         .sp-sidebar-reset { font-size:11.5px; font-weight:600; color:#9b0000; background:none; border:none; cursor:pointer; padding:0; font-family:inherit; transition:color 0.15s; opacity:0; pointer-events:none; }
         .sp-sidebar-reset.visible { opacity:1; pointer-events:auto; }
         .sp-sidebar-reset:hover { color:#7f1d1d; }
-        .sp-sidebar-body { padding:12px 10px; }
+        .sp-sidebar-body { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:12px 10px; scrollbar-width:none; }
+        .sp-sidebar-body::-webkit-scrollbar { display:none; }
         .sp-sb-group { margin-bottom:4px; }
         .sp-sb-label { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.9px; color:#9ca3af; padding:8px 8px 4px; display:block; }
         .sp-sb-btn { display:flex; align-items:center; width:100%; text-align:left; padding:7px 8px; border-radius:7px; border:none; background:none; font-size:13px; font-family:'DM Sans',sans-serif; color:#6b7280; cursor:pointer; transition:background 0.1s,color 0.1s; }
         .sp-sb-btn:hover { background:#f9fafb; color:#111827; }
         .sp-sb-btn.active { background:#fef2f2; color:#9b0000; font-weight:600; }
         .sp-sb-divider { height:1px; background:#f3f4f6; margin:8px 0; }
+        .sp-accordion-header { display:flex; align-items:center; justify-content:space-between; width:100%; padding:8px 8px 4px; background:none; border:none; cursor:pointer; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.9px; color:#9ca3af; font-family:'DM Sans',sans-serif; }
+        .sp-accordion-header:hover { color:#6b7280; }
+        .sp-accordion-chevron { transition:transform 0.2s ease; color:#9ca3af; flex-shrink:0; }
+        .sp-accordion-chevron.open { transform:rotate(180deg); }
+        .sp-accordion-body { overflow:hidden; transition:max-height 0.25s ease, opacity 0.2s ease; max-height:0; opacity:0; }
+        .sp-accordion-body.open { max-height:400px; opacity:1; }
         .sp-custom-range { display:flex; align-items:center; gap:6px; padding:6px 8px 4px; }
         .sp-custom-range input { width:58px; padding:5px 7px; border:1.5px solid #e5e7eb; border-radius:7px; font-size:12px; font-family:'DM Sans',sans-serif; color:#111827; background:#fff; outline:none; transition:border-color 0.15s; -moz-appearance:textfield; }
         .sp-custom-range input::-webkit-outer-spin-button,.sp-custom-range input::-webkit-inner-spin-button { -webkit-appearance:none; }
@@ -257,7 +267,8 @@ export default function PapersPage() {
 
         .sp-results-meta { font-size:13px; color:#70757a; margin-bottom:14px; }
         .sp-card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:8px; }
-        .sp-card-title { font-size:17px; font-family:'DM Serif Display',serif; color:#1a0dab; text-decoration:none; line-height:1.35; display:block; transition:color 0.15s; }
+        .sp-card-title { font-size:17px; font-family:'DM Serif Display',serif; color:#111827; text-decoration:none; line-height:1.35; display:block; transition:color 0.15s; }
+        .sp-card-title:visited { color:#9b0000; }
         .sp-card-title:hover { color:#9b0000; }
 
         .sp-bm-btn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:none; border:1.5px solid #f0f0f0; cursor:pointer; color:#9ca3af; flex-shrink:0; transition:color 0.15s,background 0.15s,border-color 0.15s; margin-top:-2px; }
@@ -305,7 +316,9 @@ export default function PapersPage() {
         .sp-error { padding:14px 18px; background:#fef2f2; border:1px solid #fecaca; border-radius:10px; color:#b91c1c; font-size:13px; margin-bottom:16px; }
 
         @media (max-width:900px) {
-          .sp-layout { grid-template-columns:1fr; padding:16px 16px 60px; }
+          .sp-page { height:auto; overflow:visible; }
+          .sp-layout { grid-template-columns:1fr; padding:16px 16px 0; overflow:visible; }
+          .sp-layout > main { overflow-y:visible; padding:0 0 60px; }
           .sp-sidebar-col { display:none; }
           .sp-sidebar { display:none; }
           .sp-hero { padding:28px 20px 24px; }
@@ -389,12 +402,23 @@ export default function PapersPage() {
               </div>
               <div className="sp-sb-divider" />
               <div className="sp-sb-group">
-                <span className="sp-sb-label">Program</span>
-                {PROGRAM_FILTERS.map(({ key, label }) => (
-                  <button key={key} type="button" className={`sp-sb-btn${program === key ? " active" : ""}`} onClick={() => setProgram(key)}>
-                    {label}
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  className="sp-accordion-header"
+                  onClick={() => setProgramOpen((o) => !o)}
+                >
+                  Program
+                  <svg className={`sp-accordion-chevron${programOpen ? " open" : ""}`} width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+                <div className={`sp-accordion-body${programOpen ? " open" : ""}`}>
+                  {PROGRAM_FILTERS.map(({ key, label }) => (
+                    <button key={key} type="button" className={`sp-sb-btn${program === key ? " active" : ""}`} onClick={() => setProgram(key)}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -464,13 +488,12 @@ export default function PapersPage() {
                       <span className="sp-authors">{paper.authors.join(", ")}</span>
                     )}
                     {paper.year && (
-                      <><span className="sp-dot">·</span><span className="sp-year-pill">{paper.year}</span></>
+                      <span className="sp-year-pill">{paper.year}</span>
                     )}
                     {paper.course_or_program && (
-                      <><span className="sp-dot">·</span><span className="sp-prog-pill">{paper.course_or_program}</span></>
+                      <span className="sp-prog-pill">{paper.course_or_program}</span>
                     )}
                     {/* ── Access badge ── */}
-                    <span className="sp-dot">·</span>
                     <span
                       className="sp-access-badge"
                       style={{ background: access.bg, color: access.color, borderColor: access.border }}
