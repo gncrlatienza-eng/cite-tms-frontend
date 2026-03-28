@@ -64,6 +64,7 @@ export default function BookmarksPage() {
 
         .bm-page {
           min-height: 100vh;
+          padding-top: 57px;
           background: #fafafa;
           font-family: 'DM Sans', system-ui, sans-serif;
         }

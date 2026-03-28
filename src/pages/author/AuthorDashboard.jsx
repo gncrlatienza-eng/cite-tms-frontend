@@ -44,7 +44,7 @@ export default function AuthorDashboard() {
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .au-page { min-height: 100vh; background: #fafafa; font-family: 'DM Sans', system-ui, sans-serif; }
+        .au-page { min-height: 100vh; padding-top: 57px; background: #fafafa; font-family: 'DM Sans', system-ui, sans-serif; }
 
         .au-header {
           background: #fff; border-bottom: 1px solid #efefef;

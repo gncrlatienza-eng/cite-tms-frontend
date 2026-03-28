@@ -352,9 +352,11 @@ export default function Navbar({ onLoginClick }) {
 
 const styles = {
   nav: {
+    position: 'fixed', top: 0, left: 0,
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     padding: '10px 20px', backgroundColor: '#ffffff',
     borderBottom: '1px solid #ebebeb', width: '100%', boxSizing: 'border-box',
+    zIndex: 100,
   },
   leftSection: { display: 'flex', alignItems: 'center', gap: '20px' },
   logoButton: {

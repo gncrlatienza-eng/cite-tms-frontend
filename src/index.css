@@ -52,12 +52,18 @@ button:focus-visible {
 }
 
 /* Prevent viewport bounce/overscroll */
-html, body, #root {
+html {
+  overflow: hidden;
   height: 100%;
+}
+
+body, #root {
+  min-height: 100%;
   background-color: #ffffff;
-  overscroll-behavior-x: none;
-  overscroll-behavior-y: contain;
+  overscroll-behavior: none;
   overflow-x: hidden;
+  overflow-y: auto;
+  height: 100%;
 }
 
 /* iOS Safari */

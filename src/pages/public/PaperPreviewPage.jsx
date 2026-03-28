@@ -173,7 +173,7 @@ export default function PaperPreviewPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
-        .pp-page { min-height: 100vh; background: #fafafa; font-family: 'DM Sans', system-ui, sans-serif; }
+        .pp-page { min-height: 100vh; padding-top: 57px; background: #fafafa; font-family: 'DM Sans', system-ui, sans-serif; }
 
         .pp-breadcrumb { padding: 14px 40px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #9ca3af; border-bottom: 1px solid #f3f4f6; background: #fff; }
         .pp-breadcrumb-link { background: none; border: none; padding: 0; cursor: pointer; color: #9b0000; font-size: 13px; font-family: inherit; font-weight: 500; transition: color 0.15s; display: flex; align-items: center; gap: 5px; }

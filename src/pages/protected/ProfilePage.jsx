@@ -139,7 +139,8 @@ export default function ProfilePage() {
 
 const styles = {
   page: {
-    minHeight: "calc(100vh - 56px)",
+    minHeight: "calc(100vh - 57px)",
+    paddingTop: "57px",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
