@@ -558,10 +558,12 @@ export default function PapersPage() {
           text-decoration: none;
           line-height: 1.35;
           display: block;
-          transition: color 0.15s;
+          transition: color 0.2s ease-in-out;
+          cursor: pointer;
         }
-        .paper-title:hover { color: #9b0000; }
+        .paper-title:hover { color: #6b7280; }
         .paper-title:visited { color: #9b0000; }
+        .paper-title:visited:hover { color: #7f1d1d; }
 
         /* ── Bookmark button ── */
         .sp-bm-btn {
@@ -610,7 +612,7 @@ export default function PapersPage() {
         }
 
         /* ── Card footer ── */
-        .sp-card-footer { display: flex; align-items: center; gap: 8px; padding-top: 14px; border-top: 1px solid #f9f9f9; flex-wrap: wrap; }
+        .sp-card-footer { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .sp-btn-view {
           display: inline-flex; align-items: center; gap: 5px;
           padding: 6px 14px; border-radius: 7px; border: 1.5px solid #e5e7eb;
@@ -867,14 +869,6 @@ export default function PapersPage() {
 
                   {/* Footer actions */}
                   <div className="sp-card-footer">
-                    <Link to={`/papers/${paper.id}`} className="sp-btn-view">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                        <circle cx="12" cy="12" r="3"/>
-                      </svg>
-                      View Paper
-                    </Link>
-
                     {pdfAction?.type === "pdf" && (
                       <a href={pdfAction.href} target="_blank" rel="noopener noreferrer" className="sp-btn-pdf">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
