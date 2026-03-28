@@ -181,20 +181,21 @@ export default function PaperPreviewPage() {
         .pp-bc-sep { color: #d1d5db; }
 
         /* ── Header band ── */
-        .pp-header { background: #fff; border-bottom: 1px solid #f3f4f6; padding: 32px 40px 28px; }
-        .pp-header-inner { max-width: 960px; margin: 0 auto; }
+        .pp-header { background: #fff; padding: 32px 0 0; }
+        .pp-header-inner { max-width: 960px; margin: 0 auto; padding: 0 40px; }
+        .pp-header-grid { display: grid; grid-template-columns: 1fr 272px; gap: 48px; align-items: start; padding-bottom: 28px; border-bottom: 1px solid #f3f4f6; }
 
         .pp-layout { max-width: 960px; margin: 0 auto; padding: 36px 40px 100px; display: grid; grid-template-columns: 1fr 272px; gap: 48px; align-items: start; }
         .pp-main {}
 
-        .pp-pills { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+        .pp-pills { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; margin-bottom: 0; }
         .pp-year-pill { background: #fef2f2; color: #9b0000; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid #fecaca; }
         .pp-prog-pill { background: #f3f4f6; color: #374151; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
         .pp-access-pill-open { background: #f0fdf4; color: #15803d; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid #bbf7d0; display: inline-flex; align-items: center; gap: 4px; }
         .pp-access-dot { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; }
         .pp-access-pill-restricted { background: #fef2f2; color: #9b0000; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid #fecaca; display: inline-flex; align-items: center; gap: 4px; }
 
-        .pp-title { font-family: 'DM Serif Display', serif; font-size: 32px; font-weight: 400; color: #0f1117; line-height: 1.3; margin-bottom: 14px; letter-spacing: -0.4px; }
+        .pp-title { font-family: 'DM Serif Display', serif; font-size: 36px; font-weight: 400; color: #0f1117; line-height: 1.3; margin-bottom: 14px; letter-spacing: -0.4px; text-align: justify; }
         .pp-authors { font-size: 14px; color: #6b7280; line-height: 1.6; margin: 0; }
         .pp-authors strong { color: #374151; font-weight: 600; }
         .pp-divider { height: 1px; background: #f3f4f6; margin: 28px 0; }
@@ -203,7 +204,7 @@ export default function PaperPreviewPage() {
         .pp-section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
         .pp-section-bar { width: 3px; height: 16px; background: #9b0000; border-radius: 2px; flex-shrink: 0; }
         .pp-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #374151; margin: 0; }
-        .pp-abstract { font-size: 15px; color: #4b5563; line-height: 1.85; }
+        .pp-abstract { font-size: 15px; color: #4b5563; line-height: 1.85; text-align: justify; }
 
         /* ── Sidebar card ── */
         .pp-sidebar-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04); position: sticky; top: 20px; }
@@ -228,7 +229,7 @@ export default function PaperPreviewPage() {
 
         .pp-access-note { font-size: 11.5px; color: #9ca3af; text-align: center; line-height: 1.55; margin-top: 4px; }
 
-        .pp-meta-list { margin-top: 0; padding-top: 16px; border-top: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 13px; }
+        .pp-meta-list { margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 13px; }
         .pp-meta-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
         .pp-meta-key { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.9px; color: #b0b8c4; flex-shrink: 0; }
         .pp-meta-val { font-size: 13px; color: #111827; font-weight: 700; text-align: right; }
@@ -288,7 +289,9 @@ export default function PaperPreviewPage() {
           .pp-layout { grid-template-columns: 1fr; padding: 24px 20px 60px; gap: 28px; }
           .pp-sidebar-card { position: static; }
           .pp-breadcrumb { padding: 12px 20px; }
-          .pp-header { padding: 24px 20px 20px; }
+          .pp-header { padding: 24px 0 0; }
+          .pp-header-inner { padding: 0 20px; }
+          .pp-header-grid { grid-template-columns: 1fr; padding-bottom: 20px; }
           .pp-title { font-size: 24px; }
           .pp-pdf-iframe { height: 480px; }
           .pp-pdf-toolbar { flex-direction: column; align-items: flex-start; gap: 8px; }
@@ -345,22 +348,26 @@ export default function PaperPreviewPage() {
             {/* ── Header band ── */}
             <div className="pp-header">
               <div className="pp-header-inner">
-                <div className="pp-pills">
-                  {paper.year && <span className="pp-year-pill">{paper.year}</span>}
-                  {paper.course_or_program && <span className="pp-prog-pill">{paper.course_or_program}</span>}
-                  {isOpen
-                    ? <span className="pp-access-pill-open"><span className="pp-access-dot" /> Open Access</span>
-                    : <span className="pp-access-pill-restricted">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        Restricted
-                      </span>}
+                <div className="pp-header-grid">
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <h1 className="pp-title">{paper.title}</h1>
+                    {paper.authors?.length > 0 && (
+                      <p className="pp-authors">
+                        <strong>Authors:</strong> {paper.authors.join(", ")}
+                      </p>
+                    )}
+                    <div className="pp-pills">
+                      {paper.year && <span className="pp-year-pill">{paper.year}</span>}
+                      {paper.course_or_program && <span className="pp-prog-pill">{paper.course_or_program}</span>}
+                      {isOpen
+                        ? <span className="pp-access-pill-open">Open Access</span>
+                        : <span className="pp-access-pill-restricted">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            Restricted
+                          </span>}
+                    </div>
+                  </div>
                 </div>
-                <h1 className="pp-title">{paper.title}</h1>
-                {paper.authors?.length > 0 && (
-                  <p className="pp-authors">
-                    <strong>Authors:</strong> {paper.authors.join(", ")}
-                  </p>
-                )}
               </div>
             </div>
 
@@ -443,7 +450,6 @@ export default function PaperPreviewPage() {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     Your paper
                   </div>
-                  <p className="pp-access-note">You uploaded this paper.</p>
                 </>
               )}
 
@@ -453,7 +459,6 @@ export default function PaperPreviewPage() {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     Your paper
                   </div>
-                  <p className="pp-access-note">No PDF uploaded yet.</p>
                 </>
               )}
 
@@ -467,7 +472,6 @@ export default function PaperPreviewPage() {
                     </svg>
                     Download Full Paper
                   </a>
-                  <p className="pp-access-note">Free to access · No request needed</p>
                 </>
               )}
 
@@ -478,7 +482,6 @@ export default function PaperPreviewPage() {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                     Sign in to Request Access
                   </button>
-                  <p className="pp-access-note">Sign in with your DLSL account to request access to this paper.</p>
                 </>
               )}
 
@@ -491,7 +494,6 @@ export default function PaperPreviewPage() {
                     </svg>
                     Request Access
                   </button>
-                  <p className="pp-access-note">Submit a short reason to request access to the full paper.</p>
                 </>
               )}
 
@@ -502,7 +504,6 @@ export default function PaperPreviewPage() {
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     Request Pending
                   </div>
-                  <p className="pp-access-note">Your request has been submitted and is awaiting review.</p>
                 </>
               )}
 
@@ -515,7 +516,6 @@ export default function PaperPreviewPage() {
                     </svg>
                     Download Full Paper
                   </a>
-                  <p className="pp-access-note" style={{ color: '#15803d' }}>Your access request was approved.</p>
                 </>
               )}
 
@@ -528,7 +528,6 @@ export default function PaperPreviewPage() {
                     </svg>
                     Request Again
                   </button>
-                  <p className="pp-access-note" style={{ color: '#b91c1c' }}>Your previous request was not approved.</p>
                 </>
               )}
 
