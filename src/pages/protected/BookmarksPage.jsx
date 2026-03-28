@@ -93,64 +93,6 @@ export default function BookmarksPage() {
           font-family: 'DM Sans', system-ui, sans-serif;
         }
 
-        /* ── Header bar ── */
-        .bm-header {
-          background: #fff;
-          border-bottom: 1px solid #efefef;
-          padding: 20px 40px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-        }
-
-        .bm-header-left {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-        }
-
-        .bm-header-icon {
-          width: 38px;
-          height: 38px;
-          border-radius: 10px;
-          background: linear-gradient(135deg, #9b0000, #c0392b);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          box-shadow: 0 3px 10px rgba(155,0,0,0.25);
-        }
-
-        .bm-header-text h1 {
-          font-family: 'DM Serif Display', serif;
-          font-size: 20px;
-          font-weight: 400;
-          color: #111827;
-          line-height: 1;
-          margin-bottom: 3px;
-        }
-
-        .bm-header-text p {
-          font-size: 12.5px;
-          color: #9ca3af;
-          margin: 0;
-        }
-
-        .bm-count-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          background: #fef2f2;
-          color: #9b0000;
-          font-size: 12px;
-          font-weight: 700;
-          padding: 4px 12px;
-          border-radius: 20px;
-          border: 1px solid #fecaca;
-          white-space: nowrap;
-        }
-
         /* ── Body ── */
         .bm-body {
           max-width: 860px;
@@ -419,7 +361,6 @@ export default function BookmarksPage() {
         .bm-gate-btn:hover { opacity: 0.9; transform: translateY(-1px); }
 
         @media (max-width: 768px) {
-          .bm-header { padding: 16px 20px; }
           .bm-body { padding: 20px 16px 60px; }
         }
       `}</style>
@@ -453,29 +394,6 @@ export default function BookmarksPage() {
 
         ) : (
           <>
-            {/* Header */}
-            <div className="bm-header">
-              <div className="bm-header-left">
-                <div className="bm-header-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-                  </svg>
-                </div>
-                <div className="bm-header-text">
-                  <h1>Bookmarks</h1>
-                  <p>Your saved papers</p>
-                </div>
-              </div>
-              {!loading && bookmarks.length > 0 && (
-                <span className="bm-count-badge">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  {bookmarks.length} saved
-                </span>
-              )}
-            </div>
-
             {/* Body */}
             <div className="bm-body">
               {error && <div className="bm-error">{error}</div>}

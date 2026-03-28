@@ -142,69 +142,6 @@ export default function RequestsPage() {
           font-family: 'DM Sans', system-ui, sans-serif;
         }
 
-        /* ── Header ── */
-        .rq-header {
-          background: #fff;
-          border-bottom: 1px solid #efefef;
-          padding: 20px 40px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          flex-wrap: wrap;
-        }
-
-        .rq-header-left {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-        }
-
-        .rq-header-icon {
-          width: 38px;
-          height: 38px;
-          border-radius: 10px;
-          background: linear-gradient(135deg, #9b0000, #c0392b);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          box-shadow: 0 3px 10px rgba(155,0,0,0.25);
-        }
-
-        .rq-header-text h1 {
-          font-family: 'DM Serif Display', serif;
-          font-size: 20px;
-          font-weight: 400;
-          color: #111827;
-          line-height: 1;
-          margin-bottom: 3px;
-        }
-
-        .rq-header-text p {
-          font-size: 12.5px;
-          color: #9ca3af;
-          margin: 0;
-        }
-
-        .rq-header-stats {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .rq-stat-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          font-size: 12px;
-          font-weight: 600;
-          padding: 4px 12px;
-          border-radius: 20px;
-          border: 1px solid;
-          white-space: nowrap;
-        }
-
         /* ── Body ── */
         .rq-body {
           max-width: 900px;
@@ -445,7 +382,6 @@ export default function RequestsPage() {
         .rq-gate-btn:hover { opacity: 0.9; transform: translateY(-1px); }
 
         @media (max-width: 768px) {
-          .rq-header { padding: 16px 20px; }
           .rq-body { padding: 20px 16px 60px; }
           .rq-th-date, .rq-td-date { display: none; }
           .rq-paper-title { max-width: 180px; }
@@ -482,39 +418,6 @@ export default function RequestsPage() {
 
         ) : (
           <>
-            {/* Header */}
-            <div className="rq-header">
-              <div className="rq-header-left">
-                <div className="rq-header-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                  </svg>
-                </div>
-                <div className="rq-header-text">
-                  <h1>Access Requests</h1>
-                  <p>Track the status of your paper requests</p>
-                </div>
-              </div>
-
-              {!loading && requests.length > 0 && (
-                <div className="rq-header-stats">
-                  {pendingCount > 0 && (
-                    <span className="rq-stat-chip" style={{ background: "#fffbeb", color: "#92400e", borderColor: "#fde68a" }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b" }} />
-                      {pendingCount} Pending
-                    </span>
-                  )}
-                  {approvedCount > 0 && (
-                    <span className="rq-stat-chip" style={{ background: "#f0fdf4", color: "#166534", borderColor: "#bbf7d0" }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16a34a" }} />
-                      {approvedCount} Approved
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* Body */}
             <div className="rq-body">
               {error && <div className="rq-error">{error}</div>}
