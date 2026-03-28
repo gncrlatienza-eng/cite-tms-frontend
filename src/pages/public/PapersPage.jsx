@@ -48,7 +48,6 @@ const IconLock = () => (
   </svg>
 );
 
-// Access type display config
 const ACCESS_META = {
   open:          { label: "Public",           Icon: IconGlobe, bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
   students_only: { label: "Sign-in Required", Icon: IconUser,  bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
@@ -58,19 +57,19 @@ const ACCESS_META = {
 export default function PapersPage() {
   const { user } = useAuth();
 
-  const [papers, setPapers]         = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState("");
-  const [showLogin, setShowLogin]   = useState(false);
-  const [query, setQuery]           = useState(() => {
+  const [papers, setPapers]           = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState("");
+  const [showLogin, setShowLogin]     = useState(false);
+  const [query, setQuery]             = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("q") || "";
   });
-  const [timeFilter, setTimeFilter] = useState("any");
-  const [sortBy, setSortBy]         = useState("relevance");
-  const [fromYear, setFromYear]     = useState("");
-  const [toYear, setToYear]         = useState("");
-  const [program, setProgram]       = useState("all");
+  const [timeFilter, setTimeFilter]   = useState("any");
+  const [sortBy, setSortBy]           = useState("relevance");
+  const [fromYear, setFromYear]       = useState("");
+  const [toYear, setToYear]           = useState("");
+  const [program, setProgram]         = useState("all");
   const [programOpen, setProgramOpen] = useState(true);
 
   const [bookmarked, setBookmarked]   = useState(new Set());
@@ -82,22 +81,17 @@ export default function PapersPage() {
       setLoading(true); setError("");
       try {
         if (papersCache.data) { setPapers(papersCache.data); return; }
-
-        // ── KEY FIX: only fetch published papers ──────────────────
         const { data, error: err } = await supabase
           .from("papers")
           .select("id, title, authors, year, course_or_program, abstract, file_path, access_type, status")
-          .eq("status", "published")          // ← only published
+          .eq("status", "published")
           .order("created_at", { ascending: false });
-
         if (err) throw err;
-
         const withUrls = data?.map((p) => {
           if (!p.file_path) return { ...p, publicUrl: null };
           const { data: u } = supabase.storage.from(BUCKET).getPublicUrl(p.file_path);
           return { ...p, publicUrl: u?.publicUrl ?? null };
         }) ?? [];
-
         papersCache.data = withUrls;
         setPapers(withUrls);
       } catch (e) {
@@ -183,24 +177,16 @@ export default function PapersPage() {
 
   const hasActiveFilter = timeFilter !== "any" || sortBy !== "relevance" || program !== "all";
 
-  // Determine what PDF button to show per paper + user state
   const getPdfAction = (paper) => {
     if (!paper.publicUrl) return null;
-
     if (paper.access_type === "open") {
-      return user
-        ? { type: "pdf", href: paper.publicUrl }
-        : { type: "lock", label: "Sign in to view PDF" };
+      return user ? { type: "pdf", href: paper.publicUrl } : { type: "lock", label: "Sign in to view PDF" };
     }
     if (paper.access_type === "students_only") {
-      return user
-        ? { type: "pdf", href: paper.publicUrl }
-        : { type: "lock", label: "Sign in to view PDF" };
+      return user ? { type: "pdf", href: paper.publicUrl } : { type: "lock", label: "Sign in to view PDF" };
     }
     if (paper.access_type === "restricted") {
-      return user
-        ? { type: "request", label: "Request Access" }
-        : { type: "lock", label: "Sign in to request" };
+      return user ? { type: "request", label: "Request Access" } : { type: "lock", label: "Sign in to request" };
     }
     return null;
   };
@@ -210,147 +196,491 @@ export default function PapersPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
-        .sp-page { height:100vh; padding-top:57px; background:#f4f4f5; font-family:'DM Sans',system-ui,sans-serif; display:flex; flex-direction:column; overflow:hidden; }
+        /* ── Page ── */
+        .papers-page {
+          height: 100vh;
+          padding-top: 57px;
+          background: #f4f4f5;
+          font-family: 'DM Sans', sans-serif;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
 
-        .sp-hero { flex-shrink:0; background:#f4f4f5; padding:40px 40px 36px; text-align:center; }
-        .sp-hero-inner { max-width:1120px; margin:0 auto; display:flex; flex-direction:column; align-items:center; }
-        .sp-hero-heading { display:flex; align-items:baseline; gap:12px; margin-bottom:20px; }
-        .sp-hero-title { font-family:'DM Serif Display',serif; font-size:28px; font-weight:400; color:#0f1117; letter-spacing:-0.4px; line-height:1; }
+        /* ── Hero ── */
+        .papers-hero {
+          flex-shrink: 0;
+          background: #f4f4f5;
+          padding: 40px 40px 36px;
+          text-align: center;
+        }
+        .papers-hero-inner {
+          max-width: 1120px;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .sp-title-row {
+          display: flex;
+          align-items: baseline;
+          gap: 12px;
+          margin-bottom: 20px;
+        }
+        .sp-heading {
+          font-family: 'DM Serif Display', serif;
+          font-size: 28px;
+          font-weight: 400;
+          color: #0f1117;
+          letter-spacing: -0.4px;
+          line-height: 1;
+          margin: 0;
+        }
 
-        .sp-search-wrap { display:flex; align-items:center; width:100%; max-width:680px; background:#fff; border:1.5px solid #e5e7eb; border-radius:50px; padding:0 10px 0 16px; gap:10px; box-shadow:0 1px 4px rgba(0,0,0,0.05),0 4px 16px rgba(0,0,0,0.04); transition:border-color 0.2s,box-shadow 0.2s; }
-        .sp-search-wrap:focus-within { border-color:#9b0000; box-shadow:0 1px 4px rgba(0,0,0,0.05),0 4px 16px rgba(155,0,0,0.08),0 0 0 3px rgba(155,0,0,0.06); }
-        .sp-search-icon { color:#9ca3af; display:flex; flex-shrink:0; pointer-events:none; transition:color 0.2s; }
-        .sp-search-wrap:focus-within .sp-search-icon { color:#9b0000; }
-        .sp-search-input { flex:1; border:none; outline:none; font-size:14.5px; font-family:'DM Sans',sans-serif; color:#111827; background:transparent; padding:13px 0; min-width:0; }
-        .sp-search-input::placeholder { color:#b0b7c3; }
-        .sp-search-clear { background:none; border:none; cursor:pointer; color:#9ca3af; display:flex; align-items:center; padding:5px; border-radius:50%; transition:color 0.15s,background 0.15s; flex-shrink:0; }
-        .sp-search-clear:hover { color:#374151; background:#f3f4f6; }
-        .sp-search-btn { background:#9b0000; color:#fff; border:none; border-radius:50px; padding:8px 20px; font-size:13.5px; font-weight:600; font-family:'DM Sans',sans-serif; cursor:pointer; flex-shrink:0; transition:background 0.15s; white-space:nowrap; }
-        .sp-search-btn:hover { background:#7f1d1d; }
+        /* ── Search bar ── */
+        .sp-search {
+          display: flex;
+          align-items: center;
+          width: 100%;
+          max-width: 680px;
+          background: #fff;
+          border: 1.5px solid #e5e7eb;
+          border-radius: 9999px;
+          padding: 0 10px 0 16px;
+          gap: 10px;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04);
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .sp-search:focus-within {
+          border-color: #9b0000;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.05), 0 4px 16px rgba(155,0,0,0.08), 0 0 0 3px rgba(155,0,0,0.06);
+        }
+        .sp-search-icon {
+          color: #9ca3af;
+          display: flex;
+          flex-shrink: 0;
+          pointer-events: none;
+          transition: color 0.2s;
+        }
+        .sp-search:focus-within .sp-search-icon { color: #9b0000; }
+        .sp-search-input {
+          flex: 1;
+          border: none;
+          outline: none;
+          font-size: 14.5px;
+          font-family: 'DM Sans', sans-serif;
+          color: #111827;
+          background: transparent;
+          padding: 13px 0;
+          min-width: 0;
+        }
+        .sp-search-input::placeholder { color: #b0b7c3; }
+        .sp-clear-btn {
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          color: #9ca3af;
+          display: flex;
+          align-items: center;
+          padding: 5px;
+          border-radius: 9999px;
+          transition: color 0.15s, background 0.15s;
+          flex-shrink: 0;
+        }
+        .sp-clear-btn:hover { color: #374151; background: #f3f4f6; }
+        .sp-search-btn {
+          background: #9b0000;
+          color: #fff;
+          border: none;
+          border-radius: 9999px;
+          padding: 8px 20px;
+          font-size: 13.5px;
+          font-weight: 600;
+          font-family: 'DM Sans', sans-serif;
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: background 0.15s;
+          white-space: nowrap;
+        }
+        .sp-search-btn:hover { background: #7f1d1d; }
 
-        .sp-layout { flex:1; min-height:0; width:100%; max-width:1120px; margin:0 auto; padding:5px 40px 0; display:grid; grid-template-columns:220px 1fr; gap:24px; overflow:hidden; }
-        .sp-layout > main { overflow-y:auto; overflow-x:hidden; padding:0 0 80px; scrollbar-width:none; }
-        .sp-layout > main::-webkit-scrollbar { display:none; }
+        /* ── Layout ── */
+        .papers-layout {
+          flex: 1;
+          min-height: 0;
+          width: 100%;
+          max-width: 1120px;
+          margin: 0 auto;
+          padding: 5px 40px 0;
+          display: grid;
+          grid-template-columns: 220px 1fr;
+          gap: 24px;
+          overflow: hidden;
+        }
 
-        .sp-sidebar-col { display:block; padding:0 0 28px; }
-        .sp-sidebar { width:220px; max-height:calc(100vh - 280px); background:#fff; border:1px solid #ebebeb; border-radius:14px; display:flex; flex-direction:column; }
-        .sp-sidebar-header { flex-shrink:0; background:#fff; border-radius:14px 14px 0 0; padding:14px 18px 12px; border-bottom:1px solid #f3f4f6; display:flex; align-items:center; justify-content:space-between; }
-        .sp-sidebar-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#374151; }
-        .sp-sidebar-reset { font-size:11.5px; font-weight:600; color:#9b0000; background:none; border:none; cursor:pointer; padding:0; font-family:inherit; transition:color 0.15s; opacity:0; pointer-events:none; }
-        .sp-sidebar-reset.visible { opacity:1; pointer-events:auto; }
-        .sp-sidebar-reset:hover { color:#7f1d1d; }
-        .sp-sidebar-body { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:12px 10px; scrollbar-width:none; }
-        .sp-sidebar-body::-webkit-scrollbar { display:none; }
-        .sp-sb-group { margin-bottom:4px; }
-        .sp-sb-label { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.9px; color:#9ca3af; padding:8px 8px 4px; display:block; }
-        .sp-sb-btn { display:flex; align-items:center; width:100%; text-align:left; padding:7px 8px; border-radius:7px; border:none; background:none; font-size:13px; font-family:'DM Sans',sans-serif; color:#6b7280; cursor:pointer; transition:background 0.1s,color 0.1s; }
-        .sp-sb-btn:hover { background:#f9fafb; color:#111827; }
-        .sp-sb-btn.active { background:#fef2f2; color:#9b0000; font-weight:600; }
-        .sp-sb-divider { height:1px; background:#f3f4f6; margin:8px 0; }
-        .sp-accordion-header { display:flex; align-items:center; justify-content:space-between; width:100%; padding:8px 8px 4px; background:none; border:none; cursor:pointer; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.9px; color:#9ca3af; font-family:'DM Sans',sans-serif; }
-        .sp-accordion-header:hover { color:#6b7280; }
-        .sp-accordion-chevron { transition:transform 0.2s ease; color:#9ca3af; flex-shrink:0; }
-        .sp-accordion-chevron.open { transform:rotate(180deg); }
-        .sp-accordion-body { overflow:hidden; transition:max-height 0.25s ease, opacity 0.2s ease; max-height:0; opacity:0; }
-        .sp-accordion-body.open { max-height:400px; opacity:1; }
-        .sp-custom-range { display:flex; align-items:center; gap:6px; padding:6px 8px 4px; }
-        .sp-custom-range input { width:58px; padding:5px 7px; border:1.5px solid #e5e7eb; border-radius:7px; font-size:12px; font-family:'DM Sans',sans-serif; color:#111827; background:#fff; outline:none; transition:border-color 0.15s; -moz-appearance:textfield; }
-        .sp-custom-range input::-webkit-outer-spin-button,.sp-custom-range input::-webkit-inner-spin-button { -webkit-appearance:none; }
-        .sp-custom-range input:focus { border-color:#9b0000; }
-        .sp-range-sep { font-size:12px; color:#9ca3af; }
+        /* ── Sidebar column ── */
+        .papers-sidebar-col {
+          display: block;
+          padding-bottom: 28px;
+        }
+        .sp-sidebar {
+          width: 220px;
+          max-height: calc(100vh - 280px);
+          background: #fff;
+          border: 1px solid #ebebeb;
+          border-radius: 14px;
+          display: flex;
+          flex-direction: column;
+        }
+        .sp-sidebar-header {
+          flex-shrink: 0;
+          background: #fff;
+          border-radius: 14px 14px 0 0;
+          padding: 14px 18px 12px;
+          border-bottom: 1px solid #f3f4f6;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .sp-filters-label {
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          color: #374151;
+        }
+        .sp-reset-btn {
+          font-size: 11.5px;
+          font-weight: 600;
+          color: #9b0000;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+          font-family: 'DM Sans', sans-serif;
+          transition: color 0.15s;
+        }
+        .sp-reset-btn:hover { color: #7f1d1d; }
+        .sp-sidebar-body {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+          padding: 12px 10px;
+          scrollbar-width: none;
+        }
+        .sp-sidebar-body::-webkit-scrollbar { display: none; }
 
-        .sp-card { background:#fff; border:1px solid #ebebeb; border-radius:14px; padding:22px 24px 18px; margin-bottom:10px; transition:box-shadow 0.18s,border-color 0.18s; animation:spFadeUp 0.2s ease both; position:relative; overflow:hidden; }
-        .sp-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#9b0000; transform:scaleY(0); transition:transform 0.18s ease; border-radius:0 2px 2px 0; }
-        .sp-card:hover { box-shadow:0 4px 20px rgba(0,0,0,0.08); border-color:#ddd; }
-        .sp-card:hover::before { transform:scaleY(1); }
-        @keyframes spFadeUp { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+        /* ── Sidebar filter sections ── */
+        .sp-section { margin-bottom: 4px; }
+        .sp-section-label {
+          display: block;
+          font-size: 10.5px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.9px;
+          color: #9ca3af;
+          padding: 8px 8px 4px;
+        }
+        .sp-filter-btn {
+          display: flex;
+          align-items: center;
+          width: 100%;
+          text-align: left;
+          padding: 7px 8px;
+          border-radius: 7px;
+          border: none;
+          font-size: 13px;
+          font-family: 'DM Sans', sans-serif;
+          cursor: pointer;
+          transition: background 0.1s, color 0.1s;
+          background: transparent;
+          color: #6b7280;
+        }
+        .sp-filter-btn:hover { background: #f9fafb; color: #111827; }
+        .sp-filter-btn.active { background: #fef2f2; color: #9b0000; font-weight: 600; }
 
-        .sp-results-meta { font-size:13px; color:#70757a; margin-bottom:14px; }
-        .sp-card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:8px; }
-        .sp-card-title { font-size:17px; font-family:'DM Serif Display',serif; color:#111827; text-decoration:none; line-height:1.35; display:block; transition:color 0.15s; }
-        .sp-card-title:visited { color:#9b0000; }
-        .sp-card-title:hover { color:#9b0000; }
+        /* ── Custom year inputs ── */
+        .sp-year-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 8px 4px;
+        }
+        .yr-input {
+          width: 58px;
+          padding: 5px 7px;
+          border: 1.5px solid #e5e7eb;
+          border-radius: 7px;
+          font-size: 12px;
+          font-family: 'DM Sans', sans-serif;
+          color: #111827;
+          background: #fff;
+          outline: none;
+          transition: border-color 0.15s;
+          -moz-appearance: textfield;
+        }
+        .yr-input:focus { border-color: #9b0000; }
+        .yr-input::-webkit-outer-spin-button,
+        .yr-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+        .sp-year-sep { font-size: 12px; color: #9ca3af; }
 
-        .sp-bm-btn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:none; border:1.5px solid #f0f0f0; cursor:pointer; color:#9ca3af; flex-shrink:0; transition:color 0.15s,background 0.15s,border-color 0.15s; margin-top:-2px; }
-        .sp-bm-btn:hover { color:#9b0000; background:#fef2f2; border-color:#fecaca; }
-        .sp-bm-btn.saved { color:#9b0000; background:#fef2f2; border-color:#fecaca; }
-        .sp-bm-btn:disabled { opacity:0.4; cursor:default; }
+        /* ── Divider ── */
+        .sp-divider { height: 1px; background: #f3f4f6; margin: 8px 0; }
 
-        .sp-card-meta { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
-        .sp-authors { font-size:12.5px; color:#6b7280; font-weight:400; }
-        .sp-dot { color:#d1d5db; }
-        .sp-year-pill { display:inline-flex; align-items:center; background:#fef2f2; color:#9b0000; font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px; border:1px solid #fecaca; }
-        .sp-prog-pill { display:inline-flex; align-items:center; background:#f3f4f6; color:#4b5563; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; }
+        /* ── Program accordion ── */
+        .sp-acc-btn {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          padding: 8px 8px 4px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          font-size: 10.5px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.9px;
+          color: #9ca3af;
+          font-family: 'DM Sans', sans-serif;
+          transition: color 0.15s;
+        }
+        .sp-acc-btn:hover { color: #6b7280; }
+        .sp-acc-chevron { transition: transform 0.2s; flex-shrink: 0; }
+        .acc-body { overflow: hidden; transition: max-height 0.25s ease, opacity 0.2s ease; max-height: 0; opacity: 0; }
+        .acc-body.open { max-height: 400px; opacity: 1; }
 
-        /* Access badge on card */
-        .sp-access-badge { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; border:1px solid; white-space:nowrap; }
+        /* ── Main results ── */
+        .papers-main {
+          overflow-y: auto;
+          overflow-x: hidden;
+          padding-bottom: 80px;
+          scrollbar-width: none;
+        }
+        .papers-main::-webkit-scrollbar { display: none; }
 
-        .sp-snippet { font-size:13.5px; color:#6b7280; line-height:1.65; margin-bottom:16px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        /* ── Skeleton ── */
+        @keyframes shimmer { 0%{background-position:-900px 0} 100%{background-position:900px 0} }
+        .skel { border-radius: 6px; background: linear-gradient(90deg,#f5f5f5 25%,#ececec 50%,#f5f5f5 75%); background-size: 900px 100%; animation: shimmer 1.4s infinite linear; }
+        .sp-skel-card { background: #fff; border: 1px solid #ebebeb; border-radius: 14px; padding: 22px 24px; margin-bottom: 10px; }
+        .sp-skel-h { height: 20px; width: 60%; margin-bottom: 12px; }
+        .sp-skel-m { height: 12px; width: 36%; margin-bottom: 12px; }
+        .sp-skel-l { height: 12px; width: 94%; margin-bottom: 7px; }
+        .sp-skel-s { height: 12px; width: 72%; }
 
-        .sp-card-footer { display:flex; align-items:center; gap:8px; padding-top:14px; border-top:1px solid #f9f9f9; flex-wrap:wrap; }
+        /* ── Error ── */
+        .sp-error {
+          padding: 14px 18px;
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-radius: 10px;
+          color: #b91c1c;
+          font-size: 13px;
+          margin-bottom: 16px;
+        }
 
-        .sp-btn-preview { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border-radius:7px; border:1.5px solid #e5e7eb; background:#fff; color:#374151; font-size:12.5px; font-weight:600; font-family:'DM Sans',sans-serif; cursor:pointer; text-decoration:none; transition:border-color 0.15s,color 0.15s,background 0.15s; }
-        .sp-btn-preview:hover { border-color:#9b0000; color:#9b0000; background:#fef2f2; }
-        .sp-btn-pdf { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border-radius:7px; border:1.5px solid #9b0000; background:#9b0000; color:#fff; font-size:12.5px; font-weight:600; font-family:'DM Sans',sans-serif; cursor:pointer; text-decoration:none; transition:background 0.15s,border-color 0.15s; }
-        .sp-btn-pdf:hover { background:#7f1d1d; border-color:#7f1d1d; }
-        .sp-btn-lock { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border-radius:7px; border:1.5px solid #e5e7eb; background:none; color:#9ca3af; font-size:12.5px; font-weight:500; font-family:'DM Sans',sans-serif; cursor:pointer; transition:border-color 0.15s,color 0.15s; }
-        .sp-btn-lock:hover { border-color:#9b0000; color:#9b0000; }
-        .sp-btn-request { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border-radius:7px; border:1.5px solid #fde68a; background:#fffbeb; color:#92400e; font-size:12.5px; font-weight:600; font-family:'DM Sans',sans-serif; cursor:pointer; text-decoration:none; transition:border-color 0.15s,background 0.15s; }
-        .sp-btn-request:hover { border-color:#f59e0b; background:#fef3c7; }
+        /* ── Empty state ── */
+        .sp-empty {
+          background: #fff;
+          border: 1px solid #ebebeb;
+          border-radius: 14px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          padding: 80px 20px;
+        }
+        .sp-empty-icon {
+          width: 56px;
+          height: 56px;
+          border-radius: 14px;
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 18px;
+          color: #fca5a5;
+        }
+        .sp-empty-title {
+          font-family: 'DM Serif Display', serif;
+          font-size: 20px;
+          color: #111827;
+          margin: 0 0 8px;
+        }
+        .sp-empty-desc {
+          font-size: 13.5px;
+          color: #9ca3af;
+          max-width: 360px;
+          line-height: 1.65;
+          margin: 0;
+        }
+        .sp-clear-search-btn {
+          margin-top: 20px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 18px;
+          border-radius: 8px;
+          border: 1.5px solid #e5e7eb;
+          background: #fff;
+          color: #374151;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: border-color 0.15s, color 0.15s;
+        }
+        .sp-clear-search-btn:hover { border-color: #9b0000; color: #9b0000; }
 
-        .sp-skel-card { background:#fff; border:1px solid #ebebeb; border-radius:14px; padding:22px 24px; margin-bottom:10px; }
-        .sp-skel { border-radius:6px; background:linear-gradient(90deg,#f5f5f5 25%,#ececec 50%,#f5f5f5 75%); background-size:900px 100%; animation:spShimmer 1.4s infinite linear; }
-        @keyframes spShimmer { 0%{background-position:-900px 0} 100%{background-position:900px 0} }
-        .sp-skel-t { height:20px; width:60%; margin-bottom:12px; }
-        .sp-skel-m { height:12px; width:36%; margin-bottom:12px; }
-        .sp-skel-l1 { height:12px; width:94%; margin-bottom:7px; }
-        .sp-skel-l2 { height:12px; width:72%; }
+        /* ── Paper card ── */
+        @keyframes fadeUp { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+        .paper-card {
+          background: #fff;
+          border: 1px solid #ebebeb;
+          border-radius: 14px;
+          padding: 22px 24px 18px;
+          margin-bottom: 10px;
+          position: relative;
+          overflow: hidden;
+          transition: box-shadow 0.18s, border-color 0.18s;
+        }
+        .paper-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-color: #ddd; }
+        .paper-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#9b0000; transform:scaleY(0); transition:transform 0.18s ease; border-radius:0 2px 2px 0; }
+        .paper-card:hover::before { transform:scaleY(1); }
 
-        .sp-empty { background:#fff; border:1px solid #ebebeb; border-radius:14px; display:flex; flex-direction:column; align-items:center; text-align:center; padding:80px 20px; }
-        .sp-empty-icon { width:56px; height:56px; border-radius:14px; background:#fef2f2; border:1px solid #fecaca; display:flex; align-items:center; justify-content:center; margin-bottom:18px; color:#fca5a5; }
-        .sp-empty-title { font-family:'DM Serif Display',serif; font-size:20px; color:#111827; margin-bottom:8px; }
-        .sp-empty-sub { font-size:13.5px; color:#9ca3af; max-width:360px; line-height:1.65; }
-        .sp-empty-clear { margin-top:20px; display:inline-flex; align-items:center; gap:6px; padding:8px 18px; border-radius:8px; border:1.5px solid #e5e7eb; background:#fff; color:#374151; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; transition:border-color 0.15s,color 0.15s; }
-        .sp-empty-clear:hover { border-color:#9b0000; color:#9b0000; }
+        /* ── Card title row ── */
+        .sp-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+        .paper-title {
+          font-size: 17px;
+          font-family: 'DM Serif Display', serif;
+          color: #111827;
+          text-decoration: none;
+          line-height: 1.35;
+          display: block;
+          transition: color 0.15s;
+        }
+        .paper-title:hover { color: #9b0000; }
+        .paper-title:visited { color: #9b0000; }
 
-        .sp-error { padding:14px 18px; background:#fef2f2; border:1px solid #fecaca; border-radius:10px; color:#b91c1c; font-size:13px; margin-bottom:16px; }
+        /* ── Bookmark button ── */
+        .sp-bm-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          border-radius: 8px;
+          border: 1.5px solid #f0f0f0;
+          background: transparent;
+          color: #9ca3af;
+          cursor: pointer;
+          flex-shrink: 0;
+          margin-top: -2px;
+          transition: color 0.15s, background 0.15s, border-color 0.15s;
+        }
+        .sp-bm-btn:hover { color: #9b0000; background: #fef2f2; border-color: #fecaca; }
+        .sp-bm-btn.saved { color: #9b0000; background: #fef2f2; border-color: #fecaca; }
+        .sp-bm-btn:disabled { opacity: 0.4; cursor: default; }
 
-        @media (max-width:900px) {
-          .sp-page { height:auto; overflow:visible; }
-          .sp-layout { grid-template-columns:1fr; padding:16px 16px 0; overflow:visible; }
-          .sp-layout > main { overflow-y:visible; padding:0 0 60px; }
-          .sp-sidebar-col { display:none; }
-          .sp-sidebar { display:none; }
-          .sp-hero { padding:28px 20px 24px; }
+        /* ── Meta row ── */
+        .sp-card-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .sp-author { font-size: 12.5px; color: #6b7280; font-weight: 400; }
+        .sp-year-pill {
+          display: inline-flex; align-items: center;
+          background: #fef2f2; color: #9b0000; font-size: 11px; font-weight: 700;
+          padding: 2px 9px; border-radius: 9999px; border: 1px solid #fecaca;
+        }
+        .sp-prog-pill {
+          display: inline-flex; align-items: center;
+          background: #f3f4f6; color: #4b5563; font-size: 11px; font-weight: 600;
+          padding: 2px 9px; border-radius: 9999px;
+        }
+        .sp-access-badge {
+          display: inline-flex; align-items: center; gap: 4px;
+          font-size: 11px; font-weight: 600;
+          padding: 2px 9px; border-radius: 9999px; border: 1px solid;
+          white-space: nowrap;
+        }
+
+        /* ── Abstract ── */
+        .sp-abstract {
+          font-size: 13.5px; color: #6b7280; line-height: 1.65; margin: 0 0 16px;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+
+        /* ── Card footer ── */
+        .sp-card-footer { display: flex; align-items: center; gap: 8px; padding-top: 14px; border-top: 1px solid #f9f9f9; flex-wrap: wrap; }
+        .sp-btn-view {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 6px 14px; border-radius: 7px; border: 1.5px solid #e5e7eb;
+          background: #fff; color: #374151; font-size: 12.5px; font-weight: 600;
+          font-family: 'DM Sans', sans-serif; cursor: pointer; text-decoration: none;
+          transition: border-color 0.15s, color 0.15s, background 0.15s;
+        }
+        .sp-btn-view:hover { border-color: #9b0000; color: #9b0000; background: #fef2f2; }
+        .sp-btn-pdf {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 6px 14px; border-radius: 7px; border: 1.5px solid #9b0000;
+          background: #9b0000; color: #fff; font-size: 12.5px; font-weight: 600;
+          font-family: 'DM Sans', sans-serif; text-decoration: none;
+          transition: background 0.15s, border-color 0.15s;
+        }
+        .sp-btn-pdf:hover { background: #7f1d1d; border-color: #7f1d1d; }
+        .sp-btn-request {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 6px 14px; border-radius: 7px; border: 1.5px solid #fde68a;
+          background: #fffbeb; color: #92400e; font-size: 12.5px; font-weight: 600;
+          font-family: 'DM Sans', sans-serif; text-decoration: none;
+          transition: border-color 0.15s, background 0.15s;
+        }
+        .sp-btn-request:hover { border-color: #f59e0b; background: #fef3c7; }
+        .sp-btn-lock {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 6px 14px; border-radius: 7px; border: 1.5px solid #e5e7eb;
+          background: transparent; color: #9ca3af; font-size: 12.5px; font-weight: 500;
+          font-family: 'DM Sans', sans-serif; cursor: pointer;
+          transition: border-color 0.15s, color 0.15s;
+        }
+        .sp-btn-lock:hover { border-color: #9b0000; color: #9b0000; }
+
+        /* ── Mobile ── */
+        @media (max-width: 900px) {
+          .papers-page { height: auto !important; overflow: visible !important; }
+          .papers-layout { grid-template-columns: 1fr !important; padding: 16px 16px 0 !important; overflow: visible !important; }
+          .papers-layout > .papers-main { overflow-y: visible !important; padding: 0 0 60px !important; }
+          .papers-sidebar-col { display: none !important; }
+          .papers-hero { padding: 28px 20px 24px !important; }
         }
       `}</style>
 
       <div
-        className="sp-page"
+        className="papers-page"
         style={showLogin ? { filter: "blur(3px)", transition: "filter 0.3s ease", pointerEvents: "none" } : {}}
       >
         <Navbar onLoginClick={() => setShowLogin(true)} />
 
         {/* Hero */}
-        <div className="sp-hero">
-          <div className="sp-hero-inner">
-            <div className="sp-hero-heading">
-              <h1 className="sp-hero-title">Research Papers</h1>
+        <div className="papers-hero">
+          <div className="papers-hero-inner">
+            <div className="sp-title-row">
+              <h1 className="sp-heading">Research Papers</h1>
             </div>
-            <div className="sp-search-wrap">
+            <div className="sp-search">
               <span className="sp-search-icon">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
               </span>
               <input
-                className="sp-search-input" type="text"
+                className="sp-search-input"
+                type="text"
                 placeholder="Search by title, author, topic, or program…"
                 value={query} onChange={(e) => setQuery(e.target.value)}
                 autoComplete="off"
               />
               {query && (
-                <button className="sp-search-clear" type="button" onClick={() => setQuery("")}>
+                <button className="sp-clear-btn" type="button" onClick={() => setQuery("")}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
@@ -362,80 +692,102 @@ export default function PapersPage() {
         </div>
 
         {/* Layout */}
-        <div className="sp-layout">
+        <div className="papers-layout">
+
           {/* Sidebar */}
-          <aside className="sp-sidebar-col">
-          <div className="sp-sidebar">
-            <div className="sp-sidebar-header">
-              <span className="sp-sidebar-title">Filters</span>
-              <button
-                className={`sp-sidebar-reset${hasActiveFilter ? " visible" : ""}`}
-                onClick={() => { setTimeFilter("any"); setSortBy("relevance"); setFromYear(""); setToYear(""); setProgram("all"); }}
-              >
-                Reset
-              </button>
-            </div>
-            <div className="sp-sidebar-body">
-              <div className="sp-sb-group">
-                <span className="sp-sb-label">Time period</span>
-                {TIME_FILTERS.map(({ key, label }) => (
-                  <button key={key} type="button" className={`sp-sb-btn${timeFilter === key ? " active" : ""}`} onClick={() => setTimeFilter(key)}>
-                    {label}
-                  </button>
-                ))}
-                {timeFilter === "custom" && (
-                  <div className="sp-custom-range">
-                    <input type="number" placeholder="From" value={fromYear} onChange={(e) => setFromYear(e.target.value)} />
-                    <span className="sp-range-sep">–</span>
-                    <input type="number" placeholder="To" value={toYear} onChange={(e) => setToYear(e.target.value)} />
-                  </div>
-                )}
-              </div>
-              <div className="sp-sb-divider" />
-              <div className="sp-sb-group">
-                <span className="sp-sb-label">Sort by</span>
-                {SORT_OPTIONS.map(({ key, label }) => (
-                  <button key={key} type="button" className={`sp-sb-btn${sortBy === key ? " active" : ""}`} onClick={() => setSortBy(key)}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <div className="sp-sb-divider" />
-              <div className="sp-sb-group">
+          <aside className="papers-sidebar-col">
+            <div className="sp-sidebar">
+
+              {/* Sidebar header */}
+              <div className="sp-sidebar-header">
+                <span className="sp-filters-label">Filters</span>
                 <button
-                  type="button"
-                  className="sp-accordion-header"
-                  onClick={() => setProgramOpen((o) => !o)}
-                >
-                  Program
-                  <svg className={`sp-accordion-chevron${programOpen ? " open" : ""}`} width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6 9 12 15 18 9"/>
-                  </svg>
-                </button>
-                <div className={`sp-accordion-body${programOpen ? " open" : ""}`}>
-                  {PROGRAM_FILTERS.map(({ key, label }) => (
-                    <button key={key} type="button" className={`sp-sb-btn${program === key ? " active" : ""}`} onClick={() => setProgram(key)}>
-                      {label}
-                    </button>
+                  className="sp-reset-btn"
+                  style={{ opacity: hasActiveFilter ? 1 : 0, pointerEvents: hasActiveFilter ? "auto" : "none" }}
+                  onClick={() => { setTimeFilter("any"); setSortBy("relevance"); setFromYear(""); setToYear(""); setProgram("all"); }}
+                >Reset</button>
+              </div>
+
+              {/* Sidebar body */}
+              <div className="sp-sidebar-body">
+
+                {/* Time Period */}
+                <div className="sp-section">
+                  <span className="sp-section-label">Time period</span>
+                  {TIME_FILTERS.map(({ key, label }) => (
+                    <button
+                      key={key} type="button"
+                      className={`sp-filter-btn${timeFilter === key ? " active" : ""}`}
+                      onClick={() => setTimeFilter(key)}
+                    >{label}</button>
+                  ))}
+                  {timeFilter === "custom" && (
+                    <div className="sp-year-row">
+                      <input type="number" placeholder="From" value={fromYear} onChange={(e) => setFromYear(e.target.value)} className="yr-input" />
+                      <span className="sp-year-sep">–</span>
+                      <input type="number" placeholder="To" value={toYear} onChange={(e) => setToYear(e.target.value)} className="yr-input" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="sp-divider" />
+
+                {/* Sort By */}
+                <div className="sp-section">
+                  <span className="sp-section-label">Sort by</span>
+                  {SORT_OPTIONS.map(({ key, label }) => (
+                    <button
+                      key={key} type="button"
+                      className={`sp-filter-btn${sortBy === key ? " active" : ""}`}
+                      onClick={() => setSortBy(key)}
+                    >{label}</button>
                   ))}
                 </div>
+
+                <div className="sp-divider" />
+
+                {/* Program accordion */}
+                <div className="sp-section">
+                  <button type="button" className="sp-acc-btn" onClick={() => setProgramOpen((o) => !o)}>
+                    Program
+                    <svg
+                      className="sp-acc-chevron"
+                      style={{ transform: programOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+                      width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  <div className={`acc-body${programOpen ? " open" : ""}`}>
+                    {PROGRAM_FILTERS.map(({ key, label }) => (
+                      <button
+                        key={key} type="button"
+                        className={`sp-filter-btn${program === key ? " active" : ""}`}
+                        onClick={() => setProgram(key)}
+                      >{label}</button>
+                    ))}
+                  </div>
+                </div>
+
               </div>
             </div>
-          </div>
           </aside>
 
           {/* Results */}
-          <main>
+          <main className="papers-main">
+
             {loading && [1,2,3,4].map((i) => (
-              <div className="sp-skel-card" key={i}>
-                <div className="sp-skel sp-skel-t" />
-                <div className="sp-skel sp-skel-m" />
-                <div className="sp-skel sp-skel-l1" />
-                <div className="sp-skel sp-skel-l2" />
+              <div key={i} className="sp-skel-card">
+                <div className="skel sp-skel-h" />
+                <div className="skel sp-skel-m" />
+                <div className="skel sp-skel-l" />
+                <div className="skel sp-skel-s" />
               </div>
             ))}
 
-            {!loading && error && <div className="sp-error">{error}</div>}
+            {!loading && error && (
+              <div className="sp-error">{error}</div>
+            )}
 
             {!loading && !error && displayed.length === 0 && (
               <div className="sp-empty">
@@ -444,13 +796,17 @@ export default function PapersPage() {
                     <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                   </svg>
                 </div>
-                <div className="sp-empty-title">{papers.length === 0 ? "No papers yet" : "No results found"}</div>
-                <p className="sp-empty-sub">
+                <div className="sp-empty-title">
+                  {papers.length === 0 ? "No papers yet" : "No results found"}
+                </div>
+                <p className="sp-empty-desc">
                   {papers.length === 0
                     ? "Papers will appear here once they've been published."
                     : `No papers match "${query}". Try a different keyword or adjust your filters.`}
                 </p>
-                {query && <button className="sp-empty-clear" onClick={() => setQuery("")}>Clear search</button>}
+                {query && (
+                  <button className="sp-clear-search-btn" onClick={() => setQuery("")}>Clear search</button>
+                )}
               </div>
             )}
 
@@ -461,10 +817,14 @@ export default function PapersPage() {
               const pdfAction = getPdfAction(paper);
 
               return (
-                <article className="sp-card" key={paper.id} style={{ animationDelay: `${i * 0.03}s` }}>
+                <article
+                  key={paper.id}
+                  className="paper-card"
+                  style={{ animation: "fadeUp 0.2s ease both", animationDelay: `${i * 0.03}s` }}
+                >
                   {/* Title + bookmark */}
-                  <div className="sp-card-top">
-                    <Link to={`/papers/${paper.id}`} className="sp-card-title">
+                  <div className="sp-card-header">
+                    <Link to={`/papers/${paper.id}`} className="paper-title">
                       {paper.title || "Untitled paper"}
                     </Link>
                     <button
@@ -485,7 +845,7 @@ export default function PapersPage() {
                   {/* Meta row */}
                   <div className="sp-card-meta">
                     {paper.authors?.length > 0 && (
-                      <span className="sp-authors">{paper.authors.join(", ")}</span>
+                      <span className="sp-author">{paper.authors.join(", ")}</span>
                     )}
                     {paper.year && (
                       <span className="sp-year-pill">{paper.year}</span>
@@ -493,7 +853,6 @@ export default function PapersPage() {
                     {paper.course_or_program && (
                       <span className="sp-prog-pill">{paper.course_or_program}</span>
                     )}
-                    {/* ── Access badge ── */}
                     <span
                       className="sp-access-badge"
                       style={{ background: access.bg, color: access.color, borderColor: access.border }}
@@ -502,11 +861,13 @@ export default function PapersPage() {
                     </span>
                   </div>
 
-                  {paper.abstract && <p className="sp-snippet">{paper.abstract}</p>}
+                  {paper.abstract && (
+                    <p className="sp-abstract">{paper.abstract}</p>
+                  )}
 
                   {/* Footer actions */}
                   <div className="sp-card-footer">
-                    <Link to={`/papers/${paper.id}`} className="sp-btn-preview">
+                    <Link to={`/papers/${paper.id}`} className="sp-btn-view">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                         <circle cx="12" cy="12" r="3"/>
