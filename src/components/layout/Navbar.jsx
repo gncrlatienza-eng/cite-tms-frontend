@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Navbar({ onLoginClick }) {
   const { user, profile, logout, isAuthor } = useAuth();
+  const location = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -81,6 +82,7 @@ export default function Navbar({ onLoginClick }) {
           white-space: nowrap;
         }
         .nb-nav-link:hover { color: #111827; background: #f9fafb; }
+        .nb-nav-link.active { color: #9b0000; background: #fef2f2; font-weight: 600; }
 
         .nb-signin-btn {
           background: none; border: 1.5px solid #e5e7eb;
@@ -220,13 +222,13 @@ export default function Navbar({ onLoginClick }) {
           </button>
 
           <div style={styles.links}>
-            <button type="button" style={styles.linkButton} onClick={() => handleNavClick('papers')}>
+            <button type="button" className={`nb-nav-link${location.pathname.startsWith('/papers') ? ' active' : ''}`} onClick={() => handleNavClick('papers')}>
               Papers
             </button>
-            <button type="button" style={styles.linkButton} onClick={() => handleNavClick('bookmark')}>
+            <button type="button" className={`nb-nav-link${location.pathname.startsWith('/bookmarks') ? ' active' : ''}`} onClick={() => handleNavClick('bookmark')}>
               Bookmark
             </button>
-            <button type="button" style={styles.linkButton} onClick={() => handleNavClick('requests')}>
+            <button type="button" className={`nb-nav-link${location.pathname.startsWith('/requests') ? ' active' : ''}`} onClick={() => handleNavClick('requests')}>
               Requests
             </button>
           </div>

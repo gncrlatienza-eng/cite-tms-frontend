@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find C:UsersErnaDocumentssofteng2cite-tms-frontend -type f \\\\\\(-name *papers* -o -name *search* \\\\\\) \\\\\\(-name *.jsx -o -name *.js -o -name *.tsx -o -name *.ts \\\\\\))"
+    ]
+  }
+}
