@@ -112,9 +112,9 @@ export default function RequestsPage() {
       setLoading(true); setError("");
       try {
         const { data, error: err } = await supabase
-          .from("paper_requests")
-          .select("id, paper_id, reason, status, created_at, papers(title, course_or_program, year)")
-          .eq("user_id", user.id)
+          .from("access_requests")
+          .select("id, paper_id, message, status, created_at, papers(id, title, course_or_program, year)")
+          .eq("requester_id", user.id)
           .order("created_at", { ascending: false });
         if (err) throw err;
         setRequests(data ?? []);
