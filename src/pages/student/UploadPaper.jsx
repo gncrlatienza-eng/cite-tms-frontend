@@ -15,6 +15,15 @@ const ACCESS_OPTIONS = [
   { value: "restricted",    label: "Restricted",    desc: "Students must request your approval to view", icon: "🔒" },
 ];
 
+const PROGRAM_OPTIONS = [
+  { value: "BSCS", label: "Bachelor of Science in Computer Science" },
+  { value: "BSIT", label: "Bachelor of Science in Information Technology" },
+  { value: "BSIE", label: "Bachelor of Science in Industrial Engineering" },
+  { value: "BSEE", label: "Bachelor of Science in Electrical Engineering" },
+  { value: "BSCpE", label: "Bachelor of Science in Computer Engineering" },
+  { value: "BSECE", label: "Bachelor of Science in Electronics and Communications Engineering" },
+];
+
 export default function UploadPaper() {
   const { user, isAuthor } = useAuth();
   const navigate = useNavigate();
@@ -196,6 +205,8 @@ export default function UploadPaper() {
         .up-label-hint { font-size: 11.5px; color: #9ca3af; font-weight: 400; margin-left: 4px; }
         .up-input { border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-family: inherit; color: #111827; outline: none; background: #fff; width: 100%; transition: border-color 0.18s, box-shadow 0.18s; }
         .up-input:focus { border-color: #9b0000; box-shadow: 0 0 0 3px rgba(155,0,0,0.08); }
+        .up-select { border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-family: inherit; color: #111827; outline: none; background: #fff; width: 100%; transition: border-color 0.18s, box-shadow 0.18s; cursor: pointer; }
+        .up-select:focus { border-color: #9b0000; box-shadow: 0 0 0 3px rgba(155,0,0,0.08); }
         .up-textarea { border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-family: inherit; color: #111827; outline: none; background: #fff; width: 100%; min-height: 120px; resize: vertical; line-height: 1.6; transition: border-color 0.18s; }
         .up-textarea:focus { border-color: #9b0000; box-shadow: 0 0 0 3px rgba(155,0,0,0.08); }
         .up-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -363,8 +374,13 @@ export default function UploadPaper() {
                   </div>
                   <div className="up-field">
                     <label className="up-label">Program / Course <span style={{ color: "#9b0000" }}>*</span></label>
-                    <input className="up-input" name="course_or_program" value={form.course_or_program}
-                      onChange={set} placeholder="e.g. BSCS, BSIT" disabled={busy} autoComplete="off" />
+                    <select className="up-select" name="course_or_program" value={form.course_or_program}
+                      onChange={set} disabled={busy}>
+                      <option value="">Select a program...</option>
+                      {PROGRAM_OPTIONS.map((prog) => (
+                        <option key={prog.value} value={prog.value}>{prog.label}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
