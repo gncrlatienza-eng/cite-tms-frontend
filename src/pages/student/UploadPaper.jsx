@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabase";
@@ -26,6 +26,7 @@ export default function UploadPaper() {
     year: new Date().getFullYear().toString(),
     course_or_program: "",
     abstract: "",
+    secondary_email: "",
     access_type: "open",
   });
   const [pdf, setPdf]             = useState(null);
@@ -34,8 +35,40 @@ export default function UploadPaper() {
   const [err, setErr]             = useState("");
   const [success, setSuccess]     = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const set = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+
+  // ── Load secondary email for authors ───────────────────────────────────────
+  useEffect(() => {
+    if (isAuthor && user) {
+      const fetchSecondaryEmail = async () => {
+        try {
+          const response = await api.get("/api/author/profile");
+          if (response.data.secondary_email) {
+            setForm((f) => ({ ...f, secondary_email: response.data.secondary_email }));
+          }
+        } catch (e) {
+          console.error("Failed to fetch secondary email:", e.message);
+        }
+      };
+      fetchSecondaryEmail();
+    }
+  }, [isAuthor, user]);
+
+  // ── Form validation ───────────────────────────────────────────────────────
+  const isFormComplete = () => {
+    return (
+      form.title.trim() !== "" &&
+      form.authors.trim() !== "" &&
+      form.year && !isNaN(Number(form.year)) &&
+      form.course_or_program.trim() !== "" &&
+      form.abstract.trim() !== "" &&
+      form.secondary_email.trim() !== "" &&
+      pdf !== null
+    );
+  };
 
   // ── Gate: not logged in ────────────────────────────────────────────────────
   if (!user) {
@@ -65,12 +98,25 @@ export default function UploadPaper() {
   }
 
   // ── Submit ─────────────────────────────────────────────────────────────────
-  const handleSubmit = async (e) => {
+  const handleSubmitClick = (e) => {
     e.preventDefault();
+    if (!isFormComplete()) {
+      setShowIncompleteModal(true);
+      return;
+    }
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmedSubmit = async () => {
+    setShowConfirmModal(false);
     setErr("");
     if (!form.title.trim())                     return setErr("Title is required.");
     if (!form.authors.trim())                   return setErr("At least one author is required.");
     if (!form.year || isNaN(Number(form.year))) return setErr("A valid year is required.");
+    if (!form.course_or_program.trim())         return setErr("Program / Course is required.");
+    if (!form.abstract.trim())                  return setErr("Abstract is required.");
+    if (!form.secondary_email.trim())           return setErr("Secondary email is required.");
+    if (!pdf)                                   return setErr("A PDF file is required.");
 
     // ── Guard: ensure Supabase session is alive before submitting ────────────
     const { data: { session } } = await supabase.auth.getSession();
@@ -102,6 +148,7 @@ export default function UploadPaper() {
         year:              Number(form.year),
         course_or_program: form.course_or_program.trim() || null,
         abstract:          form.abstract.trim() || null,
+        secondary_email:   form.secondary_email.trim(),
         access_type:       form.access_type,
         file_path,
       };
@@ -188,6 +235,22 @@ export default function UploadPaper() {
         .up-success-step-num { width: 18px; height: 18px; border-radius: 50%; background: #f59e0b; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
         .up-success-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; border-radius: 10px; border: none; background: linear-gradient(135deg, #9b0000, #c0392b); color: #fff; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; margin-bottom: 10px; }
         .up-success-btn-ghost { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; color: #374151; font-size: 14px; font-weight: 500; font-family: inherit; cursor: pointer; }
+
+        /* ── Modals ── */
+        .up-modal-backdrop { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .up-modal { width: 100%; max-width: 480px; background: #fff; border-radius: 18px; box-shadow: 0 24px 64px rgba(0,0,0,0.2); overflow: hidden; animation: upModalIn 0.2s cubic-bezier(0.34,1.4,0.64,1); }
+        @keyframes upModalIn { from{opacity:0;transform:translateY(12px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+        .up-modal-header { padding: 22px 22px 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+        .up-modal-title { font-family: 'DM Serif Display', serif; font-size: 20px; font-weight: 400; color: #111827; margin-bottom: 4px; }
+        .up-modal-sub { font-size: 13px; color: #6b7280; line-height: 1.5; }
+        .up-modal-body { padding: 18px 22px; }
+        .up-modal-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; font-size: 13px; color: #374151; line-height: 1.6; }
+        .up-modal-item-icon { flex-shrink: 0; margin-top: 2px; font-size: 16px; }
+        .up-modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 14px 22px 20px; border-top: 1px solid #f3f4f6; }
+        .up-modal-btn-cancel { padding: 9px 18px; border-radius: 9px; border: 1.5px solid #e5e7eb; background: #fff; color: #374151; font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 0.15s; }
+        .up-modal-btn-cancel:hover { background: #f9fafb; }
+        .up-modal-btn-submit { display: flex; align-items: center; gap: 7px; padding: 9px 20px; border-radius: 9px; border: none; background: linear-gradient(135deg, #9b0000, #c0392b); color: #fff; font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; box-shadow: 0 3px 10px rgba(155,0,0,0.25); transition: opacity 0.15s, transform 0.1s; }
+        .up-modal-btn-submit:hover { opacity: 0.9; transform: translateY(-1px); }
 
         @keyframes upSpin { to { transform: rotate(360deg); } }
         @media (max-width: 640px) {
@@ -279,7 +342,7 @@ export default function UploadPaper() {
                 </div>
               )}
 
-              <form className="up-form" onSubmit={handleSubmit}>
+              <form className="up-form" onSubmit={handleSubmitClick}>
                 <div className="up-field">
                   <label className="up-label">Title <span style={{ color: "#9b0000" }}>*</span></label>
                   <input className="up-input" name="title" value={form.title} onChange={set}
@@ -299,20 +362,26 @@ export default function UploadPaper() {
                       onChange={set} min="1990" max="2099" disabled={busy} />
                   </div>
                   <div className="up-field">
-                    <label className="up-label">Program / Course</label>
+                    <label className="up-label">Program / Course <span style={{ color: "#9b0000" }}>*</span></label>
                     <input className="up-input" name="course_or_program" value={form.course_or_program}
                       onChange={set} placeholder="e.g. BSCS, BSIT" disabled={busy} autoComplete="off" />
                   </div>
                 </div>
 
                 <div className="up-field">
-                  <label className="up-label">Abstract</label>
+                  <label className="up-label">Abstract <span style={{ color: "#9b0000" }}>*</span></label>
                   <textarea className="up-textarea" name="abstract" value={form.abstract}
                     onChange={set} placeholder="Paste your paper's abstract here…" disabled={busy} />
                 </div>
 
                 <div className="up-field">
-                  <label className="up-label">Access Type</label>
+                  <label className="up-label">Secondary Email <span style={{ color: "#9b0000" }}>*</span></label>
+                  <input className="up-input" name="secondary_email" type="email" value={form.secondary_email} onChange={set}
+                    placeholder="Your additional contact email" disabled={busy} autoComplete="off" />
+                </div>
+
+                <div className="up-field">
+                  <label className="up-label">Access Type <span style={{ color: "#9b0000" }}>*</span></label>
                   <div className="up-access-grid">
                     {ACCESS_OPTIONS.map((opt) => (
                       <label key={opt.value} className={`up-access-card${form.access_type === opt.value ? " selected" : ""}`}>
@@ -330,7 +399,7 @@ export default function UploadPaper() {
                 </div>
 
                 <div className="up-field">
-                  <label className="up-label">PDF File </label>
+                  <label className="up-label">PDF File <span style={{ color: "#9b0000" }}>*</span></label>
                   {pdf ? (
                     <div className="up-pdf-selected">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9b0000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -374,7 +443,7 @@ export default function UploadPaper() {
 
                 {err && <div className="up-error">⚠ {err}</div>}
 
-                <button type="submit" className="up-submit-btn" disabled={busy}>
+                <button type="submit" className="up-submit-btn" disabled={busy || !isFormComplete()}>
                   {busy ? (
                     <>
                       <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.35)", borderTopColor: "#fff", animation: "upSpin 0.75s linear infinite" }} />
@@ -395,6 +464,46 @@ export default function UploadPaper() {
           )}
         </div>
       </div>
+
+      {/* ── Confirmation Modal (before form submission)────────────────────────────────────────────────── */}
+      {showConfirmModal && (
+        <div className="up-modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowConfirmModal(false); }}>
+          <div className="up-modal" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="up-modal-header">
+              <div>
+                <h2 className="up-modal-title">Confirm Submission</h2>
+                <p className="up-modal-sub">Are you sure everything is correct?</p>
+              </div>
+            </div>
+            <div className="up-modal-body">
+              <div className="up-modal-item"><strong>Title:</strong> {form.title}</div>
+              <div className="up-modal-item"><strong>Authors:</strong> {form.authors}</div>
+              <div className="up-modal-item"><strong>Year:</strong> {form.year}</div>
+              <div className="up-modal-item"><strong>Program:</strong> {form.course_or_program}</div>
+              <div className="up-modal-item"><strong>Secondary Email:</strong> {form.secondary_email}</div>
+              <div className="up-modal-item"><strong>Access:</strong> {ACCESS_OPTIONS.find(o => o.value === form.access_type)?.label}</div>
+              <div className="up-modal-item"><strong>PDF:</strong> {pdf?.name}</div>
+            </div>
+            <div className="up-modal-actions">
+              <button className="up-modal-btn-cancel" onClick={() => setShowConfirmModal(false)}>Cancel</button>
+              <button 
+                className="up-modal-btn-submit" 
+                onClick={handleConfirmedSubmit}
+                disabled={busy}
+              >
+                {busy ? (
+                  <>
+                    <div style={{ width: 13, height: 13, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.35)", borderTopColor: "#fff", animation: "upSpin 0.75s linear infinite" }} />
+                    Submitting...
+                  </>
+                ) : (
+                  <>Confirm & Submit</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
