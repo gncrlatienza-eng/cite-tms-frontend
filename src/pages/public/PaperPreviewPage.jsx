@@ -185,7 +185,7 @@ export default function PaperPreviewPage() {
         .pp-header-inner { max-width: 960px; margin: 0 auto; padding: 0 40px; }
         .pp-header-grid { display: grid; grid-template-columns: 1fr 272px; gap: 48px; align-items: start; padding-bottom: 28px; border-bottom: 1px solid #f3f4f6; }
 
-        .pp-layout { max-width: 960px; margin: 0 auto; padding: 36px 40px 100px; display: grid; grid-template-columns: 1fr 272px; gap: 48px; align-items: start; }
+        .pp-layout { max-width: 960px; margin: 0 auto; padding: 40px 40px 0 40px; display: grid; grid-template-columns: 1fr 272px; gap: 48px; align-items: start; }
         .pp-main {}
 
         .pp-pills { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; margin-bottom: 0; }
@@ -380,57 +380,6 @@ export default function PaperPreviewPage() {
                 <div className="pp-section-label">Abstract</div>
               </div>
               <p className="pp-abstract">{paper.abstract || "No abstract available for this paper."}</p>
-
-              {/* ── PDF Viewer ──────────────────────────── */}
-              {canViewPdf && paper.publicUrl && (
-                <>
-                  <div className="pp-divider" />
-                  <div className="pp-section-header">
-                    <div className="pp-section-bar" />
-                    <div className="pp-section-label">Research Paper</div>
-                  </div>
-
-                  {!showPdf ? (
-                    /* Button shown before the user opens the viewer */
-                    <button className="pp-btn-view-pdf" onClick={() => setShowPdf(true)}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                        <circle cx="12" cy="12" r="3"/>
-                      </svg>
-                      View Full Paper
-                    </button>
-                  ) : (
-                    /* PDF iframe + small toolbar once the user clicks View */
-                    <div className="pp-pdf-wrapper">
-                      <div className="pp-pdf-toolbar">
-                        <span className="pp-pdf-label" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9b0000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                          {paper.title}
-                        </span>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <a
-                            href={paper.publicUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="pp-pdf-tool-btn"
-                          >
-                            Open in new tab ↗
-                          </a>
-                          <button className="pp-pdf-tool-btn" onClick={() => setShowPdf(false)}>
-                            ✕ Close
-                          </button>
-                        </div>
-                      </div>
-                      {/* The actual PDF rendered inside the page */}
-                      <iframe
-                        src={`${paper.publicUrl}#toolbar=1&navpanes=0`}
-                        className="pp-pdf-iframe"
-                        title={paper.title}
-                      />
-                    </div>
-                  )}
-                </>
-              )}
             </div>
 
             {/* ── RIGHT COLUMN: sidebar card ── */}
@@ -541,6 +490,74 @@ export default function PaperPreviewPage() {
             </div>{/* pp-sidebar-card */}
 
           </div>
+
+          {/* ── PDF Viewer (full-width section) ──────────────────────────── */}
+          {paper.publicUrl && (
+            <>
+              <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 40px 80px 40px' }}>
+                <div className="pp-divider" style={{ margin: '40px 0' }}/>
+                <div className="pp-section-header">
+                  <div className="pp-section-bar" />
+                  <div className="pp-section-label">Research Paper</div>
+                </div>
+
+                {!showPdf ? (
+                  /* Button shown before the user opens the viewer */
+                  <button 
+                    className="pp-btn-view-pdf" 
+                    onClick={() => {
+                      if (!canViewPdf) {
+                        if (!user) {
+                          setShowLogin(true);
+                        } else if (!isOpen) {
+                          setShowModal(true);
+                        }
+                      } else {
+                        setShowPdf(true);
+                      }
+                    }}
+                    style={!canViewPdf ? { borderColor: '#d1d5db', color: '#9ca3af', cursor: 'not-allowed', opacity: 0.6 } : undefined}
+                    disabled={!canViewPdf}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    View Full Paper
+                  </button>
+                ) : (
+                  /* PDF iframe + small toolbar once the user clicks View */
+                  <div className="pp-pdf-wrapper">
+                    <div className="pp-pdf-toolbar">
+                      <span className="pp-pdf-label" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9b0000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        {paper.title}
+                      </span>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <a
+                          href={paper.publicUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="pp-pdf-tool-btn"
+                        >
+                          Open in new tab ↗
+                        </a>
+                        <button className="pp-pdf-tool-btn" onClick={() => setShowPdf(false)}>
+                          ✕ Close
+                        </button>
+                      </div>
+                    </div>
+                    {/* The actual PDF rendered inside the page */}
+                    <iframe
+                      src={`${paper.publicUrl}#toolbar=1&navpanes=0`}
+                      className="pp-pdf-iframe"
+                      title={paper.title}
+                    />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
           </>
         )}
       </div>

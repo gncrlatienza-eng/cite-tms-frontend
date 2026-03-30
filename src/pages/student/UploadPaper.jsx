@@ -330,7 +330,7 @@ export default function UploadPaper() {
                 </div>
 
                 <div className="up-field">
-                  <label className="up-label">PDF File <span className="up-label-hint">(optional)</span></label>
+                  <label className="up-label">PDF File </label>
                   {pdf ? (
                     <div className="up-pdf-selected">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9b0000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
