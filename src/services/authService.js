@@ -11,7 +11,7 @@ const authService = {
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: {
-          hd: 'dlsl.edu.ph',       // ← both student AND author must be @dlsl.edu.ph
+          hd: 'dlsl.edu.ph',
           prompt: 'select_account',
         },
       },
@@ -24,6 +24,11 @@ const authService = {
   },
 
   loginAsAdminWithGoogle: async () => {
+    // ← Clear any stale session first to prevent loop
+    await supabase.auth.signOut({ scope: 'local' });
+    localStorage.removeItem('login_intent');
+    sessionStorage.removeItem('login_intent');
+
     localStorage.setItem('login_intent', 'admin');
     sessionStorage.setItem('login_intent', 'admin');
 
@@ -42,7 +47,6 @@ const authService = {
   },
 
   loginAsAuthorWithGoogle: async () => {
-    // Authors are @dlsl.edu.ph students — same OAuth flow, different intent
     return authService.loginWithGoogle('author');
   },
 

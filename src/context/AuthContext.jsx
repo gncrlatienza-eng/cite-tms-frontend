@@ -1,20 +1,14 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../services/supabase';
+import { ALLOWED_ADMIN_EMAILS } from '../utils/constants';
 
 const AuthContext = createContext(null);
-
-const ALLOWED_ADMIN_EMAILS = [
-  'cite.tms.admin@dlsl.edu.ph',
-  'gncrlatienza@gmail.com',
-  'georginaramos0317@gmail.com',
-  'erna.srocha@gmail.com',
-];
 
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const initializedRef        = useRef(false); // prevent double-init
+  const initializedRef        = useRef(false);
 
   const fetchProfile = async (authUser) => {
     if (!authUser) { setProfile(null); return null; }
@@ -33,20 +27,12 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const isAllowedEmail = (email) =>
-    ALLOWED_ADMIN_EMAILS.includes(email) || email?.endsWith('@dlsl.edu.ph');
-
+  // ── FIXED: removed the isAllowedEmail guard from applySession.
+  // AuthCallback is the single source of truth for blocking unauthorized emails.
+  // Having the guard here races with AuthCallback's signOut and causes an
+  // infinite spinner instead of showing the "unauthorized" screen.
   const applySession = async (session) => {
     if (!session?.user) {
-      setUser(null);
-      setProfile(null);
-      return;
-    }
-
-    const email = session.user.email;
-
-    if (!isAllowedEmail(email)) {
-      await supabase.auth.signOut();
       setUser(null);
       setProfile(null);
       return;
@@ -60,9 +46,6 @@ export function AuthProvider({ children }) {
     if (initializedRef.current) return;
     initializedRef.current = true;
 
-    // ── Step 1: restore session immediately from local storage ───────────────
-    // getSession() reads from localStorage synchronously on first call,
-    // so this resolves fast and prevents the blank-on-refresh bug.
     const init = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -72,17 +55,14 @@ export function AuthProvider({ children }) {
         setUser(null);
         setProfile(null);
       } finally {
-        setLoading(false); // ← always unblock the UI after first check
+        setLoading(false);
       }
     };
 
     init();
 
-    // ── Step 2: keep in sync with auth events (refresh, sign-out, etc.) ──────
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // INITIAL_SESSION fires on first load — already handled by init()
-        // so skip it to avoid double profile fetch
         if (event === 'INITIAL_SESSION') return;
 
         if (event === 'SIGNED_OUT') {
@@ -114,13 +94,14 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Call after upload/approval to refresh is_author flag without re-login
   const refreshProfile = async () => {
     if (!user) return;
     await fetchProfile(user);
   };
 
-  const isAdmin  = profile?.role === 'admin' || ALLOWED_ADMIN_EMAILS.includes(user?.email);
+  const isAdmin  = !!(profile && (
+    profile.role === 'admin' || ALLOWED_ADMIN_EMAILS.includes(user?.email)
+  ));
   const isAuthor = profile?.is_author === true;
 
   return (

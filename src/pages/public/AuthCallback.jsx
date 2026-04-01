@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
-
-const ALLOWED_ADMIN_EMAILS = [
-  'gncrlatienza@gmail.com',
-  'cite.tms.admin@dlsl.edu.ph',
-];
+import { ALLOWED_ADMIN_EMAILS } from '../../utils/constants';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -18,10 +14,7 @@ export default function AuthCallback() {
     const intent = sessionStorage.getItem('login_intent')
       || localStorage.getItem('login_intent');
 
-    console.log('[CALLBACK] intent:', intent);
-    console.log('[CALLBACK] localStorage:', localStorage.getItem('login_intent'));
-    console.log('[CALLBACK] sessionStorage:', sessionStorage.getItem('login_intent'));
-
+    // Clear intent immediately to prevent re-use
     sessionStorage.removeItem('login_intent');
     localStorage.removeItem('login_intent');
 
@@ -32,13 +25,11 @@ export default function AuthCallback() {
       if (!session) { navigate('/'); return; }
 
       const email = session.user.email;
-      console.log('[CALLBACK] email:', email);
-      console.log('[CALLBACK] processing with intent:', intent);
 
       // ── Admin login ───────────────────────────────────────
       if (intent === 'admin') {
         if (!ALLOWED_ADMIN_EMAILS.includes(email)) {
-          await supabase.auth.signOut();
+          await supabase.auth.signOut({ scope: 'local' });
           setBlockedEmail(email);
           setBlockReason('admin');
           setPhase('unauthorized');
@@ -50,14 +41,14 @@ export default function AuthCallback() {
 
       // ── Student & Author login — must be @dlsl.edu.ph ─────
       if (!email.endsWith('@dlsl.edu.ph')) {
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: 'local' });
         setBlockedEmail(email);
         setBlockReason('domain');
         setPhase('unauthorized');
         return;
       }
 
-      // ── Author login — must also have is_author = true ────
+      // ── Author login ──────────────────────────────────────
       if (intent === 'author') {
         try {
           const { data: userRecord } = await supabase
@@ -66,49 +57,53 @@ export default function AuthCallback() {
             .eq('email', email)
             .single();
 
-          console.log('[CALLBACK] userRecord:', userRecord);
-
           if (userRecord?.is_author) {
-            console.log('[CALLBACK] is_author = true, redirecting to /author/dashboard');
             navigate('/author/dashboard');
             return;
           }
 
-          console.log('[CALLBACK] is_author = false, blocking');
-          await supabase.auth.signOut();
+          await supabase.auth.signOut({ scope: 'local' });
           setBlockedEmail(email);
           setBlockReason('not_author');
           setPhase('unauthorized');
           return;
         } catch (e) {
           console.warn('Could not fetch user record:', e.message);
-          await supabase.auth.signOut();
+          await supabase.auth.signOut({ scope: 'local' });
           navigate('/?error=auth_failed');
           return;
         }
       }
 
-      // ── Student login — land on home ──────────────────────
-      console.log('[CALLBACK] student login, redirecting to /');
+      // ── Student login ─────────────────────────────────────
       navigate('/');
     };
 
+    // Listen for auth state change
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[CALLBACK] onAuthStateChange event:', event);
       if (event === 'SIGNED_IN') process(session);
     });
 
+    // Also check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('[CALLBACK] getSession session exists:', !!session);
       if (session) process(session);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
+  // ── Try again handler — clears state fully before retrying ──
   const handleTryAgain = async (intent) => {
+    handled.current = false;
+    setPhase('loading');
+    setBlockedEmail('');
+    setBlockReason('');
+
+    await supabase.auth.signOut({ scope: 'local' });
+
     localStorage.setItem('login_intent', intent);
     sessionStorage.setItem('login_intent', intent);
+
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -172,15 +167,6 @@ export default function AuthCallback() {
             <div className="ua-title">{msg.title}</div>
             <div className="ua-desc">{msg.desc}</div>
 
-            {blockReason === 'admin' && (
-              <div className="ua-allowed">
-                <div className="ua-allowed-label">Authorized admin accounts</div>
-                {ALLOWED_ADMIN_EMAILS.map(e => (
-                  <div key={e} className="ua-allowed-row"><div className="ua-dot" />{e}</div>
-                ))}
-              </div>
-            )}
-
             <button className="ua-btn" onClick={() => handleTryAgain(msg.tryAgainIntent)}>
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width={16} height={16} alt="G" />
               Try a different account
@@ -208,9 +194,7 @@ export default function AuthCallback() {
       <p style={{ color: '#4b5563', fontSize: 13, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
         Signing you in…
       </p>
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
