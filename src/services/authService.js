@@ -11,7 +11,7 @@ const authService = {
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: {
-          hd: 'dlsl.edu.ph',
+          hd: 'dlsl.edu.ph', // restrict to DLSL accounts for students only
           prompt: 'select_account',
         },
       },
@@ -24,8 +24,7 @@ const authService = {
   },
 
   loginAsAdminWithGoogle: async () => {
-    // ← Clear any stale session first to prevent loop
-    await supabase.auth.signOut({ scope: 'local' });
+    await supabase.auth.signOut({ scope: 'global' });
     localStorage.removeItem('login_intent');
     sessionStorage.removeItem('login_intent');
 
@@ -46,8 +45,31 @@ const authService = {
     }
   },
 
+  // FIX: authors may use a personal Gmail (secondary email),
+  // so we must NOT pass hd: 'dlsl.edu.ph' — that restricts the
+  // Google account picker to DLSL accounts only.
   loginAsAuthorWithGoogle: async () => {
-    return authService.loginWithGoogle('author');
+    await supabase.auth.signOut({ scope: 'global' });
+    localStorage.removeItem('login_intent');
+    sessionStorage.removeItem('login_intent');
+
+    localStorage.setItem('login_intent', 'author');
+    sessionStorage.setItem('login_intent', 'author');
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          prompt: 'select_account', // no hd — allow any Google account
+        },
+      },
+    });
+    if (error) {
+      localStorage.removeItem('login_intent');
+      sessionStorage.removeItem('login_intent');
+      throw error;
+    }
   },
 
   loginWithEmail: async (email, password) => {
@@ -79,7 +101,7 @@ const authService = {
   },
 
   logout: async () => {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'global' });
     localStorage.removeItem('login_intent');
     sessionStorage.removeItem('login_intent');
     localStorage.removeItem('access_token');

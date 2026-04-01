@@ -10,16 +10,34 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const initializedRef        = useRef(false);
 
+  // ── Fetch profile by primary email, fallback to secondary_email ──
   const fetchProfile = async (authUser) => {
     if (!authUser) { setProfile(null); return null; }
     try {
-      const { data } = await supabase
+      const SELECT_FIELDS = 'id, email, full_name, role, is_author, is_active, secondary_email, department, year_level, student_id, last_login';
+
+      // Primary lookup — match by DLSL email
+      const { data: primaryData } = await supabase
         .from('users')
-        .select('id, email, full_name, role, is_author, is_active, secondary_email, department, year_level, student_id, last_login')
+        .select(SELECT_FIELDS)
         .eq('email', authUser.email)
         .single();
-      setProfile(data ?? null);
-      return data ?? null;
+
+      if (primaryData) {
+        setProfile(primaryData);
+        return primaryData;
+      }
+
+      // Fallback — logged-in email might be a registered secondary_email
+      const { data: secondaryData } = await supabase
+        .from('users')
+        .select(SELECT_FIELDS)
+        .eq('secondary_email', authUser.email)
+        .single();
+
+      setProfile(secondaryData ?? null);
+      return secondaryData ?? null;
+
     } catch (err) {
       console.warn('fetchProfile error (non-fatal):', err);
       setProfile(null);
@@ -27,17 +45,12 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // ── FIXED: removed the isAllowedEmail guard from applySession.
-  // AuthCallback is the single source of truth for blocking unauthorized emails.
-  // Having the guard here races with AuthCallback's signOut and causes an
-  // infinite spinner instead of showing the "unauthorized" screen.
   const applySession = async (session) => {
     if (!session?.user) {
       setUser(null);
       setProfile(null);
       return;
     }
-
     setUser(session.user);
     await fetchProfile(session.user);
   };
@@ -64,18 +77,8 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'INITIAL_SESSION') return;
-
-        if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setProfile(null);
-          return;
-        }
-
-        if (
-          event === 'SIGNED_IN' ||
-          event === 'TOKEN_REFRESHED' ||
-          event === 'USER_UPDATED'
-        ) {
+        if (event === 'SIGNED_OUT') { setUser(null); setProfile(null); return; }
+        if (['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED'].includes(event)) {
           await applySession(session);
         }
       }
@@ -88,7 +91,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     setProfile(null);
     try {
-      await supabase.auth.signOut({ scope: 'local' });
+      await supabase.auth.signOut({ scope: 'global' });
     } catch (err) {
       console.warn('signOut error (non-fatal):', err);
     }
@@ -99,9 +102,14 @@ export function AuthProvider({ children }) {
     await fetchProfile(user);
   };
 
-  const isAdmin  = !!(profile && (
-    profile.role === 'admin' || ALLOWED_ADMIN_EMAILS.includes(user?.email)
+  // FIX Bug 1: isAdmin must check profile.email (the primary DLSL email stored
+  // in the DB), NOT user?.email (the Google auth email, which could be a
+  // secondary Gmail). If we check user?.email, an author whose secondary Gmail
+  // is also in ALLOWED_ADMIN_EMAILS would incorrectly get isAdmin = true.
+  const isAdmin = !!(profile && (
+    profile.role === 'admin' || ALLOWED_ADMIN_EMAILS.includes(profile.email)
   ));
+
   const isAuthor = profile?.is_author === true;
 
   return (
