@@ -310,7 +310,6 @@ export default function AdminDashboard() {
     setDecidingId(requestId);
     try {
       await api.post(`/api/admin/upgrade-requests/${requestId}/decide`, { action });
-      // Refresh both upgrade requests and papers
       await fetchUpgradeRequests();
       await fetchPapers();
     } catch (e) {
@@ -351,7 +350,6 @@ export default function AdminDashboard() {
 
   const pendingRequestCount  = requests.filter((r) => r.status === "pending").length;
   const pendingUpgradeCount  = upgradeRequests.filter((r) => r.status === "pending").length;
-  const totalPendingBadge    = pendingRequestCount + pendingUpgradeCount;
 
   return (
     <>
@@ -424,7 +422,6 @@ export default function AdminDashboard() {
         .ad-reject-btn:hover { background:#fee2e2; }
         .ad-reject-btn:disabled { opacity:.5; cursor:not-allowed; }
 
-        /* Upgrade request card */
         .ad-upgrade-card { background:#fff; border:1px solid #e8eaed; border-radius:10px; padding:16px 20px; margin-bottom:10px; display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap; }
         .ad-upgrade-info { flex:1; min-width:200px; }
         .ad-upgrade-name { font-size:14px; font-weight:600; color:#202124; margin-bottom:2px; }
@@ -587,13 +584,12 @@ export default function AdminDashboard() {
                           <td className="ad-authors-cell">{paper.authors?.length > 0 ? paper.authors.join(", ") : <span style={{ color: "#c4c9d0" }}>—</span>}</td>
                           <td>{paper.year ? <span className="ad-pill ad-pill-year">{paper.year}</span> : <span style={{ color: "#c4c9d0" }}>—</span>}</td>
                           <td>{paper.course_or_program ? <span className="ad-pill ad-pill-prog">{paper.course_or_program}</span> : <span style={{ color: "#c4c9d0" }}>—</span>}</td>
-                          {/* Access label */}
                           <td><span style={{ background: at.bg, color: at.color, fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 10 }}>{at.label}</span></td>
-                          {/* Publish status */}
                           <td><span style={{ background: st.bg, color: st.color, fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 10 }}>{st.label}</span></td>
+                          {/* ── FIXED: was paper.public_url, now uses getStorageUrl(paper.file_path) ── */}
                           <td>
-                            {paper.public_url
-                              ? <a className="ad-pdf-link" href={paper.public_url} target="_blank" rel="noopener noreferrer"><FileIcon size={11} /> View</a>
+                            {paper.file_path
+                              ? <a className="ad-pdf-link" href={getStorageUrl(paper.file_path)} target="_blank" rel="noopener noreferrer"><FileIcon size={11} /> View</a>
                               : <span className="ad-pill ad-pill-nourl">No file</span>}
                           </td>
                           <td>
