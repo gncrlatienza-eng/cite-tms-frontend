@@ -112,8 +112,23 @@ export function AuthProvider({ children }) {
 
   const isAuthor = profile?.is_author === true;
 
+  // ── Author convenience exports ──
+  // Pre-fill author name & secondary email for UploadPaper form
+  const authorName = profile?.full_name || null;
+  const secondaryEmail = profile?.secondary_email || null;
+
   return (
-    <AuthContext.Provider value={{ user, profile, logout, loading, isAdmin, isAuthor, refreshProfile }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      profile, 
+      logout, 
+      loading, 
+      isAdmin, 
+      isAuthor, 
+      refreshProfile,
+      authorName,      // ← NEW: primary author name
+      secondaryEmail   // ← NEW: backup email
+    }}>
       {loading ? (
         <div style={{
           position: 'fixed', inset: 0,
