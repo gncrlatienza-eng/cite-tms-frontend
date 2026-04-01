@@ -17,8 +17,16 @@ import AuthorRoute from "./routes/AuthorRoute";
 import { useAuth } from "./context/AuthContext";
 
 function PublicRoute({ children }) {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, isAdmin, loading, profile } = useAuth();
+
   if (loading) return null;
+
+  // FIX Bug 2: If user is logged in but profile hasn't loaded yet, wait.
+  // Without this, isAdmin is false (profile is null) and the redirect to
+  // /admin/dashboard never fires — but more importantly, for AuthorRoute,
+  // isAuthor would also be false, causing a premature redirect to "/".
+  if (user && profile === null) return null;
+
   if (user && isAdmin) return <Navigate to="/admin/dashboard" replace />;
   return children;
 }

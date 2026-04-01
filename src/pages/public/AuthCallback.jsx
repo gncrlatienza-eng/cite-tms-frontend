@@ -14,7 +14,6 @@ export default function AuthCallback() {
     const intent = sessionStorage.getItem('login_intent')
       || localStorage.getItem('login_intent');
 
-    // Clear intent immediately to prevent re-use
     sessionStorage.removeItem('login_intent');
     localStorage.removeItem('login_intent');
 
@@ -25,11 +24,13 @@ export default function AuthCallback() {
       if (!session) { navigate('/'); return; }
 
       const email = session.user.email;
+      console.log('🔐 [AuthCallback] Processing login for:', email);
+      console.log('🎯 [AuthCallback] Login intent:', intent);
 
       // ── Admin login ───────────────────────────────────────
       if (intent === 'admin') {
         if (!ALLOWED_ADMIN_EMAILS.includes(email)) {
-          await supabase.auth.signOut({ scope: 'local' });
+          await supabase.auth.signOut({ scope: 'global' });
           setBlockedEmail(email);
           setBlockReason('admin');
           setPhase('unauthorized');
@@ -39,52 +40,104 @@ export default function AuthCallback() {
         return;
       }
 
-      // ── Student & Author login — must be @dlsl.edu.ph ─────
-      if (!email.endsWith('@dlsl.edu.ph')) {
-        await supabase.auth.signOut({ scope: 'local' });
-        setBlockedEmail(email);
-        setBlockReason('domain');
-        setPhase('unauthorized');
-        return;
-      }
-
-      // ── Author login ──────────────────────────────────────
+      // ── Author login — allow secondary (personal) Gmail ───
       if (intent === 'author') {
+        if (!email.endsWith('@dlsl.edu.ph')) {
+          // Non-DLSL email: check if it's a registered secondary_email
+          const { data: secondaryUser } = await supabase
+            .from('users')
+            .select('is_author')
+            .eq('secondary_email', email)
+            .maybeSingle();
+
+          if (secondaryUser?.is_author) {
+            navigate('/author/dashboard');
+            return;
+          }
+
+          // Not a recognized secondary email — block
+          await supabase.auth.signOut({ scope: 'global' });
+          setBlockedEmail(email);
+          setBlockReason('domain');
+          setPhase('unauthorized');
+          return;
+        }
+
+        // DLSL email: check is_author flag
         try {
           const { data: userRecord } = await supabase
             .from('users')
             .select('is_author')
             .eq('email', email)
-            .single();
+            .maybeSingle();
 
           if (userRecord?.is_author) {
             navigate('/author/dashboard');
             return;
           }
 
-          await supabase.auth.signOut({ scope: 'local' });
+          await supabase.auth.signOut({ scope: 'global' });
           setBlockedEmail(email);
           setBlockReason('not_author');
           setPhase('unauthorized');
           return;
         } catch (e) {
           console.warn('Could not fetch user record:', e.message);
-          await supabase.auth.signOut({ scope: 'local' });
+          await supabase.auth.signOut({ scope: 'global' });
           navigate('/?error=auth_failed');
           return;
         }
       }
 
-      // ── Student login ─────────────────────────────────────
+      // ── Student / fallback login ───────────────────────────
+      // intent may be 'student' or null (e.g. lost across OAuth redirect)
+      console.log('📧 [AuthCallback] Fallback login - email:', email);
+      if (!email.endsWith('@dlsl.edu.ph')) {
+        console.log('🔍 [AuthCallback] Non-DLSL email detected, checking secondary_email...');
+        // FIX: Before blocking, check if this is a registered secondary email.
+        // This handles the case where intent was lost during the OAuth redirect
+        // but the user is a valid author signing in with their personal Gmail.
+        const { data: secondaryUser } = await supabase
+          .from('users')
+          .select('is_author, role')
+          .eq('secondary_email', email)
+          .maybeSingle();
+
+        console.log('📊 [AuthCallback] Secondary user lookup result:', secondaryUser);
+
+        if (secondaryUser) {
+          // Recognized secondary email — route to the right place
+          if (secondaryUser.is_author) {
+            console.log('✅ [AuthCallback] Secondary email is author, routing to /author/dashboard');
+            navigate('/author/dashboard');
+          } else {
+            console.log('👤 [AuthCallback] Secondary email is student, routing to /');
+            navigate('/');
+          }
+          return;
+        }
+
+        console.log('❌ [AuthCallback] Secondary email not found in database, blocking login');
+        // Truly unrecognized non-DLSL email — block
+        await supabase.auth.signOut({ scope: 'global' });
+        setBlockedEmail(email);
+        setBlockReason('domain');
+        setPhase('unauthorized');
+        return;
+      }
+
+      // DLSL email logging in as student
+      // FIX: Respect the user's intent - if they clicked "Login as Student",
+      // send them to the student page even if they're an author.
+      // Authors can switch portals using the UI if they want author access.
+      console.log('🎓 [AuthCallback] DLSL email detected, intent was student or null - routing to /');
       navigate('/');
     };
 
-    // Listen for auth state change
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN') process(session);
     });
 
-    // Also check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) process(session);
     });
@@ -92,14 +145,13 @@ export default function AuthCallback() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // ── Try again handler — clears state fully before retrying ──
   const handleTryAgain = async (intent) => {
     handled.current = false;
     setPhase('loading');
     setBlockedEmail('');
     setBlockReason('');
 
-    await supabase.auth.signOut({ scope: 'local' });
+    await supabase.auth.signOut({ scope: 'global' });
 
     localStorage.setItem('login_intent', intent);
     sessionStorage.setItem('login_intent', intent);
@@ -110,13 +162,13 @@ export default function AuthCallback() {
         redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: {
           prompt: 'select_account',
-          ...(intent !== 'admin' && { hd: 'dlsl.edu.ph' }),
+          // No hd restriction for author — they may use personal Gmail
+          ...(intent !== 'admin' && intent !== 'author' && { hd: 'dlsl.edu.ph' }),
         },
       },
     });
   };
 
-  // ── UNAUTHORIZED SCREEN ────────────────────────────────────
   if (phase === 'unauthorized') {
     const messages = {
       admin: {
@@ -126,12 +178,12 @@ export default function AuthCallback() {
       },
       domain: {
         title: 'Invalid Account',
-        desc: `Only @dlsl.edu.ph Google accounts are authorized. "${blockedEmail}" is not a valid institutional account.`,
+        desc: `Only @dlsl.edu.ph accounts or registered secondary emails are authorized. "${blockedEmail}" is not recognized.`,
         tryAgainIntent: 'student',
       },
       not_author: {
         title: 'Not an Author Yet',
-        desc: `Your account (${blockedEmail}) has not been granted author access. You need to upload at least one study and have it approved by an admin.`,
+        desc: `Your account (${blockedEmail}) has not been granted author access. Upload a study and have it approved by an admin.`,
         tryAgainIntent: 'author',
       },
     };
@@ -148,10 +200,6 @@ export default function AuthCallback() {
           .ua-icon { width: 60px; height: 60px; border-radius: 50%; background: #fef2f2; border: 2px solid #fecaca; display: flex; align-items: center; justify-content: center; margin: 0 auto 22px; }
           .ua-title { font-family: 'DM Serif Display', serif; font-size: 25px; color: #111827; margin-bottom: 10px; }
           .ua-desc { font-size: 13.5px; color: #6b7280; line-height: 1.65; margin-bottom: 24px; }
-          .ua-allowed { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px 16px; margin-bottom: 24px; text-align: left; }
-          .ua-allowed-label { font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #15803d; margin-bottom: 10px; }
-          .ua-allowed-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #166534; padding: 3px 0; }
-          .ua-dot { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; flex-shrink: 0; }
           .ua-btn { width: 100%; padding: 12px; background: #111827; color: #fff; border: none; border-radius: 10px; font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 0.15s; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
           .ua-btn:hover { background: #1f2937; }
           .ua-ghost { width: 100%; padding: 11px; background: transparent; color: #6b7280; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 13.5px; font-weight: 500; font-family: inherit; cursor: pointer; transition: all 0.15s; }
@@ -166,19 +214,20 @@ export default function AuthCallback() {
             </div>
             <div className="ua-title">{msg.title}</div>
             <div className="ua-desc">{msg.desc}</div>
-
             <button className="ua-btn" onClick={() => handleTryAgain(msg.tryAgainIntent)}>
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width={16} height={16} alt="G" />
               Try a different account
             </button>
-            <button className="ua-ghost" onClick={() => navigate('/')}>← Back to homepage</button>
+            <button className="ua-ghost" onClick={async () => {
+              await supabase.auth.signOut({ scope: 'global' });
+              window.location.href = '/';
+            }}>← Back to homepage</button>
           </div>
         </div>
       </>
     );
   }
 
-  // ── LOADING SCREEN ─────────────────────────────────────────
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column',

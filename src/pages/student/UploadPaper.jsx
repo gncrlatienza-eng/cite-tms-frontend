@@ -162,9 +162,6 @@ export default function UploadPaper() {
         file_path,
       };
 
-      // Authors → /api/author/papers (existing author uploading new paper)
-      // Students → /api/student/papers (applying to become author)
-      // Both require admin approval before publishing
       const endpoint = isAuthor ? "/api/author/papers" : "/api/student/papers";
       await api.post(endpoint, payload);
 
@@ -184,7 +181,7 @@ export default function UploadPaper() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        .up-page { min-height: 100vh; padding-top: 57px; background: #fafafa; font-family: 'DM Sans', system-ui, sans-serif; }
+        .up-page { min-height: 100vh; background: #fafafa; font-family: 'DM Sans', system-ui, sans-serif; }
         .up-body { max-width: 660px; margin: 0 auto; padding: 40px 40px 80px; }
         .up-intro { margin-bottom: 32px; }
         .up-intro-title { font-family: 'DM Serif Display', serif; font-size: 26px; color: #111827; margin-bottom: 8px; }
@@ -270,8 +267,9 @@ export default function UploadPaper() {
         }
       `}</style>
 
-      <div className="up-page">
-        <Navbar onLoginClick={() => {}} />
+      {/* ── Only render student Navbar for non-authors ── */}
+      <div className="up-page" style={{ paddingTop: isAuthor ? 0 : 57 }}>
+        {!isAuthor && <Navbar onLoginClick={() => {}} />}
 
         <div style={{ background: "#fff", borderBottom: "1px solid #efefef", padding: "16px 40px", display: "flex", alignItems: "center", gap: 16 }}>
           <Link
@@ -481,7 +479,7 @@ export default function UploadPaper() {
         </div>
       </div>
 
-      {/* ── Confirmation Modal (before form submission)────────────────────────────────────────────────── */}
+      {/* ── Confirmation Modal ─────────────────────────────────────────────── */}
       {showConfirmModal && (
         <div className="up-modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowConfirmModal(false); }}>
           <div className="up-modal" onMouseDown={(e) => e.stopPropagation()}>
@@ -502,8 +500,8 @@ export default function UploadPaper() {
             </div>
             <div className="up-modal-actions">
               <button className="up-modal-btn-cancel" onClick={() => setShowConfirmModal(false)}>Cancel</button>
-              <button 
-                className="up-modal-btn-submit" 
+              <button
+                className="up-modal-btn-submit"
                 onClick={handleConfirmedSubmit}
                 disabled={busy}
               >
