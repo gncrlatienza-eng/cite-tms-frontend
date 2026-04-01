@@ -25,17 +25,18 @@ const PROGRAM_OPTIONS = [
 ];
 
 export default function UploadPaper() {
-  const { user, isAuthor } = useAuth();
+  const { user, isAuthor, authorName, secondaryEmail } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef(null);
 
   const [form, setForm] = useState({
     title: "",
-    authors: "",
+    primary_author: "",      // ← Will be auto-filled for authors
+    co_authors: "",          // ← NEW: optional groupmates
     year: new Date().getFullYear().toString(),
     course_or_program: "",
     abstract: "",
-    secondary_email: "",
+    secondary_email: "",     // ← Will be pre-filled & disabled for authors
     access_type: "open",
   });
   const [pdf, setPdf]             = useState(null);
@@ -49,28 +50,24 @@ export default function UploadPaper() {
 
   const set = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
-  // ── Load secondary email for authors ───────────────────────────────────────
+  // ── Pre-fill author fields on mount (for existing authors) ──
   useEffect(() => {
-    if (isAuthor && user) {
-      const fetchSecondaryEmail = async () => {
-        try {
-          const response = await api.get("/api/author/profile");
-          if (response.data.secondary_email) {
-            setForm((f) => ({ ...f, secondary_email: response.data.secondary_email }));
-          }
-        } catch (e) {
-          console.error("Failed to fetch secondary email:", e.message);
-        }
-      };
-      fetchSecondaryEmail();
+    if (isAuthor && authorName && secondaryEmail) {
+      setForm((f) => ({
+        ...f,
+        primary_author: authorName,
+        secondary_email: secondaryEmail,
+      }));
     }
-  }, [isAuthor, user]);
+  }, [isAuthor, authorName, secondaryEmail]);
 
-  // ── Form validation ───────────────────────────────────────────────────────
+  // ── Form validation ──
+  // For authors: primary_author is readonly, co_authors optional
+  // For students: primary_author required (will be validated), co_authors optional
   const isFormComplete = () => {
     return (
       form.title.trim() !== "" &&
-      form.authors.trim() !== "" &&
+      form.primary_author.trim() !== "" &&
       form.year && !isNaN(Number(form.year)) &&
       form.course_or_program.trim() !== "" &&
       form.abstract.trim() !== "" &&
@@ -79,7 +76,7 @@ export default function UploadPaper() {
     );
   };
 
-  // ── Gate: not logged in ────────────────────────────────────────────────────
+  // ── Gate: not logged in ──
   if (!user) {
     return (
       <>
@@ -106,7 +103,7 @@ export default function UploadPaper() {
     );
   }
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
+  // ── Submit ──
   const handleSubmitClick = (e) => {
     e.preventDefault();
     if (!isFormComplete()) {
@@ -120,14 +117,14 @@ export default function UploadPaper() {
     setShowConfirmModal(false);
     setErr("");
     if (!form.title.trim())                     return setErr("Title is required.");
-    if (!form.authors.trim())                   return setErr("At least one author is required.");
+    if (!form.primary_author.trim())            return setErr("Primary author is required.");
     if (!form.year || isNaN(Number(form.year))) return setErr("A valid year is required.");
     if (!form.course_or_program.trim())         return setErr("Program / Course is required.");
     if (!form.abstract.trim())                  return setErr("Abstract is required.");
     if (!form.secondary_email.trim())           return setErr("Secondary email is required.");
     if (!pdf)                                   return setErr("A PDF file is required.");
 
-    // ── Guard: ensure Supabase session is alive before submitting ────────────
+    // ── Guard: ensure Supabase session is alive ──
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       setErr("Your session expired. Please sign in again.");
@@ -151,9 +148,20 @@ export default function UploadPaper() {
         setProgress(65);
       }
 
+      // ── Build authors array ──
+      // Primary author + optional co-authors (comma-separated)
+      const authorsArray = [form.primary_author.trim()];
+      if (form.co_authors.trim()) {
+        const coAuthors = form.co_authors
+          .split(",")
+          .map((a) => a.trim())
+          .filter(Boolean);
+        authorsArray.push(...coAuthors);
+      }
+
       const payload = {
         title:             form.title.trim(),
-        authors:           form.authors.split(",").map((a) => a.trim()).filter(Boolean),
+        authors:           authorsArray,
         year:              Number(form.year),
         course_or_program: form.course_or_program.trim() || null,
         abstract:          form.abstract.trim() || null,
@@ -175,7 +183,7 @@ export default function UploadPaper() {
     }
   };
 
-  // ── Page ───────────────────────────────────────────────────────────────────
+  // ── Page ──
   return (
     <>
       <style>{`
@@ -200,8 +208,10 @@ export default function UploadPaper() {
         .up-field { display: flex; flex-direction: column; gap: 6px; }
         .up-label { font-size: 13px; font-weight: 600; color: #374151; }
         .up-label-hint { font-size: 11.5px; color: #9ca3af; font-weight: 400; margin-left: 4px; }
+        .up-label-helper { font-size: 12px; color: #6b7280; font-weight: 400; margin-left: 4px; margin-top: 2px; }
         .up-input { border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-family: inherit; color: #111827; outline: none; background: #fff; width: 100%; transition: border-color 0.18s, box-shadow 0.18s; }
         .up-input:focus { border-color: #9b0000; box-shadow: 0 0 0 3px rgba(155,0,0,0.08); }
+        .up-input:disabled { background: #f9fafb; color: #9ca3af; cursor: not-allowed; }
         .up-select { border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-family: inherit; color: #111827; outline: none; background: #fff; width: 100%; transition: border-color 0.18s, box-shadow 0.18s; cursor: pointer; }
         .up-select:focus { border-color: #9b0000; box-shadow: 0 0 0 3px rgba(155,0,0,0.08); }
         .up-textarea { border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-family: inherit; color: #111827; outline: none; background: #fff; width: 100%; min-height: 120px; resize: vertical; line-height: 1.6; transition: border-color 0.18s; }
@@ -267,7 +277,6 @@ export default function UploadPaper() {
         }
       `}</style>
 
-      {/* ── Only render student Navbar for non-authors ── */}
       <div className="up-page" style={{ paddingTop: isAuthor ? 0 : 57 }}>
         {!isAuthor && <Navbar onLoginClick={() => {}} />}
 
@@ -354,26 +363,75 @@ export default function UploadPaper() {
               <form className="up-form" onSubmit={handleSubmitClick}>
                 <div className="up-field">
                   <label className="up-label">Title <span style={{ color: "#9b0000" }}>*</span></label>
-                  <input className="up-input" name="title" value={form.title} onChange={set}
-                    placeholder="Full title of your research paper" disabled={busy} autoComplete="off" />
+                  <input 
+                    className="up-input" 
+                    name="title" 
+                    value={form.title} 
+                    onChange={set}
+                    placeholder="Full title of your research paper" 
+                    disabled={busy} 
+                    autoComplete="off" 
+                  />
                 </div>
 
+                {/* ── Primary Author (auto-filled for authors, required for students) ── */}
                 <div className="up-field">
-                  <label className="up-label">Authors <span style={{ color: "#9b0000" }}>*</span><span className="up-label-hint">(comma-separated)</span></label>
-                  <input className="up-input" name="authors" value={form.authors} onChange={set}
-                    placeholder="e.g. Juan Dela Cruz, Maria Santos" disabled={busy} autoComplete="off" />
+                  <label className="up-label">
+                    Primary Author 
+                    <span style={{ color: "#9b0000" }}>*</span>
+                    {isAuthor && <span className="up-label-helper">(Your registered name)</span>}
+                  </label>
+                  <input 
+                    className="up-input" 
+                    name="primary_author" 
+                    value={form.primary_author} 
+                    onChange={set}
+                    placeholder={isAuthor ? "" : "e.g. Juan Dela Cruz"} 
+                    disabled={busy || isAuthor}  // ← Disable for authors
+                    autoComplete="off" 
+                  />
+                </div>
+
+                {/* ── Co-Authors (optional) ── */}
+                <div className="up-field">
+                  <label className="up-label">
+                    Co-Authors
+                    <span className="up-label-hint">(optional, comma-separated)</span>
+                  </label>
+                  <input 
+                    className="up-input" 
+                    name="co_authors" 
+                    value={form.co_authors} 
+                    onChange={set}
+                    placeholder="e.g. Maria Santos, Juan Reyes" 
+                    disabled={busy} 
+                    autoComplete="off" 
+                  />
                 </div>
 
                 <div className="up-row">
                   <div className="up-field">
                     <label className="up-label">Year <span style={{ color: "#9b0000" }}>*</span></label>
-                    <input className="up-input" name="year" type="number" value={form.year}
-                      onChange={set} min="1990" max="2099" disabled={busy} />
+                    <input 
+                      className="up-input" 
+                      name="year" 
+                      type="number" 
+                      value={form.year}
+                      onChange={set} 
+                      min="1990" 
+                      max="2099" 
+                      disabled={busy} 
+                    />
                   </div>
                   <div className="up-field">
                     <label className="up-label">Program / Course <span style={{ color: "#9b0000" }}>*</span></label>
-                    <select className="up-select" name="course_or_program" value={form.course_or_program}
-                      onChange={set} disabled={busy}>
+                    <select 
+                      className="up-select" 
+                      name="course_or_program" 
+                      value={form.course_or_program}
+                      onChange={set} 
+                      disabled={busy}
+                    >
                       <option value="">Select a program...</option>
                       {PROGRAM_OPTIONS.map((prog) => (
                         <option key={prog.value} value={prog.value}>{prog.label}</option>
@@ -384,14 +442,33 @@ export default function UploadPaper() {
 
                 <div className="up-field">
                   <label className="up-label">Abstract <span style={{ color: "#9b0000" }}>*</span></label>
-                  <textarea className="up-textarea" name="abstract" value={form.abstract}
-                    onChange={set} placeholder="Paste your paper's abstract here…" disabled={busy} />
+                  <textarea 
+                    className="up-textarea" 
+                    name="abstract" 
+                    value={form.abstract}
+                    onChange={set} 
+                    placeholder="Paste your paper's abstract here…" 
+                    disabled={busy} 
+                  />
                 </div>
 
+                {/* ── Secondary Email (pre-filled & disabled for authors) ── */}
                 <div className="up-field">
-                  <label className="up-label">Secondary Email <span style={{ color: "#9b0000" }}>*</span></label>
-                  <input className="up-input" name="secondary_email" type="email" value={form.secondary_email} onChange={set}
-                    placeholder="Your additional contact email" disabled={busy} autoComplete="off" />
+                  <label className="up-label">
+                    Secondary Email 
+                    <span style={{ color: "#9b0000" }}>*</span>
+                    {isAuthor && <span className="up-label-helper">(Backup access email)</span>}
+                  </label>
+                  <input 
+                    className="up-input" 
+                    name="secondary_email" 
+                    type="email" 
+                    value={form.secondary_email} 
+                    onChange={set}
+                    placeholder={isAuthor ? "" : "Your additional contact email"} 
+                    disabled={busy || isAuthor}  // ← Disable for authors
+                    autoComplete="off" 
+                  />
                 </div>
 
                 <div className="up-field">
@@ -404,9 +481,15 @@ export default function UploadPaper() {
                           <div className="up-access-label">{opt.label}</div>
                           <div className="up-access-desc">{opt.desc}</div>
                         </div>
-                        <input type="radio" name="access_type" value={opt.value}
-                          checked={form.access_type === opt.value} onChange={set}
-                          className="up-access-radio" disabled={busy} />
+                        <input 
+                          type="radio" 
+                          name="access_type" 
+                          value={opt.value}
+                          checked={form.access_type === opt.value} 
+                          onChange={set}
+                          className="up-access-radio" 
+                          disabled={busy} 
+                        />
                       </label>
                     ))}
                   </div>
@@ -433,8 +516,13 @@ export default function UploadPaper() {
                         const f = e.dataTransfer.files?.[0];
                         if (f?.type === "application/pdf") setPdf(f);
                       }}>
-                      <input ref={fileRef} type="file" accept="application/pdf" style={{ display: "none" }}
-                        onChange={(e) => { const f = e.target.files?.[0]; if (f) setPdf(f); }} />
+                      <input 
+                        ref={fileRef} 
+                        type="file" 
+                        accept="application/pdf" 
+                        style={{ display: "none" }}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) setPdf(f); }} 
+                      />
                       <div style={{ fontSize: 28, marginBottom: 8 }}>📎</div>
                       <div style={{ fontSize: 13.5, color: "#374151", fontWeight: 500 }}>
                         <span style={{ color: "#9b0000", fontWeight: 600 }}>Click to upload</span> or drag & drop
@@ -479,7 +567,7 @@ export default function UploadPaper() {
         </div>
       </div>
 
-      {/* ── Confirmation Modal ─────────────────────────────────────────────── */}
+      {/* ── Confirmation Modal ── */}
       {showConfirmModal && (
         <div className="up-modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowConfirmModal(false); }}>
           <div className="up-modal" onMouseDown={(e) => e.stopPropagation()}>
@@ -491,7 +579,8 @@ export default function UploadPaper() {
             </div>
             <div className="up-modal-body">
               <div className="up-modal-item"><strong>Title:</strong> {form.title}</div>
-              <div className="up-modal-item"><strong>Authors:</strong> {form.authors}</div>
+              <div className="up-modal-item"><strong>Primary Author:</strong> {form.primary_author}</div>
+              {form.co_authors.trim() && <div className="up-modal-item"><strong>Co-Authors:</strong> {form.co_authors}</div>}
               <div className="up-modal-item"><strong>Year:</strong> {form.year}</div>
               <div className="up-modal-item"><strong>Program:</strong> {form.course_or_program}</div>
               <div className="up-modal-item"><strong>Secondary Email:</strong> {form.secondary_email}</div>
