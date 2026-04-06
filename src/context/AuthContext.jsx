@@ -72,8 +72,6 @@ export function AuthProvider({ children }) {
       }
     };
 
-    init();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'INITIAL_SESSION') return;
@@ -83,6 +81,8 @@ export function AuthProvider({ children }) {
         }
       }
     );
+
+    init();
 
     return () => subscription.unsubscribe();
   }, []);
