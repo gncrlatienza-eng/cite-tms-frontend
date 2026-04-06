@@ -56,7 +56,7 @@ const IconCheck = () => (
 const ACCESS_META = {
   open:                { label: "Public",            Icon: IconGlobe, bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
   students_only_guest: { label: "DLSL Students Only", Icon: IconUser,  bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
-  students_only_auth:  { label: "Accessible",         Icon: IconCheck, bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
+  students_only_auth:  { label: "Accessible",         Icon: IconCheck, bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
   restricted:          { label: "Restricted",         Icon: IconLock,  bg: "#fef2f2", color: "#9b0000", border: "#fecaca" },
 };
 
