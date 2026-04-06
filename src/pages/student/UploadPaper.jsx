@@ -5,14 +5,15 @@ import { supabase } from "../../services/supabase";
 import api from "../../services/api";
 import Navbar from "../../components/layout/Navbar";
 import LoginPage from "../public/LoginPage";
+import { Globe, GraduationCap, Lock, FileText, MailCheck, Info, Clock, Paperclip, AlertTriangle } from "lucide-react";
 
 const BUCKET = "cite-tms-backend-bucket";
 const safeFileName = (name) => name.replace(/[^a-zA-Z0-9._-]/g, "_");
 
 const ACCESS_OPTIONS = [
-  { value: "open",          label: "Open Access",   desc: "Anyone can view and download your paper",     icon: "🌐" },
-  { value: "students_only", label: "Students Only", desc: "Only logged-in DLSL students can view",       icon: "🎓" },
-  { value: "restricted",    label: "Restricted",    desc: "Students must request your approval to view", icon: "🔒" },
+  { value: "open",          label: "Open Access",   desc: "Anyone can view and download your paper",     Icon: Globe },
+  { value: "students_only", label: "Students Only", desc: "Only logged-in DLSL students can view",       Icon: GraduationCap },
+  { value: "restricted",    label: "Restricted",    desc: "Students must request your approval to view", Icon: Lock },
 ];
 
 const PROGRAM_OPTIONS = [
@@ -84,7 +85,7 @@ export default function UploadPaper() {
           <Navbar onLoginClick={() => setShowLogin(true)} />
           <div style={{ minHeight: "calc(100vh - 57px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
             <div style={{ maxWidth: 420, textAlign: "center", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
+              <div style={{ marginBottom: 16 }}><FileText size={48} style={{ color: "#374151" }} /></div>
               <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, color: "#111827", marginBottom: 10 }}>Sign in to upload</h2>
               <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 24, lineHeight: 1.6 }}>
                 You need to sign in with your DLSL account to upload a paper.
@@ -296,7 +297,7 @@ export default function UploadPaper() {
         <div className="up-body">
           {success ? (
             <div className="up-success">
-              <div className="up-success-icon">📬</div>
+              <div className="up-success-icon"><MailCheck size={48} /></div>
               <div className="up-success-title">
                 {isAuthor ? "Paper submitted for review!" : "Application submitted!"}
               </div>
@@ -346,14 +347,14 @@ export default function UploadPaper() {
 
               {isAuthor ? (
                 <div className="up-notice blue">
-                  <span className="up-notice-icon">ℹ️</span>
+                  <span className="up-notice-icon"><Info size={18} /></span>
                   <p className="up-notice-text">
                     <strong>Admin approval required.</strong> Your paper will stay in <strong>pending review</strong> until an admin approves it — it won't be visible to users until then.
                   </p>
                 </div>
               ) : (
                 <div className="up-notice amber">
-                  <span className="up-notice-icon">⏳</span>
+                  <span className="up-notice-icon"><Clock size={18} /></span>
                   <p className="up-notice-text">
                     <strong>Pending approval.</strong> An admin will review your paper before granting you <strong>Author access</strong>. This is not immediate.
                   </p>
@@ -476,7 +477,7 @@ export default function UploadPaper() {
                   <div className="up-access-grid">
                     {ACCESS_OPTIONS.map((opt) => (
                       <label key={opt.value} className={`up-access-card${form.access_type === opt.value ? " selected" : ""}`}>
-                        <span className="up-access-icon">{opt.icon}</span>
+                        <span className="up-access-icon"><opt.Icon size={20} /></span>
                         <div>
                           <div className="up-access-label">{opt.label}</div>
                           <div className="up-access-desc">{opt.desc}</div>
@@ -523,7 +524,7 @@ export default function UploadPaper() {
                         style={{ display: "none" }}
                         onChange={(e) => { const f = e.target.files?.[0]; if (f) setPdf(f); }} 
                       />
-                      <div style={{ fontSize: 28, marginBottom: 8 }}>📎</div>
+                      <div style={{ marginBottom: 8 }}><Paperclip size={28} /></div>
                       <div style={{ fontSize: 13.5, color: "#374151", fontWeight: 500 }}>
                         <span style={{ color: "#9b0000", fontWeight: 600 }}>Click to upload</span> or drag & drop
                       </div>
@@ -543,7 +544,7 @@ export default function UploadPaper() {
                   </div>
                 )}
 
-                {err && <div className="up-error">⚠ {err}</div>}
+                {err && <div className="up-error" style={{ display: "flex", alignItems: "center", gap: 8 }}><AlertTriangle size={14} />{err}</div>}
 
                 <button type="submit" className="up-submit-btn" disabled={busy || !isFormComplete()}>
                   {busy ? (

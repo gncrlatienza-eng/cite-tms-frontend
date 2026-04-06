@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { Settings, PenLine, Lock, FileText, User, LogOut } from 'lucide-react';
 
 export default function Navbar({ onLoginClick }) {
   const { user, profile, logout, isAuthor } = useAuth();
@@ -267,7 +268,7 @@ export default function Navbar({ onLoginClick }) {
                   {/* ── Admin Dashboard ── */}
                   {isAdmin && (
                     <button className="nb-dropdown-item" onClick={() => { setDropdownOpen(false); navigate('/admin'); }}>
-                      ⚙️ &nbsp;Admin Dashboard
+                      <Settings size={14} />&nbsp;Admin Dashboard
                     </button>
                   )}
 
@@ -278,11 +279,11 @@ export default function Navbar({ onLoginClick }) {
                         className="nb-dropdown-item"
                         onClick={() => { setDropdownOpen(false); navigate('/author/dashboard'); }}
                       >
-                        ✍️ &nbsp;Author Dashboard
+                        <PenLine size={14} />&nbsp;Author Dashboard
                       </button>
                     ) : (
                       <button className="nb-dropdown-item locked" disabled title="Upload a paper and get approved by admin to unlock">
-                        🔒 &nbsp;Author Dashboard
+                        <Lock size={14} />&nbsp;Author Dashboard
                         <span className="nb-lock-tooltip">Not yet author</span>
                       </button>
                     )
@@ -294,12 +295,12 @@ export default function Navbar({ onLoginClick }) {
                       className="nb-dropdown-item"
                       onClick={() => { setDropdownOpen(false); navigate('/student/upload'); }}
                     >
-                      📄 &nbsp;Become an Author
+                      <FileText size={14} />&nbsp;Become an Author
                     </button>
                   )}
 
                   <button className="nb-dropdown-item" onClick={() => { setDropdownOpen(false); navigate('/profile'); }}>
-                    👤 &nbsp;My Profile
+                    <User size={14} />&nbsp;My Profile
                   </button>
 
                   <div className="nb-divider" />
@@ -308,7 +309,7 @@ export default function Navbar({ onLoginClick }) {
                     className="nb-dropdown-item danger"
                     onClick={() => { setDropdownOpen(false); setConfirmLogoutOpen(true); }}
                   >
-                    ↪ &nbsp;Sign Out
+                    <LogOut size={14} />&nbsp;Sign Out
                   </button>
                 </div>
               )}
