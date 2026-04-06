@@ -47,11 +47,17 @@ const IconLock = () => (
     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
   </svg>
 );
+const IconCheck = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
 
 const ACCESS_META = {
-  open:          { label: "Public",           Icon: IconGlobe, bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
-  students_only: { label: "Sign-in Required", Icon: IconUser,  bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
-  restricted:    { label: "Request Required", Icon: IconLock,  bg: "#fef2f2", color: "#9b0000", border: "#fecaca" },
+  open:                { label: "Public",            Icon: IconGlobe, bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
+  students_only_guest: { label: "DLSL Students Only", Icon: IconUser,  bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
+  students_only_auth:  { label: "Accessible",         Icon: IconCheck, bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
+  restricted:          { label: "Restricted",         Icon: IconLock,  bg: "#fef2f2", color: "#9b0000", border: "#fecaca" },
 };
 
 export default function PapersPage() {
@@ -178,15 +184,15 @@ export default function PapersPage() {
   const hasActiveFilter = timeFilter !== "any" || sortBy !== "relevance" || program !== "all";
 
   const getPdfAction = (paper) => {
-    if (!paper.publicUrl) return null;
-    if (paper.access_type === "open") {
-      return user ? { type: "pdf", href: paper.publicUrl } : { type: "lock", label: "Sign in to view PDF" };
-    }
-    if (paper.access_type === "students_only") {
-      return user ? { type: "pdf", href: paper.publicUrl } : { type: "lock", label: "Sign in to view PDF" };
-    }
     if (paper.access_type === "restricted") {
       return user ? { type: "request", label: "Request Access" } : { type: "lock", label: "Sign in to request" };
+    }
+    if (!paper.publicUrl) return null;
+    if (paper.access_type === "open") {
+      return { type: "pdf", href: paper.publicUrl };
+    }
+    if (paper.access_type === "students_only") {
+      return user ? { type: "pdf", href: paper.publicUrl } : { type: "lock", label: "Sign-in Required" };
     }
     return null;
   };
@@ -815,7 +821,9 @@ export default function PapersPage() {
             {!loading && !error && displayed.map((paper, i) => {
               const isSaved   = bookmarked.has(paper.id);
               const isBusy    = bmLoading.has(paper.id);
-              const access    = ACCESS_META[paper.access_type] || ACCESS_META.open;
+              const access    = paper.access_type === "students_only"
+                ? (user ? ACCESS_META.students_only_auth : ACCESS_META.students_only_guest)
+                : ACCESS_META[paper.access_type] || ACCESS_META.open;
               const pdfAction = getPdfAction(paper);
 
               return (
