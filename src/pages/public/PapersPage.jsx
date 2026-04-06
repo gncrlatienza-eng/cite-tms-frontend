@@ -56,7 +56,7 @@ const IconCheck = () => (
 const ACCESS_META = {
   open:                { label: "Public",            Icon: IconGlobe, bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
   students_only_guest: { label: "DLSL Students Only", Icon: IconUser,  bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
-  students_only_auth:  { label: "Accessible",         Icon: IconCheck, bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
+  students_only_auth:  { label: "Accessible",         Icon: IconCheck, bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
   restricted:          { label: "Restricted",         Icon: IconLock,  bg: "#fef2f2", color: "#9b0000", border: "#fecaca" },
 };
 
@@ -877,22 +877,6 @@ export default function PapersPage() {
 
                   {/* Footer actions */}
                   <div className="sp-card-footer">
-                    {pdfAction?.type === "pdf" && (
-                      <a href={pdfAction.href} target="_blank" rel="noopener noreferrer" className="sp-btn-pdf">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                          <polyline points="14 2 14 8 20 8"/>
-                        </svg>
-                        PDF
-                      </a>
-                    )}
-
-                    {pdfAction?.type === "request" && (
-                      <Link to={`/papers/${paper.id}`} className="sp-btn-request">
-                        <IconLock /> Request Access
-                      </Link>
-                    )}
-
                     {pdfAction?.type === "lock" && (
                       <button className="sp-btn-lock" onClick={() => setShowLogin(true)}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

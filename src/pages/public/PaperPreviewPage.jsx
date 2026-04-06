@@ -118,12 +118,15 @@ export default function PaperPreviewPage() {
     load();
   }, [id]);
 
-  // ── Check existing access request (skip if user owns the paper) ───────────
+  // ── Check existing access request (skip if owner or students_only) ─────────
   useEffect(() => {
     if (!user || !id || !paper) return;
 
     // Owner never needs to request access to their own paper
     if (paper.uploaded_by === user.id) return;
+
+    // students_only papers are immediately accessible to any signed-in user
+    if (paper.access_type === "students_only") return;
 
     const check = async () => {
       const { data } = await supabase
@@ -154,7 +157,8 @@ export default function PaperPreviewPage() {
     }
   };
 
-  const isOpen = paper?.access_type === "open";
+  const isOpen         = paper?.access_type === "open";
+  const isStudentsOnly = paper?.access_type === "students_only";
 
   // ── Owner check — author/admin viewing their own paper ────────────────────
   const isOwner = user && paper && (
@@ -164,9 +168,10 @@ export default function PaperPreviewPage() {
 
   // ── Set who is allowed to see the PDF viewer ─────────────────────────────
   const canViewPdf =
-    isOwner ||                                    // - Owner / admin: always
-    isOpen ||                                     // - Open access paper: always (whether logged in or not)
-    (!isOpen && requestStatus === "approved");    // - Restricted paper: only if access request was approved
+    isOwner ||                                              // - Owner / admin: always
+    isOpen ||                                              // - Open access: always
+    (isStudentsOnly && !!user) ||                          // - DLSL Students Only: any signed-in user
+    (!isOpen && !isStudentsOnly && requestStatus === "approved"); // - Restricted: only if approved
 
   return (
     <>
@@ -194,6 +199,7 @@ export default function PaperPreviewPage() {
         .pp-access-pill-open { background: #f0fdf4; color: #15803d; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid #bbf7d0; display: inline-flex; align-items: center; gap: 4px; }
         .pp-access-dot { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; }
         .pp-access-pill-restricted { background: #fef2f2; color: #9b0000; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid #fecaca; display: inline-flex; align-items: center; gap: 4px; }
+        .pp-access-pill-students { background: #eff6ff; color: #1d4ed8; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid #bfdbfe; display: inline-flex; align-items: center; gap: 4px; }
 
         .pp-title { font-family: 'DM Serif Display', serif; font-size: 36px; font-weight: 400; color: #0f1117; line-height: 1.3; margin-bottom: 14px; letter-spacing: -0.4px; text-align: justify; }
         .pp-authors { font-size: 14px; color: #6b7280; line-height: 1.6; margin: 0; }
@@ -361,6 +367,11 @@ export default function PaperPreviewPage() {
                       {paper.course_or_program && <span className="pp-prog-pill">{paper.course_or_program}</span>}
                       {isOpen
                         ? <span className="pp-access-pill-open">Open Access</span>
+                        : isStudentsOnly
+                        ? <span className="pp-access-pill-students">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            DLSL Students Only
+                          </span>
                         : <span className="pp-access-pill-restricted">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                             Restricted
@@ -424,8 +435,30 @@ export default function PaperPreviewPage() {
                 </>
               )}
 
+              {/* ── Non-owner: students_only, not logged in ── */}
+              {!isOwner && isStudentsOnly && !user && (
+                <>
+                  <button className="pp-signin-nudge" onClick={() => setShowLogin(true)}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Sign in to View
+                  </button>
+                </>
+              )}
+
+              {/* ── Non-owner: students_only, signed in — immediate access ── */}
+              {!isOwner && isStudentsOnly && user && paper.publicUrl && (
+                <>
+                  <a href={paper.publicUrl} target="_blank" rel="noopener noreferrer" className="pp-btn-download">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Download Full Paper
+                  </a>
+                </>
+              )}
+
               {/* ── Non-owner: restricted, not logged in ── */}
-              {!isOwner && !isOpen && !user && (
+              {!isOwner && !isOpen && !isStudentsOnly && !user && (
                 <>
                   <button className="pp-signin-nudge" onClick={() => setShowLogin(true)}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -435,7 +468,7 @@ export default function PaperPreviewPage() {
               )}
 
               {/* ── Non-owner: restricted, logged in, no request yet ── */}
-              {!isOwner && !isOpen && user && !requestStatus && (
+              {!isOwner && !isOpen && !isStudentsOnly && user && !requestStatus && (
                 <>
                   <button className="pp-btn-request" onClick={() => setShowModal(true)}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -446,8 +479,8 @@ export default function PaperPreviewPage() {
                 </>
               )}
 
-              {/* ── Non-owner: pending ── */}
-              {!isOwner && !isOpen && user && requestStatus === "pending" && (
+              {/* ── Non-owner: restricted, pending ── */}
+              {!isOwner && !isOpen && !isStudentsOnly && user && requestStatus === "pending" && (
                 <>
                   <div className="pp-btn-pending">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -456,8 +489,8 @@ export default function PaperPreviewPage() {
                 </>
               )}
 
-              {/* ── Non-owner: approved ── */}
-              {!isOwner && !isOpen && user && requestStatus === "approved" && paper.publicUrl && (
+              {/* ── Non-owner: restricted, approved ── */}
+              {!isOwner && !isOpen && !isStudentsOnly && user && requestStatus === "approved" && paper.publicUrl && (
                 <>
                   <a href={paper.publicUrl} target="_blank" rel="noopener noreferrer" className="pp-btn-approved">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -468,8 +501,8 @@ export default function PaperPreviewPage() {
                 </>
               )}
 
-              {/* ── Non-owner: rejected ── */}
-              {!isOwner && !isOpen && user && requestStatus === "rejected" && (
+              {/* ── Non-owner: restricted, rejected ── */}
+              {!isOwner && !isOpen && !isStudentsOnly && user && requestStatus === "rejected" && (
                 <>
                   <button className="pp-btn-request" onClick={() => { setRequestStatus(null); setShowModal(true); }}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -484,7 +517,7 @@ export default function PaperPreviewPage() {
                 {paper.year && <div className="pp-meta-row"><span className="pp-meta-key">Year</span><span className="pp-meta-val">{paper.year}</span></div>}
                 {paper.course_or_program && <div className="pp-meta-row"><span className="pp-meta-key">Program</span><span className="pp-meta-val">{paper.course_or_program}</span></div>}
                 {paper.authors?.length > 0 && <div className="pp-meta-row"><span className="pp-meta-key">Author{paper.authors.length > 1 ? "s" : ""}</span><span className="pp-meta-val">{paper.authors.join(", ")}</span></div>}
-                <div className="pp-meta-row"><span className="pp-meta-key">Access</span><span className="pp-meta-val">{isOpen ? "Open Access" : "Restricted"}</span></div>
+                <div className="pp-meta-row"><span className="pp-meta-key">Access</span><span className="pp-meta-val">{isOpen ? "Open Access" : isStudentsOnly ? "DLSL Students Only" : "Restricted"}</span></div>
               </div>
               </div>{/* pp-sidebar-body */}
             </div>{/* pp-sidebar-card */}
