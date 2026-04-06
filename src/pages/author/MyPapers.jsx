@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabase";
 import api from "../../services/api";
+import { Check, AlertTriangle } from "lucide-react";
 
 const BUCKET = "cite-tms-backend-bucket";
 const safeFileName = (name) => name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -116,7 +117,7 @@ function EditModal({ paper, onClose, onSuccess }) {
             {!replaceFile ? (
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 13, color: paper.file_path ? "#15803d" : "#9ca3af" }}>
-                  {paper.file_path ? "✓ PDF on file" : "No PDF uploaded"}
+                  {paper.file_path ? <><Check size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />PDF on file</> : "No PDF uploaded"}
                 </span>
                 <button className="mp-replace-btn" onClick={() => setReplaceFile(true)} disabled={busy}>
                   {paper.file_path ? "Replace" : "Upload PDF"}
@@ -133,8 +134,8 @@ function EditModal({ paper, onClose, onSuccess }) {
               </div>
             )}
           </div>
-          {err && <div className="mp-error">⚠ {err}</div>}
-          {ok  && <div className="mp-success">✓ Paper updated successfully!</div>}
+          {err && <div className="mp-error" style={{ display: "flex", alignItems: "center", gap: 6 }}><AlertTriangle size={13} />{err}</div>}
+          {ok  && <div className="mp-success" style={{ display: "flex", alignItems: "center", gap: 6 }}><Check size={13} />Paper updated successfully!</div>}
           <div className="mp-modal-footer">
             <button className="mp-cancel-btn" onClick={onClose} disabled={busy}>Cancel</button>
             <button className="mp-submit-btn" onClick={handleSubmit} disabled={busy || ok}>

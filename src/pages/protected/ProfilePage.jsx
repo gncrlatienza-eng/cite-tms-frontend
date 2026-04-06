@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabase";
 import Navbar from "../../components/layout/Navbar";
 import LoginPage from "../public/LoginPage";
+import { CheckCircle, Lock } from "lucide-react";
 
 export default function ProfilePage() {
   const { user, profile, loading, isAuthor, isAdmin, refreshProfile } = useAuth();
@@ -121,7 +122,10 @@ export default function ProfilePage() {
         <div style={styles.authorSection}>
           <div style={styles.authorSectionHeader}>
             <span style={styles.authorSectionTitle}>
-              {isAuthor ? "✅ Author Access" : "🔒 Author Access"}
+              {isAuthor
+                ? <><CheckCircle size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 5, color: "#15803d" }} />Author Access</>
+                : <><Lock size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 5 }} />Author Access</>
+              }
             </span>
             {isAuthor && <span style={styles.authorActiveBadge}>Active</span>}
           </div>
