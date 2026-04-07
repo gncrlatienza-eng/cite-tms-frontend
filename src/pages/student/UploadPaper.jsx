@@ -17,12 +17,14 @@ const ACCESS_OPTIONS = [
 ];
 
 const PROGRAM_OPTIONS = [
-  { value: "BSCS", label: "Bachelor of Science in Computer Science" },
-  { value: "BSIT", label: "Bachelor of Science in Information Technology" },
-  { value: "BSIE", label: "Bachelor of Science in Industrial Engineering" },
-  { value: "BSEE", label: "Bachelor of Science in Electrical Engineering" },
+  { value: "BSArch", label: "Bachelor of Science in Architecture" },
   { value: "BSCpE", label: "Bachelor of Science in Computer Engineering" },
-  { value: "BSECE", label: "Bachelor of Science in Electronics and Communications Engineering" },
+  { value: "BSCS", label: "Bachelor of Science in Computer Science" },
+  { value: "BSEE", label: "Bachelor of Science in Electrical Engineering" },
+  { value: "BSECE", label: "Bachelor of Science in Electronics Engineering" },
+  { value: "BSEMC", label: "Bachelor of Science in Entertainment and Multimedia Computing" },
+  { value: "BSIE", label: "Bachelor of Science in Industrial Engineering" },
+  { value: "BSIT", label: "Bachelor of Science in Information Technology" },
 ];
 
 export default function UploadPaper() {
@@ -33,7 +35,7 @@ export default function UploadPaper() {
   const [form, setForm] = useState({
     title: "",
     primary_author: "",      // ← Will be auto-filled for authors
-    co_authors: "",          // ← NEW: optional groupmates
+    co_authors: "",          
     year: new Date().getFullYear().toString(),
     course_or_program: "",
     abstract: "",
