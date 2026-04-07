@@ -349,7 +349,7 @@ export default function AuthorDashboard() {
                     {!loading && recentRequests.length === 0 && (
                       <tr>
                         <td colSpan={5}>
-                          <div className="au-empty">No pending requests — you're all caught up! 🎉</div>
+                          <div className="au-empty">No pending requests — you're all caught up!</div>
                         </td>
                       </tr>
                     )}

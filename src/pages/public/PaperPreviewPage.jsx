@@ -8,11 +8,22 @@ import { supabase } from "../../services/supabase";
 const BUCKET = "cite-tms-backend-bucket";
 
 // ── Request Access Modal ───────────────────────────────────
-function RequestModal({ paper, onClose, onSubmit, submitting }) {
-  const [reason, setReason] = useState("");
+function RequestModal({ paper, onClose, onSubmit, submitting, user }) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
   const [touched, setTouched] = useState(false);
-  const tooShort = reason.trim().length > 0 && reason.trim().length < 20;
-  const empty = touched && !reason.trim();
+  const tooShort = message.trim().length > 0 && message.trim().length < 20;
+  const empty = touched && !message.trim();
+
+  useEffect(() => {
+    if (user) {
+      const userName = user.user_metadata?.full_name || user.email?.split("@")[0] || "";
+      const userEmail = user.email || "";
+      setName(userName);
+      setEmail(userEmail);
+    }
+  }, [user]);
 
   return (
     <div className="pp-modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -21,6 +32,7 @@ function RequestModal({ paper, onClose, onSubmit, submitting }) {
           <div>
             <h2 className="pp-modal-title">Request Access</h2>
             <p className="pp-modal-sub">Requesting access to: <em>{paper.title}</em></p>
+            <p className="pp-modal-sub">Requesting access to: <em>{paper.authors}</em></p>
           </div>
           <button className="pp-modal-close" onClick={onClose} aria-label="Close">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -30,17 +42,29 @@ function RequestModal({ paper, onClose, onSubmit, submitting }) {
         </div>
 
         <div className="pp-modal-body">
-          <label className="pp-modal-label" htmlFor="pp-reason">
-            Why do you need access to this paper?
+          <label className="pp-modal-label" htmlFor="pp-name">
+            Name
+            <span className="pp-modal-required"> *</span>
+          </label>
+          <input id="pp-name" className="pp-modal-input"type="text" placeholder="Name" value={name} disabled readOnly/>
+         
+          <label className="pp-modal-label" htmlFor="pp-email" style={{ marginTop: 14 }}>
+            Email
+            <span className="pp-modal-required"> *</span>
+          </label>
+          <input id="pp-email" className="pp-modal-input" type="email" placeholder="Your email" value={email} disabled readOnly/>
+
+          <label className="pp-modal-label" htmlFor="pp-message" style={{ marginTop: 14 }}>
+            Message to Author
             <span className="pp-modal-required"> *</span>
           </label>
           <textarea
-            id="pp-reason"
+            id="pp-message"
             className={`pp-modal-textarea${(tooShort || empty) ? " pp-modal-textarea--err" : ""}`}
             rows={4}
             placeholder="Briefly describe your academic purpose, research context, or how this paper relates to your studies…"
-            value={reason}
-            onChange={(e) => { setReason(e.target.value); setTouched(true); }}
+            value={message}
+            onChange={(e) => { setMessage(e.target.value); setTouched(true); }}
             autoFocus
           />
           <div className="pp-modal-footer-row">
@@ -49,11 +73,11 @@ function RequestModal({ paper, onClose, onSubmit, submitting }) {
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
-                {empty ? "Please provide a reason." : "Minimum 20 characters required."}
+                {empty ? "Please provide a message." : "Minimum 20 characters required."}
               </span>
             ) : <span />}
-            <span className={`pp-modal-char${reason.length < 20 && reason.length > 0 ? " pp-modal-char--warn" : ""}`}>
-              {reason.length}/20 min
+            <span className={`pp-modal-char${message.length < 20 && message.length > 0 ? " pp-modal-char--warn" : ""}`}>
+              {message.length}/20 min
             </span>
           </div>
         </div>
@@ -62,8 +86,8 @@ function RequestModal({ paper, onClose, onSubmit, submitting }) {
           <button className="pp-modal-btn-cancel" onClick={onClose} disabled={submitting}>Cancel</button>
           <button
             className="pp-modal-btn-submit"
-            disabled={submitting || reason.trim().length < 20}
-            onClick={() => { setTouched(true); if (reason.trim().length >= 20) onSubmit(reason.trim()); }}
+            disabled={submitting || message.trim().length < 20}
+            onClick={() => { setTouched(true); if (message.trim().length >= 20) onSubmit(name, email, message.trim()); }}
           >
             {submitting
               ? <><span className="pp-spinner" /> Sending…</>
@@ -140,13 +164,13 @@ export default function PaperPreviewPage() {
     check();
   }, [user, id, paper]);
 
-  const handleRequestSubmit = async (reason) => {
+  const handleRequestSubmit = async (name, email, message) => {
     if (!user) { setShowModal(false); setShowLogin(true); return; }
     setSubmitting(true);
     try {
       const { error } = await supabase
         .from("access_requests")
-        .insert({ requester_id: user.id, paper_id: id, message: reason, status: "pending" });
+        .insert({ requester_id: user.id, paper_id: id, message: message, status: "pending" });
       if (error) throw error;
       setRequestStatus("pending");
       setShowModal(false);
@@ -262,6 +286,8 @@ export default function PaperPreviewPage() {
         .pp-modal-body { padding: 18px 22px; }
         .pp-modal-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px; }
         .pp-modal-required { color: #9b0000; }
+        .pp-modal-input { width: 100%; padding: 11px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: 'DM Sans', system-ui, sans-serif; color: #111827; outline: none; background: #f9fafb; box-sizing: border-box; }
+        .pp-modal-input:disabled { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
         .pp-modal-textarea { width: 100%; padding: 11px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: 'DM Sans', system-ui, sans-serif; color: #111827; resize: vertical; min-height: 110px; outline: none; transition: border-color 0.18s, box-shadow 0.18s; line-height: 1.6; box-sizing: border-box; }
         .pp-modal-textarea::placeholder { color: #9ca3af; }
         .pp-modal-textarea:focus { border-color: #9b0000; box-shadow: 0 0 0 3px rgba(155,0,0,0.08); }
@@ -596,7 +622,7 @@ export default function PaperPreviewPage() {
       </div>
 
       {showModal && paper && (
-        <RequestModal paper={paper} onClose={() => setShowModal(false)} onSubmit={handleRequestSubmit} submitting={submitting} />
+        <RequestModal paper={paper} onClose={() => setShowModal(false)} onSubmit={handleRequestSubmit} submitting={submitting} user={user} />
       )}
       {showLogin && <LoginPage onClose={() => setShowLogin(false)} />}
     </>
