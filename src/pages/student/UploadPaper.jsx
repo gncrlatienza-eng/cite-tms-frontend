@@ -5,7 +5,7 @@ import { supabase } from "../../services/supabase";
 import api from "../../services/api";
 import Navbar from "../../components/layout/Navbar";
 import LoginPage from "../public/LoginPage";
-import { Globe, GraduationCap, Lock, FileText, MailCheck, Info, Clock, Paperclip, AlertTriangle } from "lucide-react";
+import { Globe, GraduationCap, Lock, FileText, MailCheck, Info, Clock, Paperclip, AlertTriangle, ScrollText } from "lucide-react";
 
 const BUCKET = "cite-tms-backend-bucket";
 const safeFileName = (name) => name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -25,6 +25,54 @@ const PROGRAM_OPTIONS = [
   { value: "BSEMC", label: "Bachelor of Science in Entertainment and Multimedia Computing" },
   { value: "BSIE", label: "Bachelor of Science in Industrial Engineering" },
   { value: "BSIT", label: "Bachelor of Science in Information Technology" },
+];
+
+const TERMS_CONTENT = [
+  {
+    num: "1",
+    title: "Institutional Affiliation",
+    body: "The paper being submitted must be an original academic work produced at De La Salle Lipa (DLSL). Submissions from other schools, universities, or institutions are strictly not allowed. The submitter must be a current or former student of DLSL.",
+  },
+  {
+    num: "2",
+    title: "Authorship & Originality",
+    body: "You confirm that the paper is your own original work, completed as part of a DLSL course or program requirement such as a thesis, capstone project, or research subject. You certify that you are the primary author or an authorized co-author of the submitted paper, and that all listed co-authors have consented to being named.",
+  },
+  {
+    num: "3",
+    title: "Academic Integrity",
+    body: "The submitted paper must not contain plagiarized content. All sources, references, and external works cited within the paper must be properly acknowledged. Submitting another person's work as your own is a violation of academic integrity and DLSL's code of conduct.",
+  },
+  {
+    num: "4",
+    title: "Accuracy of Information",
+    body: "You confirm that all metadata provided during submission — including the title, author names, year, program, and abstract — is accurate, complete, and truthful. Intentionally providing false or misleading information may result in the rejection or removal of your submission.",
+  },
+  {
+    num: "5",
+    title: "Intellectual Property & Usage Rights",
+    body: "By submitting your paper, you grant De La Salle Lipa and the DLSL Thesis Management System a non-exclusive, royalty-free license to store, display, and distribute your work in accordance with the access type you have selected. You retain full ownership and copyright of your work. You confirm that submitting this paper does not violate any existing publishing agreements or third-party rights.",
+  },
+  {
+    num: "6",
+    title: "Access Type Acknowledgment",
+    body: "You understand and accept the implications of the access type you have chosen. Open Access means your paper will be visible and downloadable by anyone. Students Only means your paper will only be accessible to logged-in DLSL students. Restricted means other students must request your approval before viewing your paper. You may contact an administrator if you wish to change your access type after submission.",
+  },
+  {
+    num: "7",
+    title: "Review & Approval Process",
+    body: "You acknowledge that submitting a paper does not guarantee its publication on the platform. All submissions are subject to admin review and approval. The administration reserves the right to reject any submission that violates these terms, university policies, or academic integrity standards.",
+  },
+  {
+    num: "8",
+    title: "Consequences of Violation",
+    body: "Any submission found to be in violation of these terms may be removed from the platform without prior notice. Depending on the severity of the violation, the submitter's Author access may be revoked, and the matter may be escalated to the appropriate DLSL academic authorities.",
+  },
+  {
+    num: "9",
+    title: "Consent",
+    body: "By proceeding with your submission, you confirm that you have read, understood, and agreed to all of the terms and conditions stated above.",
+  },
 ];
 
 export default function UploadPaper() {
@@ -51,6 +99,12 @@ export default function UploadPaper() {
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
+  // ── Terms state ──
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [termsScrolled, setTermsScrolled]   = useState(false);
+  const [termsRead, setTermsRead]           = useState(false);   // unlocked after scrolling to bottom in modal
+  const [termsChecked, setTermsChecked]     = useState(false);   // the final checkbox
+
   const set = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
   // ── Pre-fill author fields on mount (for existing authors) ──
@@ -63,6 +117,13 @@ export default function UploadPaper() {
       }));
     }
   }, [isAuthor, authorName, secondaryEmail]);
+
+  const handleTermsScroll = (e) => {
+    const el = e.currentTarget;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40) {
+      setTermsScrolled(true);
+    }
+  };
 
   // ── Form validation ──
   // For authors: primary_author is readonly, co_authors optional
@@ -113,6 +174,7 @@ export default function UploadPaper() {
       setShowIncompleteModal(true);
       return;
     }
+    if (!termsChecked) { setShowTermsModal(true); return; }
     setShowConfirmModal(true);
   };
 
@@ -237,6 +299,20 @@ export default function UploadPaper() {
         .up-pdf-clear { background: none; border: none; cursor: pointer; color: #fca5a5; font-size: 18px; line-height: 1; padding: 0; transition: color 0.15s; }
         .up-pdf-clear:hover { color: #dc2626; }
 
+        /* ── Terms & Conditions inline block ── */
+        .up-terms-box { border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; overflow: hidden; }
+        .up-terms-box-header { display: flex; align-items: center; gap: 10px; padding: 13px 16px; background: #fafafa; border-bottom: 1px solid #f3f4f6; }
+        .up-terms-box-title { font-size: 13.5px; font-weight: 600; color: #111827; flex: 1; }
+        .up-terms-read-link { background: none; border: none; font-family: inherit; font-size: 13px; font-weight: 600; color: #9b0000; cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
+        .up-terms-read-link:hover { color: #7a0000; }
+        .up-terms-check-row { display: flex; align-items: flex-start; gap: 10px; padding: 13px 16px; }
+        .up-terms-check-row input[type="checkbox"] { width: 15px; height: 15px; margin-top: 2px; accent-color: #9b0000; cursor: pointer; flex-shrink: 0; }
+        .up-terms-check-row input[type="checkbox"]:disabled { cursor: not-allowed; }
+        .up-terms-check-label { font-size: 13px; color: #374151; line-height: 1.55; }
+        .up-terms-check-label .up-terms-link { color: #9b0000; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+        .up-terms-unread-hint { display: flex; align-items: center; gap: 7px; padding: 9px 16px; background: #fffbeb; border-top: 1px solid #fde68a; font-size: 12px; color: #92400e; }
+        .up-terms-done-hint { display: flex; align-items: center; gap: 7px; padding: 9px 16px; background: #f0fdf4; border-top: 1px solid #bbf7d0; font-size: 12px; color: #166534; }
+
         .up-progress-wrap { background: #f3f4f6; border-radius: 8px; overflow: hidden; height: 6px; margin-top: 4px; }
         .up-progress-bar { height: 100%; background: linear-gradient(90deg, #9b0000, #c0392b); border-radius: 8px; transition: width 0.4s ease; }
 
@@ -272,6 +348,29 @@ export default function UploadPaper() {
         .up-modal-btn-cancel:hover { background: #f9fafb; }
         .up-modal-btn-submit { display: flex; align-items: center; gap: 7px; padding: 9px 20px; border-radius: 9px; border: none; background: linear-gradient(135deg, #9b0000, #c0392b); color: #fff; font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; box-shadow: 0 3px 10px rgba(155,0,0,0.25); transition: opacity 0.15s, transform 0.1s; }
         .up-modal-btn-submit:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* ── Terms Modal (wider, scrollable) ── */
+        .up-terms-modal { width: 100%; max-width: 560px; background: #fff; border-radius: 18px; box-shadow: 0 24px 64px rgba(0,0,0,0.2); display: flex; flex-direction: column; max-height: 88vh; animation: upModalIn 0.2s cubic-bezier(0.34,1.4,0.64,1); }
+        .up-terms-modal-header { padding: 22px 24px 14px; border-bottom: 1px solid #f3f4f6; flex-shrink: 0; }
+        .up-terms-modal-title { font-family: 'DM Serif Display', serif; font-size: 21px; color: #111827; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+        .up-terms-modal-sub { font-size: 13px; color: #6b7280; line-height: 1.5; }
+        .up-terms-modal-scroll-hint { margin: 12px 24px 0; padding: 9px 13px; border-radius: 8px; font-size: 12px; display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+        .up-terms-modal-scroll-hint.pending { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+        .up-terms-modal-scroll-hint.done    { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+        .up-terms-modal-body { overflow-y: auto; padding: 20px 24px; flex: 1; }
+        .up-terms-section { margin-bottom: 18px; }
+        .up-terms-section:last-child { margin-bottom: 0; }
+        .up-terms-section-title { font-size: 13px; font-weight: 700; color: #111827; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+        .up-terms-section-num { width: 20px; height: 20px; border-radius: 50%; background: #fef2f2; border: 1px solid #fecaca; color: #9b0000; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .up-terms-section-body { font-size: 13px; color: #4b5563; line-height: 1.7; padding-left: 28px; }
+        .up-terms-divider { border: none; border-top: 1px solid #f3f4f6; margin: 18px 0; }
+        .up-terms-modal-footer { padding: 14px 24px 20px; border-top: 1px solid #f3f4f6; flex-shrink: 0; }
+        .up-terms-modal-check-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+        .up-terms-modal-check-row input[type="checkbox"] { width: 15px; height: 15px; margin-top: 2px; accent-color: #9b0000; cursor: pointer; flex-shrink: 0; }
+        .up-terms-modal-check-row input[type="checkbox"]:disabled { cursor: not-allowed; }
+        .up-terms-modal-check-label { font-size: 13px; color: #374151; line-height: 1.55; }
+        .up-terms-modal-check-label .hint { font-size: 12px; color: #b45309; display: block; margin-top: 3px; }
+        .up-terms-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
         @keyframes upSpin { to { transform: rotate(360deg); } }
         @media (max-width: 640px) {
@@ -390,7 +489,7 @@ export default function UploadPaper() {
                     value={form.primary_author} 
                     onChange={set}
                     placeholder={isAuthor ? "" : "e.g. Juan Dela Cruz"} 
-                    disabled={busy || isAuthor}  // ← Disable for authors
+                    disabled={busy || isAuthor}
                     autoComplete="off" 
                   />
                 </div>
@@ -469,7 +568,7 @@ export default function UploadPaper() {
                     value={form.secondary_email} 
                     onChange={set}
                     placeholder={isAuthor ? "" : "Your additional contact email"} 
-                    disabled={busy || isAuthor}  // ← Disable for authors
+                    disabled={busy || isAuthor}
                     autoComplete="off" 
                   />
                 </div>
@@ -535,6 +634,57 @@ export default function UploadPaper() {
                   )}
                 </div>
 
+                {/* ── Terms & Conditions ── */}
+                <div className="up-field">
+                  <label className="up-label">
+                    Terms & Conditions <span style={{ color: "#9b0000" }}>*</span>
+                  </label>
+                  <div className="up-terms-box">
+                    <div className="up-terms-box-header">
+                      <ScrollText size={15} style={{ color: "#9b0000", flexShrink: 0 }} />
+                      <span className="up-terms-box-title">Submission Terms & Conditions</span>
+                      <button
+                        type="button"
+                        className="up-terms-read-link"
+                        onClick={() => { setTermsScrolled(false); setShowTermsModal(true); }}
+                      >
+                        Read full terms
+                      </button>
+                    </div>
+                    <div className="up-terms-check-row">
+                      <input
+                        type="checkbox"
+                        id="terms-inline-check"
+                        checked={termsChecked}
+                        disabled={!termsRead || busy}
+                        onChange={(e) => setTermsChecked(e.target.checked)}
+                      />
+                      <label htmlFor="terms-inline-check" className="up-terms-check-label">
+                        I have read and agree to the{" "}
+                        <span
+                          className="up-terms-link"
+                          onClick={() => { setTermsScrolled(false); setShowTermsModal(true); }}
+                        >
+                          Submission Terms & Conditions
+                        </span>
+                        . I confirm this paper is an original academic work produced at{" "}
+                        <strong>De La Salle Lipa</strong> as part of my program requirements.
+                      </label>
+                    </div>
+                    {!termsRead ? (
+                      <div className="up-terms-unread-hint">
+                        <AlertTriangle size={13} />
+                        You must read the full terms before checking this box.
+                      </div>
+                    ) : (
+                      <div className="up-terms-done-hint">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        Terms read — you may now check the box above.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {busy && progress > 0 && (
                   <div>
                     <div className="up-progress-wrap">
@@ -548,7 +698,7 @@ export default function UploadPaper() {
 
                 {err && <div className="up-error" style={{ display: "flex", alignItems: "center", gap: 8 }}><AlertTriangle size={14} />{err}</div>}
 
-                <button type="submit" className="up-submit-btn" disabled={busy || !isFormComplete()}>
+                <button type="submit" className="up-submit-btn" disabled={busy || !isFormComplete() || !termsChecked}>
                   {busy ? (
                     <>
                       <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.35)", borderTopColor: "#fff", animation: "upSpin 0.75s linear infinite" }} />
@@ -569,6 +719,81 @@ export default function UploadPaper() {
           )}
         </div>
       </div>
+
+      {/* ══ Terms & Conditions Modal ══ */}
+      {showTermsModal && (
+        <div className="up-modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowTermsModal(false); }}>
+          <div className="up-terms-modal" onMouseDown={(e) => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="up-terms-modal-header">
+              <div className="up-terms-modal-title">
+                <ScrollText size={20} style={{ color: "#9b0000", flexShrink: 0 }} />
+                Submission Terms & Conditions
+              </div>
+              <p className="up-terms-modal-sub">DLSL Thesis Management System — please read carefully before submitting.</p>
+            </div>
+
+            {/* Scroll hint */}
+            <div className={`up-terms-modal-scroll-hint ${termsScrolled ? "done" : "pending"}`}>
+              {termsScrolled ? (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  You've read all the terms — check the box below to agree.
+                </>
+              ) : (
+                <>
+                  <Clock size={13} />
+                  Scroll to the bottom to read all terms before agreeing.
+                </>
+              )}
+            </div>
+
+            {/* Scrollable body */}
+            <div className="up-terms-modal-body" onScroll={handleTermsScroll}>
+              {TERMS_CONTENT.map((section, i) => (
+                <div key={section.num} className="up-terms-section">
+                  {i > 0 && <hr className="up-terms-divider" />}
+                  <div className="up-terms-section-title">
+                    <div className="up-terms-section-num">{section.num}</div>
+                    {section.title}
+                  </div>
+                  <p className="up-terms-section-body">{section.body}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div className="up-terms-modal-footer">
+              <div className="up-terms-modal-check-row">
+                <input
+                  type="checkbox"
+                  id="terms-modal-check"
+                  checked={termsChecked}
+                  disabled={!termsScrolled}
+                  onChange={(e) => setTermsChecked(e.target.checked)}
+                />
+                <label htmlFor="terms-modal-check" className="up-terms-modal-check-label">
+                  I have read and agree to the Submission Terms & Conditions.
+                  {!termsScrolled && (
+                    <span className="hint">Scroll to the bottom first to enable this checkbox.</span>
+                  )}
+                </label>
+              </div>
+              <div className="up-terms-modal-actions">
+                <button className="up-modal-btn-cancel" onClick={() => setShowTermsModal(false)}>Close</button>
+                <button
+                  className="up-modal-btn-submit"
+                  disabled={!termsScrolled || !termsChecked}
+                  onClick={() => { setTermsRead(true); setShowTermsModal(false); }}
+                >
+                  I Agree
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Confirmation Modal ── */}
       {showConfirmModal && (
