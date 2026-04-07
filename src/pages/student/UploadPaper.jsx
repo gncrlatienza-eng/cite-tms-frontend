@@ -326,7 +326,7 @@ export default function UploadPaper() {
                 )}
               </div>
 
-              <button className="up-success-btn" onClick={() => navigate(isAuthor ? "/author/dashboard" : "/requests")}>
+              <button className="up-success-btn" onClick={() => navigate(isAuthor ? "/author/dashboard" : "/profile")}>
                 {isAuthor ? "Back to Dashboard" : "Check Request Status"}
               </button>
               <button className="up-success-btn-ghost" onClick={() => navigate("/")}>

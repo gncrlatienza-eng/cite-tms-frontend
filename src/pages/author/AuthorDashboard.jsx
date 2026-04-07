@@ -9,6 +9,7 @@ export default function AuthorDashboard() {
 
   const [papers, setPapers] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [uploadRequests, setUploadRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [decidingId, setDecidingId] = useState(null);
@@ -17,12 +18,14 @@ export default function AuthorDashboard() {
     const load = async () => {
       setLoading(true);
       try {
-        const [pRes, rRes] = await Promise.all([
+        const [pRes, rRes, uRes] = await Promise.all([
           api.get("/api/author/papers"),
           api.get("/api/author/requests"),
+          api.get("/api/author/upload-requests"),
         ]);
         setPapers(pRes.data.results ?? []);
         setRequests(rRes.data ?? []);
+        setUploadRequests(uRes.data ?? []);
       } catch (e) {
         console.error("Failed to load author dashboard:", e.message);
       } finally {
@@ -207,6 +210,10 @@ export default function AuthorDashboard() {
             <button className={`au-tab-btn${activeTab === "overview" ? " active" : ""}`} onClick={() => setActiveTab("overview")}>
               Overview
             </button>
+            <button className={`au-tab-btn${activeTab === "uploads" ? " active" : ""}`} onClick={() => setActiveTab("uploads")}>
+              Upload Requests
+              {uploadRequests.filter((u) => u.status === "pending").length > 0 && <span className="au-tab-badge">{uploadRequests.filter((u) => u.status === "pending").length}</span>}
+            </button>
             <button className={`au-tab-btn${activeTab === "requests" ? " active" : ""}`} onClick={() => setActiveTab("requests")}>
               Access Requests
               {pendingCount > 0 && <span className="au-tab-badge">{pendingCount}</span>}
@@ -383,6 +390,97 @@ export default function AuthorDashboard() {
                                   Reject
                                 </button>
                               </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {/* Upload Requests Tab */}
+          {activeTab === "uploads" && (
+            <>
+              <div className="au-controls">
+                <div className="au-section-title">Paper Upload Requests</div>
+              </div>
+              <div className="au-table-wrap">
+                <table className="au-table">
+                  <thead>
+                    <tr>
+                      <th>Paper Title</th>
+                      <th>Status</th>
+                      <th>Submitted</th>
+                      <th>Evaluated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading &&
+                      [1, 2, 3].map((i) => (
+                        <tr className="au-skel-row" key={i}>
+                          {["60%", "30%", "30%", "30%"].map((w, j) => (
+                            <td key={j}>
+                              <div className="au-skel" style={{ width: w }} />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    {!loading && uploadRequests.length === 0 && (
+                      <tr>
+                        <td colSpan={4}>
+                          <div className="au-empty">No upload requests yet. Upload your first paper!</div>
+                        </td>
+                      </tr>
+                    )}
+                    {!loading &&
+                      uploadRequests.map((uploadReq) => {
+                        const statusColor = uploadReq.status === "pending" ? "#f59e0b" : uploadReq.status === "rejected" ? "#dc2626" : "#16a34a";
+                        const statusLabel = uploadReq.status === "pending" ? "Pending" : uploadReq.status === "rejected" ? "Rejected" : "Approved";
+                        const bgColor = uploadReq.status === "pending" ? "#fffbeb" : uploadReq.status === "rejected" ? "#fef2f2" : "#f0fdf4";
+                        const borderColor = uploadReq.status === "pending" ? "#fde68a" : uploadReq.status === "rejected" ? "#fecaca" : "#bbf7d0";
+                        const paperData = uploadReq.papers && typeof uploadReq.papers === "object" ? uploadReq.papers : {};
+                        const paperTitle = paperData?.title || "Untitled";
+                        return (
+                          <tr key={uploadReq.id}>
+                            <td style={{ fontWeight: 500, maxWidth: 300 }}>{paperTitle}</td>
+                            <td>
+                              <span
+                                className="au-status-pill"
+                                style={{
+                                  background: bgColor,
+                                  color: statusColor,
+                                  borderColor: borderColor,
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: "50%",
+                                    background: statusColor,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                {statusLabel}
+                              </span>
+                            </td>
+                            <td style={{ fontSize: 12.5, color: "#9aa0a6", whiteSpace: "nowrap" }}>
+                              {new Date(uploadReq.created_at).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </td>
+                            <td style={{ fontSize: 12.5, color: "#9aa0a6", whiteSpace: "nowrap" }}>
+                              {uploadReq.updated_at
+                                ? new Date(uploadReq.updated_at).toLocaleDateString("en-US", {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                  })
+                                : "—"}
                             </td>
                           </tr>
                         );
