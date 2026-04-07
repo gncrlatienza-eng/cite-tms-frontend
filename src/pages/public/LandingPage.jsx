@@ -316,7 +316,7 @@ export default function LandingPage() {
               <div className="lp-stat-label">Papers</div>
             </div>
             <div className="lp-stat">
-              <div className="lp-stat-num">3</div>
+              <div className="lp-stat-num">8</div>
               <div className="lp-stat-label">Programs</div>
             </div>
             <div className="lp-stat">

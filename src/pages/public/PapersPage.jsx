@@ -24,12 +24,14 @@ const SORT_OPTIONS = [
 
 const PROGRAM_FILTERS = [
   { key: "all",   label: "All Programs" },
-  { key: "BSIT",  label: "BSIT"         },
+  { key: "BSArch", label: "BSArch"      },
+  { key: "BSCpE", label: "BSCpE"        },
   { key: "BSCS",  label: "BSCS"         },
   { key: "BSEE",  label: "BSEE"         },
-  { key: "BSIE",  label: "BSIE"         },
-  { key: "BSCpE", label: "BSCpE"        },
   { key: "BSECE", label: "BSECE"        },
+  { key: "BSEMC", label: "BSEMC"        },
+  { key: "BSIE",  label: "BSIE"         },
+  { key: "BSIT",  label: "BSIT"         },
 ];
 
 
