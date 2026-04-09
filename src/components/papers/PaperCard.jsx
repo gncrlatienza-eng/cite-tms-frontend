@@ -61,7 +61,7 @@ export default function PaperCard({ paper, user, isSaved, isBusy, onBookmarkClic
         .sp-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
         .paper-title {
           font-size: 17px;
-          font-family: 'DM Serif Display', serif;
+          font-family: 'Schibsted Grotesk', serif;
           color: #111827;
           text-decoration: none;
           line-height: 1.35;

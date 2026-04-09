@@ -225,7 +225,7 @@ export default function PaperPreviewPage() {
         .pp-access-pill-restricted { background: #fef2f2; color: #9b0000; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid #fecaca; display: inline-flex; align-items: center; gap: 4px; }
         .pp-access-pill-students { background: #eff6ff; color: #1d4ed8; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid #bfdbfe; display: inline-flex; align-items: center; gap: 4px; }
 
-        .pp-title { font-family: 'DM Serif Display', serif; font-size: 36px; font-weight: 400; color: #0f1117; line-height: 1.3; margin-bottom: 14px; letter-spacing: -0.4px; text-align: justify; }
+        .pp-title { font-family: 'Schibsted Grotesk', serif; font-size: 36px; font-weight: 400; color: #0f1117; line-height: 1.3; margin-bottom: 14px; letter-spacing: -0.4px; text-align: justify; }
         .pp-authors { font-size: 14px; color: #6b7280; line-height: 1.6; margin: 0; }
         .pp-authors strong { color: #374151; font-weight: 600; }
         .pp-divider { height: 1px; background: #f3f4f6; margin: 28px 0; }
@@ -269,7 +269,7 @@ export default function PaperPreviewPage() {
         @keyframes ppShimmer { 0%{background-position:-900px 0} 100%{background-position:900px 0} }
 
         .pp-error-card { max-width: 500px; margin: 60px auto; background: #fff; border: 1px solid #fecaca; border-radius: 16px; padding: 40px; text-align: center; }
-        .pp-error-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: #111827; margin-bottom: 10px; }
+        .pp-error-title { font-family: 'Schibsted Grotesk', serif; font-size: 22px; color: #111827; margin-bottom: 10px; }
         .pp-error-sub { font-size: 14px; color: #9ca3af; margin-bottom: 24px; line-height: 1.6; }
         .pp-error-back { display: inline-flex; align-items: center; gap: 6px; padding: 10px 22px; border-radius: 10px; border: 1.5px solid #e5e7eb; background: #fff; color: #374151; font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; transition: border-color 0.15s, color 0.15s; }
         .pp-error-back:hover { border-color: #9b0000; color: #9b0000; }
@@ -278,7 +278,7 @@ export default function PaperPreviewPage() {
         .pp-modal { width: 100%; max-width: 480px; background: #fff; border-radius: 18px; box-shadow: 0 24px 64px rgba(0,0,0,0.2); overflow: hidden; animation: ppModalIn 0.2s cubic-bezier(0.34,1.4,0.64,1); }
         @keyframes ppModalIn { from{opacity:0;transform:translateY(12px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
         .pp-modal-header { padding: 22px 22px 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-        .pp-modal-title { font-family: 'DM Serif Display', serif; font-size: 20px; font-weight: 400; color: #111827; margin-bottom: 4px; }
+        .pp-modal-title { font-family: 'Schibsted Grotesk', serif; font-size: 20px; font-weight: 400; color: #111827; margin-bottom: 4px; }
         .pp-modal-sub { font-size: 12px; color: #9ca3af; line-height: 1.5; }
         .pp-modal-sub em { font-style: italic; color: #6b7280; }
         .pp-modal-close { width: 30px; height: 30px; border-radius: 50%; background: #f3f4f6; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #6b7280; flex-shrink: 0; transition: background 0.15s, color 0.15s; }

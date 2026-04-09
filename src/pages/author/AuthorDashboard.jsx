@@ -107,7 +107,7 @@ export default function AuthorDashboard() {
         .au-tab-btn:not(.active) .au-tab-badge { background: #fef2f2; color: #9b0000; }
 
         .au-controls { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
-        .au-section-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: #202124; }
+        .au-section-title { font-family: 'Schibsted Grotesk', serif; font-size: 22px; color: #202124; }
         .au-controls-right { display: flex; align-items: center; gap: 10px; }
         .au-action-btn { display: inline-flex; align-items: center; gap: 7px; background: linear-gradient(135deg, #9b0000, #c0392b); color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; box-shadow: 0 2px 6px rgba(155,0,0,0.25); white-space: nowrap; transition: opacity 0.15s; text-decoration: none; }
         .au-action-btn:hover { opacity: 0.9; }
@@ -119,7 +119,7 @@ export default function AuthorDashboard() {
         .au-stat-card { background: #fff; border: 1px solid #e8eaed; border-radius: 12px; padding: 22px 24px; transition: box-shadow 0.18s; }
         .au-stat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
         .au-stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #80868b; margin-bottom: 10px; }
-        .au-stat-num { font-family: 'DM Serif Display', serif; font-size: 36px; color: #202124; line-height: 1; margin-bottom: 6px; }
+        .au-stat-num { font-family: 'Schibsted Grotesk', serif; font-size: 36px; color: #202124; line-height: 1; margin-bottom: 6px; }
         .au-stat-sub { font-size: 12.5px; color: #9aa0a6; }
 
         /* Quick actions */

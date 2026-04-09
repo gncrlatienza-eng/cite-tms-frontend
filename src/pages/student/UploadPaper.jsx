@@ -149,7 +149,7 @@ export default function UploadPaper() {
           <div style={{ minHeight: "calc(100vh - 57px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
             <div style={{ maxWidth: 420, textAlign: "center", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
               <div style={{ marginBottom: 16 }}><FileText size={48} style={{ color: "#374151" }} /></div>
-              <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 24, color: "#111827", marginBottom: 10 }}>Sign in to upload</h2>
+              <h2 style={{ fontFamily: "'Schibsted Grotesk', serif", fontSize: 24, color: "#111827", marginBottom: 10 }}>Sign in to upload</h2>
               <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 24, lineHeight: 1.6 }}>
                 You need to sign in with your DLSL account to upload a paper.
               </p>
@@ -257,7 +257,7 @@ export default function UploadPaper() {
         .up-page { min-height: 100vh; background: #fafafa; font-family: 'DM Sans', system-ui, sans-serif; }
         .up-body { max-width: 660px; margin: 0 auto; padding: 40px 40px 80px; }
         .up-intro { margin-bottom: 32px; }
-        .up-intro-title { font-family: 'DM Serif Display', serif; font-size: 26px; color: #111827; margin-bottom: 8px; }
+        .up-intro-title { font-family: 'Schibsted Grotesk', serif; font-size: 26px; color: #111827; margin-bottom: 8px; }
         .up-intro-sub { font-size: 14px; color: #6b7280; line-height: 1.65; }
 
         .up-notice { border-radius: 12px; padding: 14px 18px; margin-bottom: 28px; display: flex; align-items: flex-start; gap: 12px; }
@@ -323,7 +323,7 @@ export default function UploadPaper() {
 
         .up-success { background: #fff; border: 1px solid #f0f0f0; border-radius: 16px; padding: 40px 32px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
         .up-success-icon { font-size: 48px; margin-bottom: 16px; }
-        .up-success-title { font-family: 'DM Serif Display', serif; font-size: 24px; color: #111827; margin-bottom: 10px; }
+        .up-success-title { font-family: 'Schibsted Grotesk', serif; font-size: 24px; color: #111827; margin-bottom: 10px; }
         .up-success-sub { font-size: 14px; color: #6b7280; line-height: 1.7; margin-bottom: 28px; max-width: 380px; margin-left: auto; margin-right: auto; }
         .up-success-steps { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 16px 20px; text-align: left; margin-bottom: 24px; }
         .up-success-steps-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #92400e; margin-bottom: 10px; }
@@ -338,7 +338,7 @@ export default function UploadPaper() {
         .up-modal { width: 100%; max-width: 480px; background: #fff; border-radius: 18px; box-shadow: 0 24px 64px rgba(0,0,0,0.2); overflow: hidden; animation: upModalIn 0.2s cubic-bezier(0.34,1.4,0.64,1); }
         @keyframes upModalIn { from{opacity:0;transform:translateY(12px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
         .up-modal-header { padding: 22px 22px 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-        .up-modal-title { font-family: 'DM Serif Display', serif; font-size: 20px; font-weight: 400; color: #111827; margin-bottom: 4px; }
+        .up-modal-title { font-family: 'Schibsted Grotesk', serif; font-size: 20px; font-weight: 400; color: #111827; margin-bottom: 4px; }
         .up-modal-sub { font-size: 13px; color: #6b7280; line-height: 1.5; }
         .up-modal-body { padding: 18px 22px; }
         .up-modal-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; font-size: 13px; color: #374151; line-height: 1.6; }
@@ -352,7 +352,7 @@ export default function UploadPaper() {
         /* ── Terms Modal (wider, scrollable) ── */
         .up-terms-modal { width: 100%; max-width: 560px; background: #fff; border-radius: 18px; box-shadow: 0 24px 64px rgba(0,0,0,0.2); display: flex; flex-direction: column; max-height: 88vh; animation: upModalIn 0.2s cubic-bezier(0.34,1.4,0.64,1); }
         .up-terms-modal-header { padding: 22px 24px 14px; border-bottom: 1px solid #f3f4f6; flex-shrink: 0; }
-        .up-terms-modal-title { font-family: 'DM Serif Display', serif; font-size: 21px; color: #111827; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+        .up-terms-modal-title { font-family: 'Schibsted Grotesk', serif; font-size: 21px; color: #111827; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
         .up-terms-modal-sub { font-size: 13px; color: #6b7280; line-height: 1.5; }
         .up-terms-modal-scroll-hint { margin: 12px 24px 0; padding: 9px 13px; border-radius: 8px; font-size: 12px; display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
         .up-terms-modal-scroll-hint.pending { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
@@ -392,7 +392,7 @@ export default function UploadPaper() {
             </svg>
             {isAuthor ? "Dashboard" : "Back"}
           </Link>
-          <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, color: "#111827" }}>Upload Paper</span>
+          <span style={{ fontFamily: "'Schibsted Grotesk', serif", fontSize: 20, color: "#111827" }}>Upload Paper</span>
         </div>
 
         <div className="up-body">

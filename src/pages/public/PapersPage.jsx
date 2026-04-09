@@ -196,7 +196,7 @@ export default function PapersPage() {
           margin-bottom: 20px;
         }
         .sp-heading {
-          font-family: 'DM Serif Display', serif;
+          font-family: 'Schibsted Grotesk', serif;
           font-size: 28px;
           font-weight: 400;
           color: #0f1117;
@@ -472,7 +472,7 @@ export default function PapersPage() {
           color: #fca5a5;
         }
         .sp-empty-title {
-          font-family: 'DM Serif Display', serif;
+          font-family: 'Schibsted Grotesk', serif;
           font-size: 20px;
           color: #111827;
           margin: 0 0 8px;
