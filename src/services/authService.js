@@ -6,6 +6,10 @@ const authService = {
     localStorage.setItem('login_intent', intent);
     sessionStorage.setItem('login_intent', intent);
 
+    // Save current page so we can return to it after login
+    const redirect = window.location.pathname + window.location.search;
+    sessionStorage.setItem('post_login_redirect', redirect);
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
