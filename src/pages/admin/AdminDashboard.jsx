@@ -21,8 +21,9 @@ const ACCESS_LABELS = {
 };
 
 const STATUS_LABELS = {
-  published:      { label: "Published",      bg: "#f0fdf4", color: "#15803d" },
-  pending_review: { label: "Pending Review", bg: "#fffbeb", color: "#92400e" },
+  published: { label: "Published", bg: "#f0fdf4", color: "#15803d" },
+  pending:   { label: "Pending",   bg: "#fffbeb", color: "#92400e" },
+  rejected:  { label: "Rejected",  bg: "#fef2f2", color: "#9b0000" },
 };
 
 const CloseIcon = () => (
@@ -592,7 +593,7 @@ export default function AdminDashboard() {
                     )}
                     {!loading && filtered.map((paper, i) => {
                       const at  = ACCESS_LABELS[paper.access_type] || ACCESS_LABELS.open;
-                      const st  = STATUS_LABELS[paper.status] || STATUS_LABELS.published;
+                      const st  = STATUS_LABELS[paper.status] || STATUS_LABELS.pending;
                       return (
                         <tr key={paper.id}>
                           <td style={{ color: "#9aa0a6", fontSize: 12 }}>{i + 1}</td>
