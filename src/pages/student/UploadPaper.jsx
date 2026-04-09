@@ -76,7 +76,7 @@ const TERMS_CONTENT = [
 ];
 
 export default function UploadPaper() {
-  const { user, isAuthor, authorName, secondaryEmail } = useAuth();
+  const { user, profile, isAuthor, authorName, secondaryEmail } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef(null);
 
@@ -163,6 +163,28 @@ export default function UploadPaper() {
           </div>
         </div>
         {showLogin && <LoginPage onClose={() => setShowLogin(false)} />}
+      </>
+    );
+  }
+
+  // ── Gate: inactive / graduated account ──
+  if (user && profile?.is_active === false) {
+    return (
+      <>
+        <Navbar onLoginClick={() => {}} />
+        <div style={{ minHeight: "calc(100vh - 57px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div style={{ maxWidth: 440, textAlign: "center", fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
+            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fef2f2", border: "2px solid #fecaca", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <h2 style={{ fontFamily: "'Schibsted Grotesk', serif", fontSize: 22, color: "#111827", marginBottom: 10 }}>Account No Longer Active</h2>
+            <p style={{ fontSize: 13.5, color: "#6b7280", lineHeight: 1.65 }}>
+              Your DLSL account is no longer active. Graduated or inactive students cannot upload papers. Please contact the administrator if you think this is a mistake.
+            </p>
+          </div>
+        </div>
       </>
     );
   }
