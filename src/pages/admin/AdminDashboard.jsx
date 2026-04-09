@@ -5,7 +5,18 @@ import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 
 const BUCKET = "cite-tms-backend-bucket";
-const EMPTY = { title: "", authors: "", year: "", course_or_program: "", abstract: "", access_type: "open" };
+const EMPTY = { title: "", authors: "", year: "", course_or_program: "", abstract: "", secondary_email: "", access_type: "open" };
+
+const PROGRAM_OPTIONS = [
+  { value: "BSArch", label: "Bachelor of Science in Architecture" },
+  { value: "BSCpE", label: "Bachelor of Science in Computer Engineering" },
+  { value: "BSCS", label: "Bachelor of Science in Computer Science" },
+  { value: "BSEE", label: "Bachelor of Science in Electrical Engineering" },
+  { value: "BSECE", label: "Bachelor of Science in Electronics Engineering" },
+  { value: "BSEMC", label: "Bachelor of Science in Entertainment and Multimedia Computing" },
+  { value: "BSIE", label: "Bachelor of Science in Industrial Engineering" },
+  { value: "BSIT", label: "Bachelor of Science in Information Technology" },
+];
 
 const getStorageUrl = (path) => path
   ? supabase.storage.from(BUCKET).getPublicUrl(path).data?.publicUrl ?? null
@@ -88,6 +99,7 @@ function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
       year: editTarget.year?.toString() || "",
       course_or_program: editTarget.course_or_program || "",
       abstract: editTarget.abstract || "",
+      secondary_email: editTarget.secondary_email || "",
       access_type: editTarget.access_type || "open",
     } : EMPTY
   );
@@ -124,6 +136,7 @@ function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
         year: Number(form.year),
         course_or_program: form.course_or_program.trim() || null,
         abstract: form.abstract.trim() || null,
+        secondary_email: form.secondary_email.trim() || null,
         access_type: form.access_type,
       };
 
@@ -173,7 +186,12 @@ function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
             </div>
             <div className="ad-field">
               <label className="ad-label">Program / Course</label>
-              <input className="ad-input" name="course_or_program" value={form.course_or_program} onChange={set} disabled={busy} placeholder="e.g. BSCS, BSIT" />
+              <select className="ad-input" name="course_or_program" value={form.course_or_program} onChange={set} disabled={busy}>
+                <option value="">Select a program...</option>
+                {PROGRAM_OPTIONS.map((prog) => (
+                  <option key={prog.value} value={prog.value}>{prog.label}</option>
+                ))}
+              </select>
             </div>
           </div>
           <div className="ad-field">
@@ -187,6 +205,10 @@ function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
           <div className="ad-field">
             <label className="ad-label">Abstract</label>
             <textarea className="ad-textarea" name="abstract" value={form.abstract} onChange={set} disabled={busy} placeholder="Paste the paper abstract here…" />
+          </div>
+          <div className="ad-field">
+            <label className="ad-label">Secondary Email</label>
+            <input className="ad-input" type="email" name="secondary_email" value={form.secondary_email} onChange={set} disabled={busy} placeholder="Backup contact email (optional)" autoComplete="off" />
           </div>
           <div className="ad-field">
             <label className="ad-label">PDF File</label>

@@ -14,6 +14,17 @@ const ACCESS_OPTIONS = [
   { value: "restricted",    label: "Restricted",    desc: "Must request access",   color: "#9b0000", bg: "#fef2f2" },
 ];
 
+const PROGRAM_OPTIONS = [
+  { value: "BSArch", label: "Bachelor of Science in Architecture" },
+  { value: "BSCpE", label: "Bachelor of Science in Computer Engineering" },
+  { value: "BSCS", label: "Bachelor of Science in Computer Science" },
+  { value: "BSEE", label: "Bachelor of Science in Electrical Engineering" },
+  { value: "BSECE", label: "Bachelor of Science in Electronics Engineering" },
+  { value: "BSEMC", label: "Bachelor of Science in Entertainment and Multimedia Computing" },
+  { value: "BSIE", label: "Bachelor of Science in Industrial Engineering" },
+  { value: "BSIT", label: "Bachelor of Science in Information Technology" },
+];
+
 // Status badge config — shown on each paper card
 const STATUS_STYLES = {
   published:      { label: "Published",      color: "#15803d", bg: "#f0fdf4", border: "#bbf7d0" },
@@ -28,6 +39,7 @@ function EditModal({ paper, onClose, onSuccess }) {
     year:              paper.year?.toString() || "",
     course_or_program: paper.course_or_program || "",
     abstract:          paper.abstract || "",
+    secondary_email:   paper.secondary_email || "",
     access_type:       paper.access_type || "open",
   });
   const [pdf, setPdf]               = useState(null);
@@ -50,6 +62,7 @@ function EditModal({ paper, onClose, onSuccess }) {
         year:              Number(form.year),
         course_or_program: form.course_or_program.trim() || null,
         abstract:          form.abstract.trim() || null,
+        secondary_email:   form.secondary_email.trim() || null,
         access_type:       form.access_type,
       };
 
@@ -98,8 +111,13 @@ function EditModal({ paper, onClose, onSuccess }) {
               <input className="mp-input" name="year" type="number" value={form.year} onChange={set} disabled={busy} />
             </div>
             <div className="mp-field">
-              <label className="mp-label">Program</label>
-              <input className="mp-input" name="course_or_program" value={form.course_or_program} onChange={set} disabled={busy} />
+              <label className="mp-label">Program / Course</label>
+              <select className="mp-input" name="course_or_program" value={form.course_or_program} onChange={set} disabled={busy}>
+                <option value="">Select a program...</option>
+                {PROGRAM_OPTIONS.map((prog) => (
+                  <option key={prog.value} value={prog.value}>{prog.label}</option>
+                ))}
+              </select>
             </div>
           </div>
           <div className="mp-field">
@@ -111,6 +129,10 @@ function EditModal({ paper, onClose, onSuccess }) {
           <div className="mp-field">
             <label className="mp-label">Abstract</label>
             <textarea className="mp-textarea" name="abstract" value={form.abstract} onChange={set} disabled={busy} />
+          </div>
+          <div className="mp-field">
+            <label className="mp-label">Secondary Email</label>
+            <input className="mp-input" type="email" name="secondary_email" value={form.secondary_email} onChange={set} disabled={busy} placeholder="Backup contact email" />
           </div>
           <div className="mp-field">
             <label className="mp-label">PDF File</label>
