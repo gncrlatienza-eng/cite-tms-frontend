@@ -131,7 +131,9 @@ export default function AuthCallback() {
       // send them to the student page even if they're an author.
       // Authors can switch portals using the UI if they want author access.
       console.log('🎓 [AuthCallback] DLSL email detected, intent was student or null - routing to /');
-      navigate('/');
+      const postLoginRedirect = sessionStorage.getItem('post_login_redirect');
+      sessionStorage.removeItem('post_login_redirect');
+      navigate(postLoginRedirect && postLoginRedirect !== '/' ? postLoginRedirect : '/');
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
