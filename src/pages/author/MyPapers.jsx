@@ -14,6 +14,17 @@ const ACCESS_OPTIONS = [
   { value: "restricted",    label: "Restricted",    desc: "Must request access",   color: "#9b0000", bg: "#fef2f2" },
 ];
 
+const PROGRAM_OPTIONS = [
+  { value: "BSArch", label: "Bachelor of Science in Architecture" },
+  { value: "BSCpE", label: "Bachelor of Science in Computer Engineering" },
+  { value: "BSCS", label: "Bachelor of Science in Computer Science" },
+  { value: "BSEE", label: "Bachelor of Science in Electrical Engineering" },
+  { value: "BSECE", label: "Bachelor of Science in Electronics Engineering" },
+  { value: "BSEMC", label: "Bachelor of Science in Entertainment and Multimedia Computing" },
+  { value: "BSIE", label: "Bachelor of Science in Industrial Engineering" },
+  { value: "BSIT", label: "Bachelor of Science in Information Technology" },
+];
+
 // Status badge config — shown on each paper card
 const STATUS_STYLES = {
   published:      { label: "Published",      color: "#15803d", bg: "#f0fdf4", border: "#bbf7d0" },
@@ -21,13 +32,22 @@ const STATUS_STYLES = {
   rejected:       { label: "Rejected",       color: "#9b0000", bg: "#fef2f2", border: "#fecaca" },
 };
 
+const splitAuthors = (authors) => {
+  const list = Array.isArray(authors) ? authors.map((author) => author?.trim()).filter(Boolean) : [];
+  return {
+    primary_author: list[0] || "",
+    co_authors: list.slice(1).join(", "),
+  };
+};
+
 function EditModal({ paper, onClose, onSuccess }) {
   const [form, setForm] = useState({
     title:             paper.title || "",
-    authors:           Array.isArray(paper.authors) ? paper.authors.join(", ") : "",
+    ...splitAuthors(paper.authors),
     year:              paper.year?.toString() || "",
     course_or_program: paper.course_or_program || "",
     abstract:          paper.abstract || "",
+    secondary_email:   paper.secondary_email || "",
     access_type:       paper.access_type || "open",
   });
   const [pdf, setPdf]               = useState(null);
@@ -42,14 +62,19 @@ function EditModal({ paper, onClose, onSuccess }) {
   const handleSubmit = async () => {
     setErr("");
     if (!form.title.trim()) return setErr("Title is required.");
+    if (!form.primary_author.trim()) return setErr("Primary author is required.");
     setBusy(true);
     try {
       const payload = {
         title:             form.title.trim(),
-        authors:           form.authors.split(",").map((a) => a.trim()).filter(Boolean),
+        authors:           [
+          form.primary_author.trim(),
+          ...form.co_authors.split(",").map((a) => a.trim()).filter(Boolean),
+        ],
         year:              Number(form.year),
         course_or_program: form.course_or_program.trim() || null,
         abstract:          form.abstract.trim() || null,
+        secondary_email:   form.secondary_email.trim() || null,
         access_type:       form.access_type,
       };
 
@@ -89,8 +114,12 @@ function EditModal({ paper, onClose, onSuccess }) {
             <input className="mp-input" name="title" value={form.title} onChange={set} disabled={busy} />
           </div>
           <div className="mp-field">
-            <label className="mp-label">Authors <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 400 }}>(comma-separated)</span></label>
-            <input className="mp-input" name="authors" value={form.authors} onChange={set} disabled={busy} />
+            <label className="mp-label">Primary Author <span style={{ color: "#9b0000" }}>*</span></label>
+            <input className="mp-input" name="primary_author" value={form.primary_author} onChange={set} disabled={busy} />
+          </div>
+          <div className="mp-field">
+            <label className="mp-label">Co-Authors <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 400 }}>(optional, comma-separated)</span></label>
+            <input className="mp-input" name="co_authors" value={form.co_authors} onChange={set} disabled={busy} />
           </div>
           <div className="mp-row">
             <div className="mp-field">
@@ -98,19 +127,28 @@ function EditModal({ paper, onClose, onSuccess }) {
               <input className="mp-input" name="year" type="number" value={form.year} onChange={set} disabled={busy} />
             </div>
             <div className="mp-field">
-              <label className="mp-label">Program</label>
-              <input className="mp-input" name="course_or_program" value={form.course_or_program} onChange={set} disabled={busy} />
+              <label className="mp-label">Program / Course</label>
+              <select className="mp-input" name="course_or_program" value={form.course_or_program} onChange={set} disabled={busy}>
+                <option value="">Select a program...</option>
+                {PROGRAM_OPTIONS.map((prog) => (
+                  <option key={prog.value} value={prog.value}>{prog.label}</option>
+                ))}
+              </select>
             </div>
+          </div>
+          <div className="mp-field">
+            <label className="mp-label">Abstract</label>
+            <textarea className="mp-textarea" name="abstract" value={form.abstract} onChange={set} disabled={busy} />
+          </div>
+          <div className="mp-field">
+            <label className="mp-label">Secondary Email</label>
+            <input className="mp-input" type="email" name="secondary_email" value={form.secondary_email} onChange={set} disabled={busy} placeholder="Backup contact email" />
           </div>
           <div className="mp-field">
             <label className="mp-label">Access Type</label>
             <select className="mp-input" name="access_type" value={form.access_type} onChange={set} disabled={busy}>
               {ACCESS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label} — {o.desc}</option>)}
             </select>
-          </div>
-          <div className="mp-field">
-            <label className="mp-label">Abstract</label>
-            <textarea className="mp-textarea" name="abstract" value={form.abstract} onChange={set} disabled={busy} />
           </div>
           <div className="mp-field">
             <label className="mp-label">PDF File</label>

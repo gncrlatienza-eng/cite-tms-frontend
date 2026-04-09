@@ -5,13 +5,32 @@ import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 
 const BUCKET = "cite-tms-backend-bucket";
-const EMPTY = { title: "", authors: "", year: "", course_or_program: "", abstract: "", access_type: "open" };
+const EMPTY = { title: "", authors: "", year: "", course_or_program: "", abstract: "", secondary_email: "", access_type: "open" };
+
+const PROGRAM_OPTIONS = [
+  { value: "BSArch", label: "Bachelor of Science in Architecture" },
+  { value: "BSCpE", label: "Bachelor of Science in Computer Engineering" },
+  { value: "BSCS", label: "Bachelor of Science in Computer Science" },
+  { value: "BSEE", label: "Bachelor of Science in Electrical Engineering" },
+  { value: "BSECE", label: "Bachelor of Science in Electronics Engineering" },
+  { value: "BSEMC", label: "Bachelor of Science in Entertainment and Multimedia Computing" },
+  { value: "BSIE", label: "Bachelor of Science in Industrial Engineering" },
+  { value: "BSIT", label: "Bachelor of Science in Information Technology" },
+];
 
 const getStorageUrl = (path) => path
   ? supabase.storage.from(BUCKET).getPublicUrl(path).data?.publicUrl ?? null
   : null;
 
 const safeFileName = (name) => name.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+const splitAuthors = (authors) => {
+  const list = Array.isArray(authors) ? authors.map((author) => author?.trim()).filter(Boolean) : [];
+  return {
+    primary_author: list[0] || "",
+    co_authors: list.slice(1).join(", "),
+  };
+};
 
 // Access display labels — matches user-facing language
 const ACCESS_LABELS = {
@@ -84,12 +103,17 @@ function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
   const [form, setForm] = useState(
     isEdit && editTarget ? {
       title: editTarget.title || "",
-      authors: Array.isArray(editTarget.authors) ? editTarget.authors.join(", ") : "",
+      ...splitAuthors(editTarget.authors),
       year: editTarget.year?.toString() || "",
       course_or_program: editTarget.course_or_program || "",
       abstract: editTarget.abstract || "",
+      secondary_email: editTarget.secondary_email || "",
       access_type: editTarget.access_type || "open",
-    } : EMPTY
+    } : {
+      ...EMPTY,
+      primary_author: "",
+      co_authors: "",
+    }
   );
   const [pdf, setPdf] = useState(null);
   const [replaceFile, setReplaceFile] = useState(false);
@@ -113,17 +137,21 @@ function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
   const handleSubmit = async () => {
     setErr("");
     if (!form.title.trim()) return setErr("Title is required.");
-    if (!form.authors.trim()) return setErr("At least one author is required.");
+    if (!form.primary_author.trim()) return setErr("Primary author is required.");
     if (!form.year || isNaN(Number(form.year))) return setErr("A valid year is required.");
 
     setBusy(true); setProgress(0);
     try {
-      const authors = form.authors.split(",").map((a) => a.trim()).filter(Boolean);
+      const authors = [
+        form.primary_author.trim(),
+        ...form.co_authors.split(",").map((a) => a.trim()).filter(Boolean),
+      ];
       const payload = {
         title: form.title.trim(), authors,
         year: Number(form.year),
         course_or_program: form.course_or_program.trim() || null,
         abstract: form.abstract.trim() || null,
+        secondary_email: form.secondary_email.trim() || null,
         access_type: form.access_type,
       };
 
@@ -163,8 +191,12 @@ function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
             <input className="ad-input" name="title" value={form.title} onChange={set} disabled={busy} placeholder="e.g. IoT-Based Smart Monitoring System" autoComplete="off" />
           </div>
           <div className="ad-field">
-            <label className="ad-label">Authors <span className="ad-required">*</span><span className="ad-label-hint"> (comma-separated)</span></label>
-            <input className="ad-input" name="authors" value={form.authors} onChange={set} disabled={busy} placeholder="e.g. Juan Dela Cruz, Maria Santos" autoComplete="off" />
+            <label className="ad-label">Primary Author <span className="ad-required">*</span></label>
+            <input className="ad-input" name="primary_author" value={form.primary_author} onChange={set} disabled={busy} placeholder="e.g. Juan Dela Cruz" autoComplete="off" />
+          </div>
+          <div className="ad-field">
+            <label className="ad-label">Co-Authors <span className="ad-label-hint"> (optional, comma-separated)</span></label>
+            <input className="ad-input" name="co_authors" value={form.co_authors} onChange={set} disabled={busy} placeholder="e.g. Maria Santos, Juan Reyes" autoComplete="off" />
           </div>
           <div className="ad-row">
             <div className="ad-field">
@@ -173,8 +205,21 @@ function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
             </div>
             <div className="ad-field">
               <label className="ad-label">Program / Course</label>
-              <input className="ad-input" name="course_or_program" value={form.course_or_program} onChange={set} disabled={busy} placeholder="e.g. BSCS, BSIT" />
+              <select className="ad-input" name="course_or_program" value={form.course_or_program} onChange={set} disabled={busy}>
+                <option value="">Select a program...</option>
+                {PROGRAM_OPTIONS.map((prog) => (
+                  <option key={prog.value} value={prog.value}>{prog.label}</option>
+                ))}
+              </select>
             </div>
+          </div>
+          <div className="ad-field">
+            <label className="ad-label">Abstract</label>
+            <textarea className="ad-textarea" name="abstract" value={form.abstract} onChange={set} disabled={busy} placeholder="Paste the paper abstract here…" />
+          </div>
+          <div className="ad-field">
+            <label className="ad-label">Secondary Email</label>
+            <input className="ad-input" type="email" name="secondary_email" value={form.secondary_email} onChange={set} disabled={busy} placeholder="Backup contact email (optional)" autoComplete="off" />
           </div>
           <div className="ad-field">
             <label className="ad-label">Access Type</label>
@@ -183,10 +228,6 @@ function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
               <option value="students_only">Sign-in Required — DLSL accounts only</option>
               <option value="restricted">Request Required — must request access</option>
             </select>
-          </div>
-          <div className="ad-field">
-            <label className="ad-label">Abstract</label>
-            <textarea className="ad-textarea" name="abstract" value={form.abstract} onChange={set} disabled={busy} placeholder="Paste the paper abstract here…" />
           </div>
           <div className="ad-field">
             <label className="ad-label">PDF File</label>
@@ -745,7 +786,7 @@ export default function AdminDashboard() {
                       <div className="ad-upgrade-name">{req.user?.full_name || "Unknown user"}</div>
                       <div className="ad-upgrade-email">{req.user?.email || "—"}</div>
                       <div className="ad-upgrade-paper">
-                        📄 {req.paper?.title || "Untitled paper"}
+                        {req.paper?.title || "Untitled paper"}
                       </div>
                       {req.paper?.abstract && (
                         <div style={{ fontSize: 12, color: "#9aa0a6", marginTop: 6, lineHeight: 1.5 }}>
