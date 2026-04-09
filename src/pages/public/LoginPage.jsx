@@ -114,7 +114,7 @@ export default function LoginPage({ onClose }) {
         }
         .lp-name { font-size:10px; font-weight:600; color:rgba(255,255,255,0.82); letter-spacing:2px; text-transform:uppercase; }
         .lp-body { z-index:1; }
-        .lp-h { font-family:'DM Serif Display',serif; font-size:26px; color:#fff; line-height:1.2; margin-bottom:10px; }
+        .lp-h { font-family:'Schibsted Grotesk',serif; font-size:26px; color:#fff; line-height:1.2; margin-bottom:10px; }
         .lp-p { font-size:11.5px; color:rgba(255,255,255,0.55); line-height:1.65; font-weight:300; }
         .lp-foot { z-index:1; font-size:10px; color:rgba(255,255,255,0.25); }
 
@@ -137,7 +137,7 @@ export default function LoginPage({ onClose }) {
         .tab.on { background:#fff; color:#111827; box-shadow:0 1px 4px rgba(0,0,0,0.1); }
 
         .eyebrow { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#b91c1c; margin-bottom:3px; }
-        .r-title { font-family:'DM Serif Display',serif; font-size:21px; color:#111827; margin-bottom:2px; }
+        .r-title { font-family:'Schibsted Grotesk',serif; font-size:21px; color:#111827; margin-bottom:2px; }
         .r-sub { font-size:12px; color:#9ca3af; margin-bottom:20px; font-weight:300; line-height:1.5; }
 
         .signin-panel { display:flex; flex-direction:column; gap:12px; flex:1; justify-content:center; }

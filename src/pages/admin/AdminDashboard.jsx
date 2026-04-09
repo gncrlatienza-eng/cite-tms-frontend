@@ -423,7 +423,7 @@ export default function AdminDashboard() {
         .ad-tab-btn:not(.active) .ad-tab-badge { background:#fef2f2; color:#9b0000; }
 
         .ad-controls { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; flex-wrap:wrap; }
-        .ad-section-title { font-family:'DM Serif Display',serif; font-size:22px; color:#202124; }
+        .ad-section-title { font-family:'Schibsted Grotesk',serif; font-size:22px; color:#202124; }
         .ad-controls-right { display:flex; align-items:center; gap:10px; }
         .ad-add-btn { display:inline-flex; align-items:center; gap:7px; background:linear-gradient(135deg,#006400,#1a8a1a); color:#fff; border:none; border-radius:8px; padding:9px 18px; font-size:13.5px; font-weight:600; font-family:inherit; cursor:pointer; box-shadow:0 2px 6px rgba(0,100,0,0.25); white-space:nowrap; transition:opacity 0.15s; }
         .ad-add-btn:hover { opacity:.9; }
@@ -488,7 +488,7 @@ export default function AdminDashboard() {
         .ad-modal { background:#fff; border-radius:16px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.18); animation:adSlideUp 0.22s ease; }
         @keyframes adSlideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
         .ad-modal-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 0; position:sticky; top:0; background:#fff; z-index:1; }
-        .ad-modal-title { font-family:'DM Serif Display',serif; font-size:20px; color:#202124; }
+        .ad-modal-title { font-family:'Schibsted Grotesk',serif; font-size:20px; color:#202124; }
         .ad-modal-close { background:none; border:none; cursor:pointer; color:#9aa0a6; padding:4px; border-radius:6px; line-height:1; transition:color 0.15s,background 0.15s; }
         .ad-modal-close:hover { color:#202124; background:#f1f3f4; }
         .ad-modal-body { padding:20px 24px 24px; display:flex; flex-direction:column; gap:16px; }

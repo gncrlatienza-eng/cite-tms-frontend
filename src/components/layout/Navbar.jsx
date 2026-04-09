@@ -71,11 +71,11 @@ export default function Navbar({ onLoginClick }) {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap');
 
         .nb-nav-link {
           background: none; border: none; cursor: pointer;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Schibsted Grotesk', sans-serif;
           font-size: 13px; font-weight: 500; color: #6b7280;
           padding: 6px 10px; border-radius: 8px;
           transition: color 0.15s, background 0.15s;
@@ -88,7 +88,7 @@ export default function Navbar({ onLoginClick }) {
         .nb-signin-btn {
           background: none; border: 1.5px solid #e5e7eb;
           color: #374151; font-weight: 600; font-size: 13px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Schibsted Grotesk', sans-serif;
           padding: 7px 18px; border-radius: 50px; cursor: pointer;
           transition: border-color 0.15s, color 0.15s, background 0.15s;
         }
@@ -104,14 +104,14 @@ export default function Navbar({ onLoginClick }) {
           font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
           display: flex; align-items: center; justify-content: center;
           border: 2px solid #fecaca; flex-shrink: 0;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Schibsted Grotesk', sans-serif;
         }
         .nb-user-btn {
           display: flex; align-items: center; gap: 8px;
           background: #fff; border: 1.5px solid #e5e7eb;
           border-radius: 20px; padding: 4px 12px 4px 5px;
           cursor: pointer; transition: all 0.2s ease;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Schibsted Grotesk', sans-serif;
         }
         .nb-user-btn:hover { border-color: #9b0000; background: #fef2f2; }
         .nb-user-name {
@@ -138,26 +138,26 @@ export default function Navbar({ onLoginClick }) {
         }
         .nb-dropdown-name {
           font-size: 14px; font-weight: 600; color: #111827;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Schibsted Grotesk', sans-serif;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px;
         }
         .nb-dropdown-email {
           font-size: 11px; color: #9ca3af; margin-top: 2px;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Schibsted Grotesk', sans-serif;
         }
         .nb-role-badge {
           display: inline-block; margin-top: 5px;
           font-size: 10px; font-weight: 600; letter-spacing: 0.8px;
           text-transform: uppercase; padding: 2px 9px; border-radius: 20px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Schibsted Grotesk', sans-serif;
         }
         .nb-dropdown-item {
           display: flex; align-items: center; gap: 10px;
           padding: 10px 16px; font-size: 13px; color: #374151;
           cursor: pointer; transition: background 0.15s;
           border: none; background: none; width: 100%; text-align: left;
-          font-family: 'DM Sans', sans-serif; font-weight: 400;
+          font-family: 'Schibsted Grotesk', sans-serif; font-weight: 400;
         }
         .nb-dropdown-item:hover { background: #f9fafb; }
         .nb-dropdown-item.danger { color: #dc2626; }
@@ -191,7 +191,7 @@ export default function Navbar({ onLoginClick }) {
           width: 100%; max-width: 420px; background: #fff;
           border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
           border: 1px solid #e5e7eb; overflow: hidden;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Schibsted Grotesk', sans-serif;
         }
         .nb-modal-header { padding: 16px 18px 10px; font-size: 15px; font-weight: 600; color: #111827; }
         .nb-modal-body { padding: 0 18px 16px; font-size: 13px; color: #6b7280; line-height: 1.5; }
@@ -375,7 +375,7 @@ const styles = {
   },
   logoText: {
     color: '#fff', fontSize: '9px', fontWeight: '800',
-    letterSpacing: '0.5px', fontFamily: "'DM Sans', sans-serif",
+    letterSpacing: '0.5px', fontFamily: "'Schibsted Grotesk', sans-serif",
     userSelect: 'none',
   },
   links: { display: 'flex', gap: '4px' },
@@ -384,7 +384,7 @@ const styles = {
     display: 'flex', alignItems: 'center', gap: '8px',
     background: 'none', border: 'none', padding: '6px 10px',
     cursor: 'pointer', borderRadius: '8px',
-    fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+    fontFamily: "'Schibsted Grotesk', sans-serif", fontWeight: 500,
     transition: 'color 0.15s, background 0.15s',
   },
   rightSection: { display: 'flex', alignItems: 'center' },

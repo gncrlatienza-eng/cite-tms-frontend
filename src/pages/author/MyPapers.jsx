@@ -193,7 +193,7 @@ export default function MyPapers() {
         .mp-header-left { display: flex; align-items: center; gap: 14px; }
         .mp-back-link { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #9b0000; text-decoration: none; transition: color 0.15s; }
         .mp-back-link:hover { color: #7f1d1d; }
-        .mp-header-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: #111827; }
+        .mp-header-title { font-family: 'Schibsted Grotesk', serif; font-size: 20px; color: #111827; }
         .mp-upload-btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 9px; border: none; background: linear-gradient(135deg, #9b0000, #c0392b); color: #fff; font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; text-decoration: none; box-shadow: 0 4px 14px rgba(155,0,0,0.25); transition: opacity 0.15s; }
         .mp-upload-btn:hover { opacity: 0.9; }
 
@@ -204,7 +204,7 @@ export default function MyPapers() {
         @keyframes mpFadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 
         .mp-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
-        .mp-card-title { font-family: 'DM Serif Display', serif; font-size: 17px; color: #111827; line-height: 1.4; }
+        .mp-card-title { font-family: 'Schibsted Grotesk', serif; font-size: 17px; color: #111827; line-height: 1.4; }
         .mp-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
         .mp-card-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
@@ -232,7 +232,7 @@ export default function MyPapers() {
         .mp-skel-card { background: #fff; border: 1px solid #f0f0f0; border-radius: 14px; padding: 20px 24px; margin-bottom: 14px; }
 
         .mp-empty { background: #fff; border: 1px solid #f0f0f0; border-radius: 14px; padding: 72px 20px; text-align: center; }
-        .mp-empty-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: #111827; margin-bottom: 10px; }
+        .mp-empty-title { font-family: 'Schibsted Grotesk', serif; font-size: 22px; color: #111827; margin-bottom: 10px; }
         .mp-empty-sub { font-size: 14px; color: #6b7280; margin-bottom: 24px; }
         .mp-error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 14px 18px; color: #b91c1c; font-size: 13px; margin-bottom: 20px; }
 
@@ -240,7 +240,7 @@ export default function MyPapers() {
         .mp-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .mp-modal { background: #fff; border-radius: 16px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.18); }
         .mp-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 0; position: sticky; top: 0; background: #fff; }
-        .mp-modal-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: #202124; }
+        .mp-modal-title { font-family: 'Schibsted Grotesk', serif; font-size: 20px; color: #202124; }
         .mp-modal-close { background: none; border: none; cursor: pointer; color: #9aa0a6; padding: 4px; border-radius: 6px; }
         .mp-modal-close:hover { color: #202124; background: #f1f3f4; }
         .mp-modal-body { padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 14px; }

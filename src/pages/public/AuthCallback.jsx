@@ -200,7 +200,7 @@ export default function AuthCallback() {
           .ua-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at top, #fff5f5 0%, #ffffff 60%); font-family: 'DM Sans', system-ui, sans-serif; padding: 24px; }
           .ua-card { background: #fff; border: 1px solid #fecaca; border-radius: 20px; padding: 44px 40px; max-width: 440px; width: 100%; text-align: center; box-shadow: 0 8px 40px rgba(220,38,38,0.08); }
           .ua-icon { width: 60px; height: 60px; border-radius: 50%; background: #fef2f2; border: 2px solid #fecaca; display: flex; align-items: center; justify-content: center; margin: 0 auto 22px; }
-          .ua-title { font-family: 'DM Serif Display', serif; font-size: 25px; color: #111827; margin-bottom: 10px; }
+          .ua-title { font-family: 'Schibsted Grotesk', serif; font-size: 25px; color: #111827; margin-bottom: 10px; }
           .ua-desc { font-size: 13.5px; color: #6b7280; line-height: 1.65; margin-bottom: 24px; }
           .ua-btn { width: 100%; padding: 12px; background: #111827; color: #fff; border: none; border-radius: 10px; font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 0.15s; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
           .ua-btn:hover { background: #1f2937; }

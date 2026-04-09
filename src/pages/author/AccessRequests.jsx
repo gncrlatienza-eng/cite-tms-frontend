@@ -56,7 +56,7 @@ export default function AccessRequests() {
         .ar-header-left { display: flex; align-items: center; gap: 14px; }
         .ar-back-link { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #9b0000; text-decoration: none; transition: color 0.15s; }
         .ar-back-link:hover { color: #7f1d1d; }
-        .ar-header-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: #111827; }
+        .ar-header-title { font-family: 'Schibsted Grotesk', serif; font-size: 20px; color: #111827; }
         .ar-header-stats { display: flex; gap: 10px; }
         .ar-stat-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; border: 1px solid; }
 
