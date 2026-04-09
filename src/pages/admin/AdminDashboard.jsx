@@ -230,6 +230,7 @@ export default function AdminDashboard() {
   const [papers, setPapers]           = useState([]);
   const [requests, setRequests]       = useState([]);
   const [upgradeRequests, setUpgradeRequests] = useState([]);
+  const [uploadPaperRequests, setUploadPaperRequests] = useState([]);
   const [whitelist, setWhitelist]     = useState([]);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState("");
@@ -279,10 +280,18 @@ export default function AdminDashboard() {
     } catch (e) { console.error("Failed to load whitelist:", e.message); }
   };
 
+  const fetchUploadPaperRequests = async () => {
+    try {
+      const res = await api.get("/api/admin/upload-requests");
+      setUploadPaperRequests(res.data ?? []);
+    } catch (e) { console.error("Failed to load upload paper requests:", e.message); }
+  };
+
   useEffect(() => {
     fetchPapers();
     fetchRequests();
     fetchUpgradeRequests();
+    fetchUploadPaperRequests();
     fetchWhitelist();
   }, []);
 
@@ -365,8 +374,21 @@ export default function AdminDashboard() {
       || p.course_or_program?.toLowerCase().includes(q);
   });
 
-  const pendingRequestCount  = requests.filter((r) => r.status === "pending").length;
-  const pendingUpgradeCount  = upgradeRequests.filter((r) => r.status === "pending").length;
+  // ── Approve / reject author upload request ───────────────────
+  const handleUploadRequestDecision = async (requestId, action) => {
+    setDecidingId(requestId);
+    try {
+      await api.post(`/api/admin/upload-requests/${requestId}/decide`, { action });
+      await fetchUploadPaperRequests();
+      await fetchPapers();
+    } catch (e) {
+      alert("Failed: " + (e?.response?.data?.detail || e.message));
+    } finally { setDecidingId(null); }
+  };
+
+  const pendingRequestCount       = requests.filter((r) => r.status === "pending").length;
+  const pendingUpgradeCount       = upgradeRequests.filter((r) => r.status === "pending").length;
+  const pendingUploadPaperCount   = uploadPaperRequests.filter((r) => r.status === "pending").length;
 
   return (
     <>
@@ -548,6 +570,10 @@ export default function AdminDashboard() {
             <button className={`ad-tab-btn${activeTab === "upgrades" ? " active" : ""}`} onClick={() => setActiveTab("upgrades")}>
               Author Upgrades
               {pendingUpgradeCount > 0 && <span className="ad-tab-badge">{pendingUpgradeCount}</span>}
+            </button>
+            <button className={`ad-tab-btn${activeTab === "upload-requests" ? " active" : ""}`} onClick={() => setActiveTab("upload-requests")}>
+              Upload Paper Requests
+              {pendingUploadPaperCount > 0 && <span className="ad-tab-badge">{pendingUploadPaperCount}</span>}
             </button>
             <button className={`ad-tab-btn${activeTab === "whitelist" ? " active" : ""}`} onClick={() => setActiveTab("whitelist")}>
               Whitelist <span className="ad-tab-badge">{whitelist.length}</span>
@@ -757,6 +783,87 @@ export default function AdminDashboard() {
                             className="ad-reject-btn"
                             disabled={busy}
                             onClick={() => handleUpgradeDecision(req.id, "reject")}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
+
+                      <div style={{ fontSize: 11.5, color: "#9aa0a6" }}>
+                        {new Date(req.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          {/* ── Upload Paper Requests Tab ── */}
+          {activeTab === "upload-requests" && (
+            <>
+              <div className="ad-controls">
+                <div className="ad-section-title">Upload Paper Requests</div>
+              </div>
+
+              {uploadPaperRequests.length === 0 && (
+                <div className="ad-table-wrap">
+                  <div className="ad-empty">No upload paper requests yet.</div>
+                </div>
+              )}
+
+              {uploadPaperRequests.map((req) => {
+                const UP_STATUS = {
+                  pending:  { bg: "#fffbeb", color: "#92400e", border: "#fde68a", dot: "#f59e0b" },
+                  approved: { bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", dot: "#16a34a" },
+                  rejected: { bg: "#fef2f2", color: "#9b0000", border: "#fecaca", dot: "#dc2626" },
+                };
+                const s    = UP_STATUS[req.status] || UP_STATUS.pending;
+                const busy = decidingId === req.id;
+                const paper = req.papers && typeof req.papers === "object" ? req.papers : {};
+
+                return (
+                  <div key={req.id} className="ad-upgrade-card">
+                    <div className="ad-upgrade-info">
+                      <div className="ad-upgrade-name">{req.user?.full_name || "Unknown author"}</div>
+                      <div className="ad-upgrade-email">{req.user?.email || "—"}</div>
+                      <div className="ad-upgrade-paper">📄 {paper.title || "Untitled paper"}</div>
+                      {paper.abstract && (
+                        <div style={{ fontSize: 12, color: "#9aa0a6", marginTop: 6, lineHeight: 1.5 }}>
+                          {paper.abstract.slice(0, 160)}{paper.abstract.length > 160 ? "…" : ""}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10, flexShrink: 0 }}>
+                      <span className="ad-status-pill" style={{ background: s.bg, color: s.color, borderColor: s.border }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
+                        {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                      </span>
+
+                      {paper.file_path && (
+                        <a
+                          href={getStorageUrl(paper.file_path)}
+                          target="_blank" rel="noopener noreferrer"
+                          className="ad-pdf-link"
+                        >
+                          <FileIcon size={11} /> View PDF
+                        </a>
+                      )}
+
+                      {req.status === "pending" && (
+                        <div className="ad-upgrade-actions">
+                          <button
+                            className="ad-approve-btn"
+                            disabled={busy}
+                            onClick={() => handleUploadRequestDecision(req.id, "approve")}
+                          >
+                            {busy ? <Spinner size={12} color="rgba(0,100,0,0.3)" top="#166534" /> : "✓ Approve"}
+                          </button>
+                          <button
+                            className="ad-reject-btn"
+                            disabled={busy}
+                            onClick={() => handleUploadRequestDecision(req.id, "reject")}
                           >
                             Reject
                           </button>
