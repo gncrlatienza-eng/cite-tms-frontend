@@ -137,7 +137,7 @@ export default function LandingPage() {
         }
 
         .lp-title {
-          font-family: 'DM Serif Display', serif;
+          font-family: 'Schibsted Grotesk', serif;
           font-size: 76px;
           font-weight: 400;
           letter-spacing: -2px;
@@ -215,7 +215,7 @@ export default function LandingPage() {
         }
 
         .lp-stat-num {
-          font-family: 'DM Serif Display', serif;
+          font-family: 'Schibsted Grotesk', serif;
           font-size: 30px;
           color: #111827;
           line-height: 1;

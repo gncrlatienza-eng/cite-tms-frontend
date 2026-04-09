@@ -279,7 +279,7 @@ export default function RequestsPage() {
         }
 
         .rq-empty-title {
-          font-family: 'DM Serif Display', serif;
+          font-family: 'Schibsted Grotesk', serif;
           font-size: 22px;
           font-weight: 400;
           color: #111827;
@@ -358,7 +358,7 @@ export default function RequestsPage() {
         }
 
         .rq-gate-title {
-          font-family: 'DM Serif Display', serif;
+          font-family: 'Schibsted Grotesk', serif;
           font-size: 24px; font-weight: 400;
           color: #111827; margin-bottom: 10px;
         }

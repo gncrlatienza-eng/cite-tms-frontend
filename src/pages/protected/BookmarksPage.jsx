@@ -123,7 +123,7 @@ export default function BookmarksPage() {
         }
 
         .bm-empty-title {
-          font-family: 'DM Serif Display', serif;
+          font-family: 'Schibsted Grotesk', serif;
           font-size: 22px;
           font-weight: 400;
           color: #111827;
@@ -204,7 +204,7 @@ export default function BookmarksPage() {
         }
 
         .bm-gate-title {
-          font-family: 'DM Serif Display', serif;
+          font-family: 'Schibsted Grotesk', serif;
           font-size: 24px;
           font-weight: 400;
           color: #111827;
