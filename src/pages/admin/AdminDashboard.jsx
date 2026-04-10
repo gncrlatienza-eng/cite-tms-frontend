@@ -368,17 +368,18 @@ export default function AdminDashboard() {
         const secondaryEmail = req?.paper?.secondary_email;
         if (secondaryEmail) {
           try {
-            const res = await api.post("/api/admin/whitelist", { email: secondaryEmail });
-            setWhitelist((prev) => [res.data, ...prev]);
+            await api.post("/api/admin/whitelist", { email: secondaryEmail });
           } catch (e) {
-            // Already whitelisted or other non-fatal error — log but don't block
             console.warn("Whitelist add skipped:", e?.response?.data?.detail || e.message);
           }
         }
       }
 
-      await fetchUpgradeRequests();
-      await fetchPapers();
+      await Promise.all([
+        fetchUpgradeRequests(),
+        fetchPapers(),
+        fetchWhitelist(),
+      ]);
     } catch (e) {
       alert("Failed: " + (e?.response?.data?.detail || e.message));
     } finally { setDecidingId(null); }
