@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
@@ -12,6 +12,8 @@ export default function AuthorDashboard() {
   const [uploadRequests, setUploadRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const tabRefs = useRef({});
+  const [pillStyle, setPillStyle] = useState({ left: 0, width: 0, height: 0 });
   const [decidingId, setDecidingId] = useState(null);
 
   useEffect(() => {
@@ -34,6 +36,11 @@ export default function AuthorDashboard() {
     };
     load();
   }, []);
+
+  useEffect(() => {
+    const el = tabRefs.current[activeTab];
+    if (el) setPillStyle({ left: el.offsetLeft, width: el.offsetWidth, height: el.offsetHeight });
+  }, [activeTab]);
 
   const pendingCount = requests.filter((r) => r.status === "pending").length;
   const approvedCount = requests.filter((r) => r.status === "approved").length;
@@ -98,10 +105,11 @@ export default function AuthorDashboard() {
 
         .au-body { padding: 32px; max-width: 1100px; margin: 0 auto; }
 
-        .au-tabs { display: flex; gap: 4px; margin-bottom: 24px; background: #fff; border: 1px solid #e8eaed; border-radius: 10px; padding: 4px; width: fit-content; }
-        .au-tab-btn { padding: 8px 20px; border-radius: 7px; border: none; background: none; font-size: 13.5px; font-weight: 500; font-family: inherit; color: #5f6368; cursor: pointer; transition: background 0.15s, color 0.15s; display: flex; align-items: center; gap: 7px; white-space: nowrap; }
-        .au-tab-btn.active { background: #9b0000; color: #fff; font-weight: 600; }
-        .au-tab-btn:hover:not(.active) { background: #f1f3f4; color: #202124; }
+        .au-tabs { position: relative; display: flex; gap: 4px; margin-bottom: 24px; background: #fff; border: 1px solid #e8eaed; border-radius: 10px; padding: 4px; width: fit-content; }
+        .au-tab-pill { position: absolute; top: 4px; border-radius: 7px; background: #9b0000; transition: left 0.25s cubic-bezier(0.4,0,0.2,1), width 0.25s cubic-bezier(0.4,0,0.2,1); pointer-events: none; }
+        .au-tab-btn { position: relative; z-index: 1; padding: 8px 20px; border-radius: 7px; border: none; background: none; font-size: 13.5px; font-weight: 500; font-family: inherit; color: #5f6368; cursor: pointer; transition: color 0.25s; display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+        .au-tab-btn.active { color: #fff; font-weight: 600; }
+        .au-tab-btn:hover:not(.active) { color: #202124; }
         .au-tab-badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px; }
         .au-tab-btn.active .au-tab-badge { background: rgba(255,255,255,0.3); color: #fff; }
         .au-tab-btn:not(.active) .au-tab-badge { background: #fef2f2; color: #9b0000; }
@@ -206,14 +214,15 @@ export default function AuthorDashboard() {
         <div className="au-body">
           {/* Tabs */}
           <div className="au-tabs">
-            <button className={`au-tab-btn${activeTab === "overview" ? " active" : ""}`} onClick={() => setActiveTab("overview")}>
+            <div className="au-tab-pill" style={{ left: pillStyle.left, width: pillStyle.width, height: pillStyle.height }} />
+            <button ref={(el) => (tabRefs.current["overview"] = el)} className={`au-tab-btn${activeTab === "overview" ? " active" : ""}`} onClick={() => setActiveTab("overview")}>
               Overview
             </button>
-            <button className={`au-tab-btn${activeTab === "uploads" ? " active" : ""}`} onClick={() => setActiveTab("uploads")}>
+            <button ref={(el) => (tabRefs.current["uploads"] = el)} className={`au-tab-btn${activeTab === "uploads" ? " active" : ""}`} onClick={() => setActiveTab("uploads")}>
               Upload Requests
               {uploadRequests.filter((u) => u.status === "pending").length > 0 && <span className="au-tab-badge">{uploadRequests.filter((u) => u.status === "pending").length}</span>}
             </button>
-            <button className={`au-tab-btn${activeTab === "requests" ? " active" : ""}`} onClick={() => setActiveTab("requests")}>
+            <button ref={(el) => (tabRefs.current["requests"] = el)} className={`au-tab-btn${activeTab === "requests" ? " active" : ""}`} onClick={() => setActiveTab("requests")}>
               Access Requests
               {pendingCount > 0 && <span className="au-tab-badge">{pendingCount}</span>}
             </button>
