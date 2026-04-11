@@ -283,10 +283,21 @@ export default function AdminDashboard() {
   const [addingEmail, setAddingEmail] = useState(false);
   const [emailErr, setEmailErr]       = useState("");
   const [decidingId, setDecidingId]   = useState(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   const meta = user?.user_metadata ?? {};
   const avatar = meta.avatar_url || meta.picture || null;
   const displayName = meta.full_name || meta.name || user?.email || "Admin";
+  const initials = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const fetchPapers = async () => {
     setLoading(true); setError("");
@@ -439,20 +450,27 @@ export default function AdminDashboard() {
         *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
         .ad-page { min-height:100vh; background:#f8f9fa; font-family:'DM Sans',system-ui,sans-serif; }
 
-        .ad-header { background:#fff; border-bottom:1px solid #e8eaed; padding:0 32px; height:58px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:10; }
-        .ad-header-left { display:flex; align-items:center; gap:12px; }
-        .ad-header-icon { width:32px; height:32px; border-radius:7px; background:linear-gradient(135deg,#006400,#1a8a1a); display:flex; align-items:center; justify-content:center; }
-        .ad-header-title { font-size:15px; font-weight:600; color:#202124; }
-        .ad-header-badge { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; background:#e8f5e9; color:#2e7d32; border-radius:20px; padding:2px 8px; }
+        .ad-header { background:#fff; border-bottom:1px solid #e8eaed; padding:0 32px; height:60px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:10; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+        .ad-header-left { display:flex; align-items:center; gap:10px; cursor:pointer; text-decoration:none; }
+        .ad-header-icon { width:34px; height:34px; border-radius:9px; background:linear-gradient(135deg,#006400,#1a8a1a); display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,100,0,0.3); }
+        .ad-header-title { font-size:15px; font-weight:700; color:#111827; letter-spacing:-0.2px; }
         .ad-header-right { display:flex; align-items:center; gap:14px; }
-        .ad-user-chip { display:flex; align-items:center; gap:9px; }
-        .ad-avatar { width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid #e8eaed; flex-shrink:0; }
-        .ad-avatar-fallback { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#006400,#1a8a1a); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; flex-shrink:0; border:2px solid #e8eaed; }
-        .ad-user-info { display:flex; flex-direction:column; line-height:1.25; }
-        .ad-user-name { font-size:13px; font-weight:600; color:#202124; }
-        .ad-user-role { font-size:10.5px; color:#2e7d32; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; }
-        .ad-logout-btn { font-size:13px; font-weight:500; color:#b91c1c; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:6px 14px; cursor:pointer; font-family:inherit; transition:background 0.15s; }
-        .ad-logout-btn:hover { background:#fee2e2; }
+        .ad-avatar-btn { display:flex; align-items:center; gap:9px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:40px; padding:4px 14px 4px 4px; cursor:pointer; transition:all 0.15s; position:relative; }
+        .ad-avatar-btn:hover { border-color:#d1d5db; background:#f3f4f6; }
+        .ad-avatar { width:30px; height:30px; border-radius:50%; object-fit:cover; border:2px solid #e8eaed; flex-shrink:0; }
+        .ad-avatar-fallback { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#006400,#1a8a1a); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; flex-shrink:0; }
+        .ad-user-name { font-size:13px; font-weight:600; color:#374151; }
+        .ad-dropdown { position:absolute; top:calc(100% + 10px); right:0; background:#fff; border:1px solid #e5e7eb; border-radius:14px; min-width:220px; z-index:999; box-shadow:0 12px 40px rgba(0,0,0,0.12),0 2px 8px rgba(0,0,0,0.06); overflow:hidden; animation:adDropIn 0.18s cubic-bezier(0.34,1.56,0.64,1); }
+        @keyframes adDropIn { from{opacity:0;transform:translateY(-8px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+        .ad-dropdown-header { padding:14px 16px; border-bottom:1px solid #f3f4f6; }
+        .ad-dropdown-name { font-size:13.5px; font-weight:600; color:#111827; }
+        .ad-dropdown-email { font-size:11.5px; color:#9ca3af; margin-top:2px; }
+        .ad-dropdown-role { display:inline-block; margin-top:6px; font-size:10px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; padding:2px 9px; border-radius:20px; background:#f0fdf4; color:#166534; }
+        .ad-dropdown-item { display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:13px; color:#374151; cursor:pointer; border:none; background:none; width:100%; text-align:left; font-family:inherit; font-weight:400; transition:background 0.12s; }
+        .ad-dropdown-item:hover { background:#f9fafb; }
+        .ad-dropdown-item.danger { color:#dc2626; }
+        .ad-dropdown-item.danger:hover { background:#fff5f5; }
+        .ad-dropdown-divider { height:1px; background:#f3f4f6; }
 
         .ad-body { padding:32px; max-width:1100px; margin:0 auto; }
 
@@ -574,26 +592,39 @@ export default function AdminDashboard() {
 
       <div className="ad-page">
         <header className="ad-header">
-          <div className="ad-header-left">
+          <div className="ad-header-left" onClick={() => navigate("/")}>
             <div className="ad-header-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
               </svg>
             </div>
             <span className="ad-header-title">CITE-TMS</span>
-            <span className="ad-header-badge">Admin</span>
           </div>
           <div className="ad-header-right">
-            <div className="ad-user-chip">
-              {avatar
-                ? <img className="ad-avatar" src={avatar} alt={displayName} referrerPolicy="no-referrer" />
-                : <div className="ad-avatar-fallback">{displayName[0]?.toUpperCase()}</div>}
-              <div className="ad-user-info">
-                <span className="ad-user-name">{displayName}</span>
-                <span className="ad-user-role">Admin</span>
+            <div style={{ position: "relative" }} ref={dropdownRef}>
+              <div className="ad-avatar-btn" onClick={() => setDropdownOpen((o) => !o)}>
+                {avatar
+                  ? <img className="ad-avatar" src={avatar} alt={displayName} referrerPolicy="no-referrer" />
+                  : <div className="ad-avatar-fallback">{initials}</div>}
+                <span className="ad-user-name">{displayName.split(" ")[0]}</span>
               </div>
+              {dropdownOpen && (
+                <div className="ad-dropdown">
+                  <div className="ad-dropdown-header">
+                    <div className="ad-dropdown-name">{displayName}</div>
+                    <div className="ad-dropdown-email">{user?.email}</div>
+                    <span className="ad-dropdown-role">Admin</span>
+                  </div>
+                  <div className="ad-dropdown-divider" />
+                  <button className="ad-dropdown-item danger" onClick={async () => { setDropdownOpen(false); await logout(); navigate("/"); }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Sign out
+                  </button>
+                </div>
+              )}
             </div>
-            <button className="ad-logout-btn" onClick={async () => { await logout(); navigate("/"); }}>Sign out</button>
           </div>
         </header>
 
