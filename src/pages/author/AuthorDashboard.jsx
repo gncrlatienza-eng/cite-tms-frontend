@@ -178,7 +178,6 @@ export default function AuthorDashboard() {
               </svg>
             </div>
             <span className="au-header-title">CITE-TMS</span>
-            <span className="au-header-badge">Author</span>
           </div>
           <div className="au-header-right">
             <div className="au-user-chip">
