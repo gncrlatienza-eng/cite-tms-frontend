@@ -15,6 +15,16 @@ export default function AuthorDashboard() {
   const tabRefs = useRef({});
   const [pillStyle, setPillStyle] = useState({ left: 0, width: 0, height: 0 });
   const [decidingId, setDecidingId] = useState(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -108,9 +118,10 @@ export default function AuthorDashboard() {
         .au-avatar-btn {
           display: flex; align-items: center; gap: 9px;
           background: #f9fafb; border: 1px solid #e5e7eb;
-          border-radius: 40px; padding: 4px 14px 4px 4px;
-          cursor: default;
+          border-radius: 40px; padding: 4px 12px 4px 4px;
+          cursor: pointer; transition: all 0.15s; position: relative;
         }
+        .au-avatar-btn:hover { border-color: #d1d5db; background: #f3f4f6; }
         .au-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 2px solid #e8eaed; flex-shrink: 0; }
         .au-avatar-fallback {
           width: 30px; height: 30px; border-radius: 50%;
@@ -119,14 +130,33 @@ export default function AuthorDashboard() {
           font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
         }
         .au-user-name { font-size: 13px; font-weight: 600; color: #374151; }
-        .au-logout-btn {
-          font-size: 13px; font-weight: 500; color: #6b7280;
-          background: none; border: 1px solid #e5e7eb;
-          border-radius: 8px; padding: 7px 16px;
-          cursor: pointer; font-family: inherit;
-          transition: all 0.15s;
+        .au-chevron { color: #9ca3af; transition: transform 0.2s; }
+        .au-chevron.open { transform: rotate(180deg); }
+
+        .au-dropdown {
+          position: absolute; top: calc(100% + 10px); right: 0;
+          background: #fff; border: 1px solid #e5e7eb;
+          border-radius: 14px; min-width: 220px; z-index: 999;
+          box-shadow: 0 12px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+          overflow: hidden;
+          animation: auDropIn 0.18s cubic-bezier(0.34,1.56,0.64,1);
         }
-        .au-logout-btn:hover { border-color: #fecaca; color: #9b0000; background: #fef2f2; }
+        @keyframes auDropIn { from { opacity:0; transform:translateY(-8px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+        .au-dropdown-header { padding: 14px 16px; border-bottom: 1px solid #f3f4f6; }
+        .au-dropdown-name { font-size: 13.5px; font-weight: 600; color: #111827; }
+        .au-dropdown-email { font-size: 11.5px; color: #9ca3af; margin-top: 2px; }
+        .au-dropdown-role { display: inline-block; margin-top: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; padding: 2px 9px; border-radius: 20px; background: #fef2f2; color: #9b0000; }
+        .au-dropdown-item {
+          display: flex; align-items: center; gap: 10px;
+          padding: 10px 16px; font-size: 13px; color: #374151;
+          cursor: pointer; border: none; background: none;
+          width: 100%; text-align: left; font-family: inherit; font-weight: 400;
+          transition: background 0.12s;
+        }
+        .au-dropdown-item:hover { background: #f9fafb; }
+        .au-dropdown-item.danger { color: #dc2626; }
+        .au-dropdown-item.danger:hover { background: #fff5f5; }
+        .au-dropdown-divider { height: 1px; background: #f3f4f6; }
 
         /* ── Body ── */
         .au-body { padding: 32px; max-width: 1120px; margin: 0 auto; }
@@ -306,15 +336,30 @@ export default function AuthorDashboard() {
             <span className="au-header-title">CITE-TMS</span>
           </div>
           <div className="au-header-right">
-            <div className="au-avatar-btn">
-              {avatar
-                ? <img className="au-avatar" src={avatar} alt={displayName} referrerPolicy="no-referrer" />
-                : <div className="au-avatar-fallback">{initials}</div>}
-              <span className="au-user-name">{firstName}</span>
+            <div style={{ position: "relative" }} ref={dropdownRef}>
+              <div className="au-avatar-btn" onClick={() => setDropdownOpen((o) => !o)}>
+                {avatar
+                  ? <img className="au-avatar" src={avatar} alt={displayName} referrerPolicy="no-referrer" />
+                  : <div className="au-avatar-fallback">{initials}</div>}
+                <span className="au-user-name">{firstName}</span>
+              </div>
+              {dropdownOpen && (
+                <div className="au-dropdown">
+                  <div className="au-dropdown-header">
+                    <div className="au-dropdown-name">{displayName}</div>
+                    <div className="au-dropdown-email">{user?.email}</div>
+                    <span className="au-dropdown-role">Author</span>
+                  </div>
+                  <div className="au-dropdown-divider" />
+                  <button className="au-dropdown-item danger" onClick={async () => { setDropdownOpen(false); await logout(); navigate("/"); }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Sign out
+                  </button>
+                </div>
+              )}
             </div>
-            <button className="au-logout-btn" onClick={async () => { await logout(); navigate("/"); }}>
-              Sign out
-            </button>
           </div>
         </header>
 
