@@ -94,7 +94,7 @@ export default function AuthorDashboard() {
         @import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .au-page { min-height: 100vh; background: #f4f6f8; font-family: 'Schibsted Grotesk', system-ui, sans-serif; }
+        .au-page { min-height: 100vh; background: #f0f2f5; font-family: 'Schibsted Grotesk', system-ui, sans-serif; }
 
         /* ── Header ── */
         .au-header {
@@ -163,43 +163,56 @@ export default function AuthorDashboard() {
 
         /* ── Welcome banner ── */
         .au-welcome {
-          background: linear-gradient(120deg, #9b0000 0%, #7a0000 100%);
-          border-radius: 16px;
-          padding: 28px 32px;
+          background: linear-gradient(135deg, #9b0000 0%, #6b0000 60%, #4a0000 100%);
+          border-radius: 20px;
+          padding: 32px 36px;
           margin-bottom: 28px;
           display: flex; align-items: center; justify-content: space-between;
           color: #fff;
           position: relative; overflow: hidden;
+          box-shadow: 0 8px 32px rgba(155,0,0,0.28);
         }
         .au-welcome::before {
-          content: ''; position: absolute; top: -40px; right: -40px;
-          width: 200px; height: 200px; border-radius: 50%;
-          background: rgba(255,255,255,0.05);
+          content: ''; position: absolute; top: -60px; right: -60px;
+          width: 260px; height: 260px; border-radius: 50%;
+          background: rgba(255,255,255,0.06);
         }
         .au-welcome::after {
-          content: ''; position: absolute; bottom: -60px; right: 120px;
-          width: 160px; height: 160px; border-radius: 50%;
+          content: ''; position: absolute; bottom: -80px; right: 160px;
+          width: 200px; height: 200px; border-radius: 50%;
           background: rgba(255,255,255,0.04);
         }
-        .au-welcome-greeting { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.65); margin-bottom: 4px; }
-        .au-welcome-name { font-size: 26px; font-weight: 700; color: #fff; letter-spacing: -0.5px; margin-bottom: 6px; }
-        .au-welcome-date { font-size: 12.5px; color: rgba(255,255,255,0.5); }
-        .au-welcome-right { display: flex; gap: 12px; z-index: 1; flex-shrink: 0; }
+        .au-welcome-dot {
+          position: absolute; top: 20px; left: 50%;
+          width: 120px; height: 120px; border-radius: 50%;
+          background: rgba(255,255,255,0.03);
+        }
+        .au-welcome-tag {
+          display: inline-flex; align-items: center; gap: 5px;
+          background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+          border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 600;
+          letter-spacing: 0.05em; color: rgba(255,255,255,0.85); margin-bottom: 10px;
+        }
+        .au-welcome-greeting { font-size: 13px; font-weight: 400; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
+        .au-welcome-name { font-size: 28px; font-weight: 700; color: #fff; letter-spacing: -0.6px; margin-bottom: 8px; line-height: 1.1; }
+        .au-welcome-date { font-size: 12px; color: rgba(255,255,255,0.45); display: flex; align-items: center; gap: 5px; }
+        .au-welcome-right { display: flex; gap: 10px; z-index: 1; flex-shrink: 0; }
         .au-welcome-btn {
           display: inline-flex; align-items: center; gap: 7px;
-          background: rgba(255,255,255,0.15);
-          border: 1px solid rgba(255,255,255,0.25);
+          background: rgba(255,255,255,0.12);
+          border: 1px solid rgba(255,255,255,0.22);
           color: #fff; border-radius: 10px;
-          padding: 10px 20px; font-size: 13px; font-weight: 600;
+          padding: 10px 18px; font-size: 13px; font-weight: 600;
           font-family: inherit; cursor: pointer; text-decoration: none;
-          transition: background 0.15s;
-          backdrop-filter: blur(4px);
+          transition: all 0.15s;
+          backdrop-filter: blur(8px);
         }
-        .au-welcome-btn:hover { background: rgba(255,255,255,0.22); }
+        .au-welcome-btn:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.35); }
         .au-welcome-btn.solid {
           background: #fff; color: #9b0000; border-color: transparent;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
-        .au-welcome-btn.solid:hover { background: #fef2f2; }
+        .au-welcome-btn.solid:hover { background: #fef2f2; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.18); }
 
         /* ── Tabs ── */
         .au-tabs {
@@ -235,62 +248,71 @@ export default function AuthorDashboard() {
         /* ── Stats ── */
         .au-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
         .au-stat-card {
-          background: #fff; border: 1px solid #e8eaed; border-radius: 14px;
+          background: #fff; border: 1px solid #e8eaed; border-radius: 16px;
           padding: 22px 24px; display: flex; align-items: flex-start; gap: 16px;
           transition: box-shadow 0.2s, transform 0.2s;
+          position: relative; overflow: hidden;
         }
-        .au-stat-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.07); transform: translateY(-1px); }
+        .au-stat-card::before {
+          content: ''; position: absolute; top: 0; left: 0;
+          width: 3px; height: 100%; border-radius: 16px 0 0 16px;
+        }
+        .au-stat-card.red-accent::before  { background: linear-gradient(180deg, #9b0000, #c0392b); }
+        .au-stat-card.amber-accent::before { background: linear-gradient(180deg, #f59e0b, #d97706); }
+        .au-stat-card.green-accent::before { background: linear-gradient(180deg, #16a34a, #15803d); }
+        .au-stat-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
         .au-stat-icon {
-          width: 44px; height: 44px; border-radius: 12px;
+          width: 46px; height: 46px; border-radius: 13px;
           display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
         .au-stat-icon.red   { background: #fef2f2; color: #9b0000; }
-        .au-stat-icon.amber { background: #fffbeb; color: #92400e; }
+        .au-stat-icon.amber { background: #fffbeb; color: #b45309; }
         .au-stat-icon.green { background: #f0fdf4; color: #166534; }
         .au-stat-body { flex: 1; }
-        .au-stat-label { font-size: 11.5px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
-        .au-stat-num { font-size: 34px; font-weight: 700; color: #111827; line-height: 1; margin-bottom: 4px; letter-spacing: -1px; }
-        .au-stat-sub { font-size: 12px; color: #9ca3af; }
+        .au-stat-label { font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+        .au-stat-num { font-size: 36px; font-weight: 700; color: #111827; line-height: 1; margin-bottom: 5px; letter-spacing: -1.5px; }
+        .au-stat-sub { font-size: 12px; color: #b0b7c3; }
 
         /* ── Quick actions ── */
         .au-quick-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 28px; }
         .au-quick-card {
-          background: #fff; border: 1px solid #e8eaed; border-radius: 14px;
-          padding: 18px 20px; text-decoration: none;
-          display: flex; align-items: center; gap: 14px;
-          transition: all 0.18s; cursor: pointer;
+          background: #fff; border: 1px solid #e8eaed; border-radius: 16px;
+          padding: 20px 22px; text-decoration: none;
+          display: flex; align-items: center; gap: 16px;
+          transition: all 0.2s; cursor: pointer;
         }
-        .au-quick-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.08); transform: translateY(-1px); border-color: #d1d5db; }
-        .au-quick-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .au-quick-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,0.09); transform: translateY(-2px); border-color: #c8cdd5; }
+        .au-quick-icon { width: 46px; height: 46px; border-radius: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .au-quick-icon.red    { background: #fef2f2; color: #9b0000; }
         .au-quick-icon.blue   { background: #eff6ff; color: #1d4ed8; }
         .au-quick-icon.green  { background: #f0fdf4; color: #166534; }
         .au-quick-icon.purple { background: #faf5ff; color: #7c3aed; }
         .au-quick-content { flex: 1; }
-        .au-quick-title { font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 2px; }
-        .au-quick-desc  { font-size: 12px; color: #9ca3af; }
-        .au-quick-arrow { color: #d1d5db; flex-shrink: 0; transition: transform 0.15s, color 0.15s; }
-        .au-quick-card:hover .au-quick-arrow { color: #9b0000; transform: translateX(3px); }
+        .au-quick-title { font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 3px; }
+        .au-quick-desc  { font-size: 12.5px; color: #9ca3af; }
+        .au-quick-arrow { color: #d1d5db; flex-shrink: 0; transition: transform 0.2s, color 0.2s; }
+        .au-quick-card:hover .au-quick-arrow { color: #9b0000; transform: translateX(4px); }
 
         /* ── Section header ── */
-        .au-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-        .au-section-title { font-size: 17px; font-weight: 700; color: #111827; letter-spacing: -0.2px; }
+        .au-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .au-section-title { font-size: 17px; font-weight: 700; color: #111827; letter-spacing: -0.3px; }
+        .au-section-sub { font-size: 12.5px; color: #9ca3af; margin-top: 2px; }
         .au-view-all {
           font-size: 12.5px; font-weight: 600; color: #9b0000;
           text-decoration: none; display: flex; align-items: center; gap: 4px;
-          transition: gap 0.15s;
+          transition: gap 0.15s; background: #fef2f2; padding: 5px 12px; border-radius: 8px;
         }
-        .au-view-all:hover { gap: 7px; }
+        .au-view-all:hover { gap: 7px; background: #fee2e2; }
 
         /* ── Table ── */
-        .au-table-wrap { background: #fff; border: 1px solid #e8eaed; border-radius: 14px; overflow: hidden; }
+        .au-table-wrap { background: #fff; border: 1px solid #e8eaed; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
         .au-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-        .au-table thead { background: #f9fafb; border-bottom: 1px solid #e8eaed; }
-        .au-table th { padding: 11px 18px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #9ca3af; }
-        .au-table td { padding: 15px 18px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; color: #374151; }
+        .au-table thead { background: #f8f9fb; border-bottom: 1px solid #eaecf0; }
+        .au-table th { padding: 12px 20px; text-align: left; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #adb5bd; }
+        .au-table td { padding: 16px 20px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; color: #374151; }
         .au-table tr:last-child td { border-bottom: none; }
         .au-table tbody tr { transition: background 0.12s; }
-        .au-table tbody tr:hover td { background: #fafafa; }
+        .au-table tbody tr:hover td { background: #fafbfc; }
 
         .au-status-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 4px 10px; border-radius: 20px; border: 1px solid; white-space: nowrap; }
         .au-approve-btn { background: #f0fdf4; border: 1.5px solid #bbf7d0; color: #166534; font-size: 12px; font-weight: 600; font-family: inherit; padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; }
@@ -301,7 +323,7 @@ export default function AuthorDashboard() {
         .au-reject-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* ── Empty state ── */
-        .au-empty { padding: 52px 24px; text-align: center; }
+        .au-empty { padding: 28px 24px; text-align: center; }
         .au-empty-icon { width: 52px; height: 52px; border-radius: 14px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; color: #9ca3af; }
         .au-empty-title { font-size: 15px; font-weight: 600; color: #374151; margin-bottom: 6px; }
         .au-empty-sub { font-size: 13px; color: #9ca3af; }
@@ -366,10 +388,18 @@ export default function AuthorDashboard() {
         <div className="au-body">
           {/* ── Welcome banner ── */}
           <div className="au-welcome">
+            <div className="au-welcome-dot" />
             <div style={{ zIndex: 1 }}>
+              <div className="au-welcome-tag">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/></svg>
+                Author Portal
+              </div>
               <div className="au-welcome-greeting">{greeting},</div>
               <div className="au-welcome-name">{displayName}</div>
-              <div className="au-welcome-date">{dateStr}</div>
+              <div className="au-welcome-date">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                {dateStr}
+              </div>
             </div>
             <div className="au-welcome-right">
               <Link to="/student/upload" className="au-welcome-btn">
@@ -408,7 +438,7 @@ export default function AuthorDashboard() {
             <>
               {/* Stats */}
               <div className="au-stats">
-                <div className="au-stat-card">
+                <div className="au-stat-card red-accent">
                   <div className="au-stat-icon red">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
@@ -420,7 +450,7 @@ export default function AuthorDashboard() {
                     <div className="au-stat-sub">Published by you</div>
                   </div>
                 </div>
-                <div className="au-stat-card">
+                <div className="au-stat-card amber-accent">
                   <div className="au-stat-icon amber">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
@@ -434,7 +464,7 @@ export default function AuthorDashboard() {
                     <div className="au-stat-sub">Awaiting your review</div>
                   </div>
                 </div>
-                <div className="au-stat-card">
+                <div className="au-stat-card green-accent">
                   <div className="au-stat-icon green">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
@@ -473,11 +503,21 @@ export default function AuthorDashboard() {
 
               {/* Pending Requests table */}
               <div className="au-section-header">
-                <div className="au-section-title">Pending Requests</div>
+                <div>
+                  <div className="au-section-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    Pending Requests
+                    {recentRequests.length > 0 && (
+                      <span style={{ fontSize: 11, fontWeight: 700, background: "#fef2f2", color: "#9b0000", border: "1px solid #fecaca", borderRadius: 20, padding: "2px 9px" }}>
+                        {recentRequests.length}
+                      </span>
+                    )}
+                  </div>
+                  <div className="au-section-sub">Student requests awaiting your approval</div>
+                </div>
                 {requests.filter((r) => r.status === "pending").length > 5 && (
                   <Link to="/author/requests" className="au-view-all">
                     View all
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                   </Link>
                 )}
               </div>
