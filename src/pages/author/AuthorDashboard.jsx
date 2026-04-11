@@ -106,7 +106,7 @@ export default function AuthorDashboard() {
           position: sticky; top: 0; z-index: 10;
           box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
-        .au-header-left { display: flex; align-items: center; gap: 10px; }
+        .au-header-left { display: flex; align-items: center; gap: 10px; cursor: pointer; }
         .au-header-icon {
           width: 34px; height: 34px; border-radius: 9px;
           background: linear-gradient(135deg, #9b0000, #c0392b);
@@ -326,7 +326,7 @@ export default function AuthorDashboard() {
       <div className="au-page">
         {/* ── Header ── */}
         <header className="au-header">
-          <div className="au-header-left">
+          <Link to="/" className="au-header-left" style={{ textDecoration: "none" }}>
             <div className="au-header-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -334,7 +334,7 @@ export default function AuthorDashboard() {
               </svg>
             </div>
             <span className="au-header-title">CITE-TMS</span>
-          </div>
+          </Link>
           <div className="au-header-right">
             <div style={{ position: "relative" }} ref={dropdownRef}>
               <div className="au-avatar-btn" onClick={() => setDropdownOpen((o) => !o)}>
