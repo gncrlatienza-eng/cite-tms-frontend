@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import SearchBar from "../../components/search/SearchBar";
@@ -8,11 +8,6 @@ export default function LandingPage() {
   const [showLogin, setShowLogin] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
-  }, []);
-
   return (
     <>
       <style>{`
@@ -21,7 +16,7 @@ export default function LandingPage() {
         .lp-page {
           min-height: 100vh;
           padding-top: 57px;
-          overflow-x: hidden;
+          overflow-x: clip;
           background: #fff;
           font-family: 'DM Sans', system-ui, sans-serif;
         }
@@ -35,12 +30,11 @@ export default function LandingPage() {
           padding: 60px 24px 80px;
           text-align: center;
           position: relative;
-          overflow: hidden;
+          overflow: visible;
         }
 
         .lp-hero > * { position: relative; z-index: 1; }
 
-        /* ── Blobs ── */
         .lp-blob {
           position: absolute;
           border-radius: 50%;
@@ -85,7 +79,6 @@ export default function LandingPage() {
           50%       { transform: translateX(-50%) scale(1.1) translateY(-30px); }
         }
 
-        /* ── Entrance animations ── */
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(var(--rise, 16px)); }
           to   { opacity: 1; transform: translateY(0); }
@@ -110,32 +103,6 @@ export default function LandingPage() {
         .lp-d500 { animation-delay: 500ms; }
         .lp-d600 { animation-delay: 600ms; }
 
-        .lp-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          background: #fef2f2;
-          color: #b91c1c;
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 1.4px;
-          text-transform: uppercase;
-          padding: 6px 16px;
-          border-radius: 20px;
-          margin-bottom: 28px;
-          border: 1px solid #fecaca;
-          cursor: default;
-        }
-
-        .lp-badge-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: #dc2626;
-          box-shadow: 0 0 0 3px rgba(220,38,38,0.2);
-          flex-shrink: 0;
-        }
-
         .lp-title {
           font-family: 'Schibsted Grotesk', serif;
           font-size: 76px;
@@ -145,10 +112,7 @@ export default function LandingPage() {
           line-height: 1.0;
           margin: 0 0 10px;
         }
-
-        .lp-title-accent {
-          color: #9b0000;
-        }
+        .lp-title-accent { color: #9b0000; }
 
         .lp-sub {
           font-size: 17px;
@@ -163,6 +127,8 @@ export default function LandingPage() {
           width: 100%;
           max-width: 640px;
           margin-bottom: 16px;
+          position: relative;
+          z-index: 10;
         }
 
         .lp-hint {
@@ -171,7 +137,6 @@ export default function LandingPage() {
           margin-top: 14px;
           line-height: 1.6;
         }
-
         .lp-hint-link {
           color: #9b0000;
           font-weight: 600;
@@ -203,17 +168,8 @@ export default function LandingPage() {
           margin-top: 36px;
           justify-content: center;
         }
-
-        .lp-stat {
-          flex: 1;
-          text-align: center;
-          padding: 0 20px;
-        }
-
-        .lp-stat + .lp-stat {
-          border-left: 1px solid #f3f4f6;
-        }
-
+        .lp-stat { flex: 1; text-align: center; padding: 0 20px; }
+        .lp-stat + .lp-stat { border-left: 1px solid #f3f4f6; }
         .lp-stat-num {
           font-family: 'Schibsted Grotesk', serif;
           font-size: 30px;
@@ -221,7 +177,6 @@ export default function LandingPage() {
           line-height: 1;
           margin-bottom: 5px;
         }
-
         .lp-stat-label {
           font-size: 11px;
           color: #9ca3af;
@@ -274,8 +229,6 @@ export default function LandingPage() {
         <Navbar onLoginClick={() => setShowLogin(true)} />
 
         <section className="lp-hero">
-
-          {/* Floating blobs */}
           <div className="lp-blob lp-blob-1" />
           <div className="lp-blob lp-blob-2" />
           <div className="lp-blob lp-blob-3" />

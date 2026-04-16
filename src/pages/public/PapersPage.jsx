@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import LoginPage from "./LoginPage";
 import { supabase } from "../../services/supabase";
 import { useAuth } from "../../context/AuthContext";
 import PaperCard from "../../components/papers/PaperCard";
+import api from "../../services/api";
 
 const BUCKET = "cite-tms-backend-bucket";
 export const papersCache = { data: null };
@@ -23,29 +24,39 @@ const SORT_OPTIONS = [
 ];
 
 const PROGRAM_FILTERS = [
-  { key: "all",   label: "All Programs" },
-  { key: "BSArch", label: "BSArch"      },
-  { key: "BSCpE", label: "BSCpE"        },
-  { key: "BSCS",  label: "BSCS"         },
-  { key: "BSEE",  label: "BSEE"         },
-  { key: "BSECE", label: "BSECE"        },
-  { key: "BSEMC", label: "BSEMC"        },
-  { key: "BSIE",  label: "BSIE"         },
-  { key: "BSIT",  label: "BSIT"         },
+  { key: "all",    label: "All Programs" },
+  { key: "BSArch", label: "BSArch"       },
+  { key: "BSCpE",  label: "BSCpE"        },
+  { key: "BSCS",   label: "BSCS"         },
+  { key: "BSEE",   label: "BSEE"         },
+  { key: "BSECE",  label: "BSECE"        },
+  { key: "BSEMC",  label: "BSEMC"        },
+  { key: "BSIE",   label: "BSIE"         },
+  { key: "BSIT",   label: "BSIT"         },
 ];
-
 
 export default function PapersPage() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const [papers, setPapers]           = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState("");
-  const [showLogin, setShowLogin]     = useState(false);
-  const [query, setQuery]             = useState(() => {
+  // allPapers = full Supabase list (used for non-search browsing + URL merging)
+  // papers    = currently displayed list (NLP results OR allPapers)
+  const [allPapers, setAllPapers]       = useState([]);
+  const [papers, setPapers]             = useState([]);
+  const [isSearchMode, setIsSearchMode] = useState(false);
+
+  const [loading, setLoading]           = useState(true);
+  const [searching, setSearching]       = useState(false);
+  const [error, setError]               = useState("");
+  const [showLogin, setShowLogin]       = useState(false);
+
+  // Read ?q= from URL
+  const [query, setQuery] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("q") || "";
   });
+
   const [timeFilter, setTimeFilter]   = useState("any");
   const [sortBy, setSortBy]           = useState("relevance");
   const [fromYear, setFromYear]       = useState("");
@@ -57,11 +68,16 @@ export default function PapersPage() {
   const [bookmarkIds, setBookmarkIds] = useState({});
   const [bmLoading, setBmLoading]     = useState(new Set());
 
+  // ── 1. Load all papers from Supabase on mount ────────────────────────────
   useEffect(() => {
     const load = async () => {
       setLoading(true); setError("");
       try {
-        if (papersCache.data) { setPapers(papersCache.data); return; }
+        if (papersCache.data) {
+          setAllPapers(papersCache.data);
+          setPapers(papersCache.data);
+          return;
+        }
         const { data, error: err } = await supabase
           .from("papers")
           .select("id, title, authors, year, course_or_program, abstract, file_path, access_type, status")
@@ -74,6 +90,7 @@ export default function PapersPage() {
           return { ...p, publicUrl: u?.publicUrl ?? null };
         }) ?? [];
         papersCache.data = withUrls;
+        setAllPapers(withUrls);
         setPapers(withUrls);
       } catch (e) {
         setError(e.message || "Failed to load papers.");
@@ -84,6 +101,7 @@ export default function PapersPage() {
     load();
   }, []);
 
+  // ── 2. Load bookmarks ────────────────────────────────────────────────────
   useEffect(() => {
     if (!user) { setBookmarked(new Set()); setBookmarkIds({}); return; }
     const load = async () => {
@@ -96,6 +114,64 @@ export default function PapersPage() {
     load();
   }, [user]);
 
+  // ── 3. NLP search function ───────────────────────────────────────────────
+  const doSearch = useCallback(async (q, papersList) => {
+    const trimmed = q.trim();
+
+    // No query → show all papers, clear search mode
+    if (!trimmed) {
+      setIsSearchMode(false);
+      setPapers(papersList || allPapers);
+      // Clear ?q= from URL
+      navigate("/papers", { replace: true });
+      return;
+    }
+
+    // Update URL to reflect current query
+    navigate(`/papers?q=${encodeURIComponent(trimmed)}`, { replace: true });
+
+    setSearching(true);
+    setError("");
+    setIsSearchMode(true);
+
+    try {
+      const { data } = await api.get(`/api/search?q=${encodeURIComponent(trimmed)}`);
+
+      // NLP results contain id + relevance_score but may lack publicUrl.
+      // Merge with the Supabase-loaded papers (which have publicUrl) by id.
+      const source = papersList || allPapers;
+      const resultsWithUrls = (data.results || []).map((r) => {
+        const cached = source.find((p) => p.id === r.id);
+        return cached
+          ? { ...cached, relevance_score: r.relevance_score }
+          : r;
+      });
+
+      setPapers(resultsWithUrls);
+    } catch (e) {
+      setError("Search failed. Please try again.");
+      setIsSearchMode(false);
+      setPapers(papersList || allPapers);
+    } finally {
+      setSearching(false);
+    }
+  }, [allPapers, navigate]);
+
+  // ── 4. Auto-run search when Supabase data is ready + URL has ?q= ─────────
+  //    (Handles direct navigation to /papers?q=computer+science)
+  useEffect(() => {
+    if (allPapers.length === 0) return; // wait for Supabase data first
+    const params = new URLSearchParams(location.search);
+    const urlQuery = params.get("q") || "";
+    if (urlQuery) {
+      setQuery(urlQuery);
+      doSearch(urlQuery, allPapers);
+    }
+    // Only run once when allPapers first loads
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allPapers]);
+
+  // ── 5. Bookmarks ─────────────────────────────────────────────────────────
   const toggleBookmark = useCallback(async (e, paperId) => {
     e.preventDefault(); e.stopPropagation();
     if (!user) { setShowLogin(true); return; }
@@ -124,6 +200,7 @@ export default function PapersPage() {
     }
   }, [user, bookmarked, bookmarkIds, bmLoading]);
 
+  // ── 6. Filtering + sorting (applied on top of NLP results or allPapers) ──
   const displayed = papers
     .filter((p) => {
       const yr = Number(p.year);
@@ -143,7 +220,9 @@ export default function PapersPage() {
       return p.course_or_program?.toUpperCase().includes(program);
     })
     .filter((p) => {
-      if (!query.trim()) return true;
+      // When in NLP search mode the backend already ranked results — skip
+      // the local text filter so we don't throw away low-keyword NLP matches.
+      if (isSearchMode || !query.trim()) return true;
       const q = query.toLowerCase();
       return (
         p.title?.toLowerCase().includes(q) ||
@@ -152,19 +231,28 @@ export default function PapersPage() {
         p.course_or_program?.toLowerCase().includes(q)
       );
     })
-    .sort((a, b) => sortBy === "date"
-      ? (Number(b.year) || 0) - (Number(a.year) || 0) : 0
+    .sort((a, b) =>
+      sortBy === "date"
+        ? (Number(b.year) || 0) - (Number(a.year) || 0)
+        : 0
     );
 
-  const hasActiveFilter = timeFilter !== "any" || sortBy !== "relevance" || program !== "all";
+  const hasActiveFilter =
+    timeFilter !== "any" || sortBy !== "relevance" || program !== "all";
 
+  const handleClearSearch = () => {
+    setQuery("");
+    setIsSearchMode(false);
+    setPapers(allPapers);
+    navigate("/papers", { replace: true });
+  };
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
-        /* ── Page ── */
         .papers-page {
           height: 100vh;
           padding-top: 57px;
@@ -174,8 +262,6 @@ export default function PapersPage() {
           flex-direction: column;
           overflow: hidden;
         }
-
-        /* ── Hero ── */
         .papers-hero {
           flex-shrink: 0;
           background: #f4f4f5;
@@ -204,8 +290,6 @@ export default function PapersPage() {
           line-height: 1;
           margin: 0;
         }
-
-        /* ── Search bar ── */
         .sp-search {
           display: flex;
           align-items: center;
@@ -271,8 +355,7 @@ export default function PapersPage() {
           white-space: nowrap;
         }
         .sp-search-btn:hover { background: #7f1d1d; }
-
-        /* ── Layout ── */
+        .sp-search-btn:disabled { background: #c4b5b5; cursor: not-allowed; }
         .papers-layout {
           flex: 1;
           min-height: 0;
@@ -285,12 +368,7 @@ export default function PapersPage() {
           gap: 24px;
           overflow: hidden;
         }
-
-        /* ── Sidebar column ── */
-        .papers-sidebar-col {
-          display: block;
-          padding-bottom: 28px;
-        }
+        .papers-sidebar-col { display: block; padding-bottom: 28px; }
         .sp-sidebar {
           width: 220px;
           max-height: calc(100vh - 280px);
@@ -338,8 +416,6 @@ export default function PapersPage() {
           scrollbar-width: none;
         }
         .sp-sidebar-body::-webkit-scrollbar { display: none; }
-
-        /* ── Sidebar filter sections ── */
         .sp-section { margin-bottom: 4px; }
         .sp-section-label {
           display: block;
@@ -367,8 +443,6 @@ export default function PapersPage() {
         }
         .sp-filter-btn:hover { background: #f9fafb; color: #111827; }
         .sp-filter-btn.active { background: #fef2f2; color: #9b0000; font-weight: 600; }
-
-        /* ── Custom year inputs ── */
         .sp-year-row {
           display: flex;
           align-items: center;
@@ -392,11 +466,7 @@ export default function PapersPage() {
         .yr-input::-webkit-outer-spin-button,
         .yr-input::-webkit-inner-spin-button { -webkit-appearance: none; }
         .sp-year-sep { font-size: 12px; color: #9ca3af; }
-
-        /* ── Divider ── */
         .sp-divider { height: 1px; background: #f3f4f6; margin: 8px 0; }
-
-        /* ── Program accordion ── */
         .sp-acc-btn {
           display: flex;
           align-items: center;
@@ -418,8 +488,6 @@ export default function PapersPage() {
         .sp-acc-chevron { transition: transform 0.2s; flex-shrink: 0; }
         .acc-body { overflow: hidden; transition: max-height 0.25s ease, opacity 0.2s ease; max-height: 0; opacity: 0; }
         .acc-body.open { max-height: 400px; opacity: 1; }
-
-        /* ── Main results ── */
         .papers-main {
           overflow-y: auto;
           overflow-x: hidden;
@@ -427,8 +495,25 @@ export default function PapersPage() {
           scrollbar-width: none;
         }
         .papers-main::-webkit-scrollbar { display: none; }
-
-        /* ── Skeleton ── */
+        .sp-results-meta {
+          font-size: 13px;
+          color: #6b7280;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .sp-results-meta strong { color: #111827; }
+        .sp-clear-search-link {
+          font-size: 12px;
+          color: #9b0000;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+          font-family: 'DM Sans', sans-serif;
+          text-decoration: underline;
+        }
         @keyframes shimmer { 0%{background-position:-900px 0} 100%{background-position:900px 0} }
         .skel { border-radius: 6px; background: linear-gradient(90deg,#f5f5f5 25%,#ececec 50%,#f5f5f5 75%); background-size: 900px 100%; animation: shimmer 1.4s infinite linear; }
         .sp-skel-card { background: #fff; border: 1px solid #ebebeb; border-radius: 14px; padding: 22px 24px; margin-bottom: 10px; }
@@ -436,8 +521,6 @@ export default function PapersPage() {
         .sp-skel-m { height: 12px; width: 36%; margin-bottom: 12px; }
         .sp-skel-l { height: 12px; width: 94%; margin-bottom: 7px; }
         .sp-skel-s { height: 12px; width: 72%; }
-
-        /* ── Error ── */
         .sp-error {
           padding: 14px 18px;
           background: #fef2f2;
@@ -447,8 +530,6 @@ export default function PapersPage() {
           font-size: 13px;
           margin-bottom: 16px;
         }
-
-        /* ── Empty state ── */
         .sp-empty {
           background: #fff;
           border: 1px solid #ebebeb;
@@ -500,8 +581,6 @@ export default function PapersPage() {
           transition: border-color 0.15s, color 0.15s;
         }
         .sp-clear-search-btn:hover { border-color: #9b0000; color: #9b0000; }
-
-        /* ── Mobile ── */
         @media (max-width: 900px) {
           .papers-page { height: auto !important; overflow: visible !important; }
           .papers-layout { grid-template-columns: 1fr !important; padding: 16px 16px 0 !important; overflow: visible !important; }
@@ -533,17 +612,26 @@ export default function PapersPage() {
                 className="sp-search-input"
                 type="text"
                 placeholder="Search by title, author, topic, or program…"
-                value={query} onChange={(e) => setQuery(e.target.value)}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") doSearch(query); }}
                 autoComplete="off"
               />
               {query && (
-                <button className="sp-clear-btn" type="button" onClick={() => setQuery("")}>
+                <button className="sp-clear-btn" type="button" onClick={handleClearSearch}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
                 </button>
               )}
-              <button className="sp-search-btn" type="button">Search</button>
+              <button
+                className="sp-search-btn"
+                type="button"
+                disabled={searching}
+                onClick={() => doSearch(query)}
+              >
+                {searching ? "Searching…" : "Search"}
+              </button>
             </div>
           </div>
         </div>
@@ -554,8 +642,6 @@ export default function PapersPage() {
           {/* Sidebar */}
           <aside className="papers-sidebar-col">
             <div className="sp-sidebar">
-
-              {/* Sidebar header */}
               <div className="sp-sidebar-header">
                 <span className="sp-filters-label">Filters</span>
                 <button
@@ -564,11 +650,7 @@ export default function PapersPage() {
                   onClick={() => { setTimeFilter("any"); setSortBy("relevance"); setFromYear(""); setToYear(""); setProgram("all"); }}
                 >Reset</button>
               </div>
-
-              {/* Sidebar body */}
               <div className="sp-sidebar-body">
-
-                {/* Time Period */}
                 <div className="sp-section">
                   <span className="sp-section-label">Time period</span>
                   {TIME_FILTERS.map(({ key, label }) => (
@@ -586,10 +668,7 @@ export default function PapersPage() {
                     </div>
                   )}
                 </div>
-
                 <div className="sp-divider" />
-
-                {/* Sort By */}
                 <div className="sp-section">
                   <span className="sp-section-label">Sort by</span>
                   {SORT_OPTIONS.map(({ key, label }) => (
@@ -600,10 +679,7 @@ export default function PapersPage() {
                     >{label}</button>
                   ))}
                 </div>
-
                 <div className="sp-divider" />
-
-                {/* Program accordion */}
                 <div className="sp-section">
                   <button type="button" className="sp-acc-btn" onClick={() => setProgramOpen((o) => !o)}>
                     Program
@@ -625,7 +701,6 @@ export default function PapersPage() {
                     ))}
                   </div>
                 </div>
-
               </div>
             </div>
           </aside>
@@ -633,7 +708,20 @@ export default function PapersPage() {
           {/* Results */}
           <main className="papers-main">
 
-            {loading && [1,2,3,4].map((i) => (
+            {/* Results metadata bar */}
+            {!loading && !searching && isSearchMode && !error && (
+              <div className="sp-results-meta">
+                <span>
+                  <strong>{displayed.length}</strong> result{displayed.length !== 1 ? "s" : ""} for "<strong>{query}</strong>"
+                </span>
+                <button className="sp-clear-search-link" onClick={handleClearSearch}>
+                  Clear search
+                </button>
+              </div>
+            )}
+
+            {/* Skeletons — show during initial load OR during NLP search */}
+            {(loading || searching) && [1,2,3,4].map((i) => (
               <div key={i} className="sp-skel-card">
                 <div className="skel sp-skel-h" />
                 <div className="skel sp-skel-m" />
@@ -642,11 +730,11 @@ export default function PapersPage() {
               </div>
             ))}
 
-            {!loading && error && (
+            {!loading && !searching && error && (
               <div className="sp-error">{error}</div>
             )}
 
-            {!loading && !error && displayed.length === 0 && (
+            {!loading && !searching && !error && displayed.length === 0 && (
               <div className="sp-empty">
                 <div className="sp-empty-icon">
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -654,20 +742,22 @@ export default function PapersPage() {
                   </svg>
                 </div>
                 <div className="sp-empty-title">
-                  {papers.length === 0 ? "No papers yet" : "No results found"}
+                  {allPapers.length === 0 ? "No papers yet" : "No results found"}
                 </div>
                 <p className="sp-empty-desc">
-                  {papers.length === 0
+                  {allPapers.length === 0
                     ? "Papers will appear here once they've been published."
                     : `No papers match "${query}". Try a different keyword or adjust your filters.`}
                 </p>
                 {query && (
-                  <button className="sp-clear-search-btn" onClick={() => setQuery("")}>Clear search</button>
+                  <button className="sp-clear-search-btn" onClick={handleClearSearch}>
+                    Clear search
+                  </button>
                 )}
               </div>
             )}
 
-            {!loading && !error && displayed.map((paper, i) => (
+            {!loading && !searching && !error && displayed.map((paper, i) => (
               <PaperCard
                 key={paper.id}
                 paper={paper}
