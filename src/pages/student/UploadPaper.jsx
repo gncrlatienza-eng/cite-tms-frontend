@@ -18,13 +18,19 @@ const ACCESS_OPTIONS = [
 
 const PROGRAM_OPTIONS = [
   { value: "BSArch", label: "Bachelor of Science in Architecture" },
-  { value: "BSCpE", label: "Bachelor of Science in Computer Engineering" },
-  { value: "BSCS", label: "Bachelor of Science in Computer Science" },
-  { value: "BSEE", label: "Bachelor of Science in Electrical Engineering" },
-  { value: "BSECE", label: "Bachelor of Science in Electronics Engineering" },
-  { value: "BSEMC", label: "Bachelor of Science in Entertainment and Multimedia Computing" },
-  { value: "BSIE", label: "Bachelor of Science in Industrial Engineering" },
-  { value: "BSIT", label: "Bachelor of Science in Information Technology" },
+  { value: "BSCpE",  label: "Bachelor of Science in Computer Engineering" },
+  { value: "BSCS",   label: "Bachelor of Science in Computer Science" },
+  { value: "BSEE",   label: "Bachelor of Science in Electrical Engineering" },
+  { value: "BSECE",  label: "Bachelor of Science in Electronics Engineering" },
+  { value: "BSEMC",  label: "Bachelor of Science in Entertainment and Multimedia Computing" },
+  { value: "BSIE",   label: "Bachelor of Science in Industrial Engineering" },
+  { value: "BSIT",   label: "Bachelor of Science in Information Technology" },
+];
+
+const RESEARCH_TYPE_OPTIONS = [
+  { value: "qualitative",   label: "Qualitative",   desc: "Non-numerical, interpretive research" },
+  { value: "quantitative",  label: "Quantitative",  desc: "Numerical data and statistical analysis" },
+  { value: "mixed_methods", label: "Mixed Methods", desc: "Combination of qualitative and quantitative" },
 ];
 
 const TERMS_CONTENT = [
@@ -78,36 +84,45 @@ const TERMS_CONTENT = [
 export default function UploadPaper() {
   const { user, profile, isAuthor, authorName, secondaryEmail } = useAuth();
   const navigate = useNavigate();
-  const fileRef = useRef(null);
+  const fileRef        = useRef(null);
+  const grammarianRef  = useRef(null);
+  const turnitinRef    = useRef(null);
+  const statisticianRef = useRef(null);
 
   const [form, setForm] = useState({
     title: "",
-    primary_author: "",      // ← Will be auto-filled for authors
-    co_authors: "",          
+    primary_author: "",
+    co_authors: "",
     year: new Date().getFullYear().toString(),
     course_or_program: "",
     abstract: "",
-    secondary_email: "",     // ← Will be pre-filled & disabled for authors
+    secondary_email: "",
     access_type: "open",
+    research_type: "",
   });
-  const [pdf, setPdf]             = useState(null);
+
+  const [pdf, setPdf]                       = useState(null);
+  const [grammarianCert, setGrammarianCert] = useState(null);
+  const [turnitinCert, setTurnitinCert]     = useState(null);
+  const [statisticianCert, setStatisticianCert] = useState(null);
+
   const [busy, setBusy]           = useState(false);
   const [progress, setProgress]   = useState(0);
   const [err, setErr]             = useState("");
   const [success, setSuccess]     = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal]       = useState(false);
 
-  // ── Terms state ──
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [termsScrolled, setTermsScrolled]   = useState(false);
-  const [termsRead, setTermsRead]           = useState(false);   // unlocked after scrolling to bottom in modal
-  const [termsChecked, setTermsChecked]     = useState(false);   // the final checkbox
+  const [termsRead, setTermsRead]           = useState(false);
+  const [termsChecked, setTermsChecked]     = useState(false);
 
   const set = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
-  // ── Pre-fill author fields on mount (for existing authors) ──
+  const needsStatistician = ["quantitative", "mixed_methods"].includes(form.research_type);
+
   useEffect(() => {
     if (isAuthor && authorName && secondaryEmail) {
       setForm((f) => ({
@@ -118,6 +133,11 @@ export default function UploadPaper() {
     }
   }, [isAuthor, authorName, secondaryEmail]);
 
+  // ── Clear statistician cert if research type switches to qualitative ──
+  useEffect(() => {
+    if (!needsStatistician) setStatisticianCert(null);
+  }, [form.research_type]);
+
   const handleTermsScroll = (e) => {
     const el = e.currentTarget;
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40) {
@@ -125,22 +145,24 @@ export default function UploadPaper() {
     }
   };
 
-  // ── Form validation ──
-  // For authors: primary_author is readonly, co_authors optional
-  // For students: primary_author required (will be validated), co_authors optional
   const isFormComplete = () => {
-    return (
+    const base =
       form.title.trim() !== "" &&
       form.primary_author.trim() !== "" &&
       form.year && !isNaN(Number(form.year)) &&
       form.course_or_program.trim() !== "" &&
       form.abstract.trim() !== "" &&
       form.secondary_email.trim() !== "" &&
-      pdf !== null
-    );
+      form.research_type !== "" &&
+      pdf !== null &&
+      grammarianCert !== null &&
+      turnitinCert !== null;
+
+    if (needsStatistician) return base && statisticianCert !== null;
+    return base;
   };
 
-  // ── Gate: not logged in ──
+  // ── Not logged in gate ──
   if (!user) {
     return (
       <>
@@ -167,7 +189,7 @@ export default function UploadPaper() {
     );
   }
 
-  // ── Gate: inactive / graduated account ──
+  // ── Inactive account gate ──
   if (user && profile?.is_active === false) {
     return (
       <>
@@ -189,72 +211,74 @@ export default function UploadPaper() {
     );
   }
 
-  // ── Submit ──
+  // ── Submit handler ──
   const handleSubmitClick = (e) => {
     e.preventDefault();
-    if (!isFormComplete()) {
-      setShowIncompleteModal(true);
-      return;
-    }
-    if (!termsChecked) { setShowTermsModal(true); return; }
+    if (!isFormComplete()) { setShowIncompleteModal(true); return; }
+    if (!termsChecked)     { setShowTermsModal(true); return; }
     setShowConfirmModal(true);
+  };
+
+  // ── Helper: upload a single file to Supabase storage ──
+  const uploadFile = async (file, folder) => {
+    const path = `${folder}/${Date.now()}_${safeFileName(file.name)}`;
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, file, { contentType: file.type || "application/pdf", upsert: false });
+    if (error) throw new Error(`Upload failed (${folder}): ${error.message}`);
+    return path;
   };
 
   const handleConfirmedSubmit = async () => {
     setShowConfirmModal(false);
     setErr("");
-    if (!form.title.trim())                     return setErr("Title is required.");
-    if (!form.primary_author.trim())            return setErr("Primary author is required.");
-    if (!form.year || isNaN(Number(form.year))) return setErr("A valid year is required.");
-    if (!form.course_or_program.trim())         return setErr("Program / Course is required.");
-    if (!form.abstract.trim())                  return setErr("Abstract is required.");
-    if (!form.secondary_email.trim())           return setErr("Secondary email is required.");
-    if (!pdf)                                   return setErr("A PDF file is required.");
 
-    // ── Guard: ensure Supabase session is alive ──
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      setErr("Your session expired. Please sign in again.");
-      setShowLogin(true);
-      return;
-    }
+    if (!session) { setErr("Your session expired. Please sign in again."); setShowLogin(true); return; }
 
     setBusy(true); setProgress(10);
 
     try {
-      let file_path = null;
+      // ── Upload main PDF ──
+      setProgress(20);
+      const file_path = await uploadFile(pdf, "papers");
 
-      if (pdf) {
-        setProgress(25);
-        const path = `papers/${Date.now()}_${safeFileName(pdf.name)}`;
-        const { error } = await supabase.storage
-          .from(BUCKET)
-          .upload(path, pdf, { contentType: "application/pdf", upsert: false });
-        if (error) throw new Error(`PDF upload failed: ${error.message}`);
-        file_path = path;
+      // ── Upload grammarian cert ──
+      setProgress(35);
+      const grammarian_cert_path = await uploadFile(grammarianCert, "certificates/grammarian");
+
+      // ── Upload turnitin cert ──
+      setProgress(50);
+      const turnitin_cert_path = await uploadFile(turnitinCert, "certificates/turnitin");
+
+      // ── Upload statistician cert (if needed) ──
+      let statistician_cert_path = null;
+      if (needsStatistician && statisticianCert) {
         setProgress(65);
+        statistician_cert_path = await uploadFile(statisticianCert, "certificates/statistician");
       }
 
+      setProgress(75);
+
       // ── Build authors array ──
-      // Primary author + optional co-authors (comma-separated)
       const authorsArray = [form.primary_author.trim()];
       if (form.co_authors.trim()) {
-        const coAuthors = form.co_authors
-          .split(",")
-          .map((a) => a.trim())
-          .filter(Boolean);
-        authorsArray.push(...coAuthors);
+        authorsArray.push(...form.co_authors.split(",").map((a) => a.trim()).filter(Boolean));
       }
 
       const payload = {
-        title:             form.title.trim(),
-        authors:           authorsArray,
-        year:              Number(form.year),
-        course_or_program: form.course_or_program.trim() || null,
-        abstract:          form.abstract.trim() || null,
-        secondary_email:   form.secondary_email.trim(),
-        access_type:       form.access_type,
+        title:                  form.title.trim(),
+        authors:                authorsArray,
+        year:                   Number(form.year),
+        course_or_program:      form.course_or_program.trim() || null,
+        abstract:               form.abstract.trim() || null,
+        secondary_email:        form.secondary_email.trim(),
+        access_type:            form.access_type,
+        research_type:          form.research_type,
         file_path,
+        grammarian_cert_path,
+        turnitin_cert_path,
+        statistician_cert_path,
       };
 
       const endpoint = isAuthor ? "/api/author/papers" : "/api/student/papers";
@@ -270,7 +294,51 @@ export default function UploadPaper() {
     }
   };
 
-  // ── Page ──
+  // ── Reusable cert file picker (matches existing PDF drop UI style) ──
+  const CertUpload = ({ label, required, file, setFile, inputRef, hint }) => (
+    <div className="up-field">
+      <label className="up-label">
+        {label} {required && <span style={{ color: "#9b0000" }}>*</span>}
+        {hint && <span className="up-label-hint">{hint}</span>}
+      </label>
+      {file ? (
+        <div className="up-pdf-selected">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9b0000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <span className="up-pdf-name">{file.name}</span>
+          <button type="button" className="up-pdf-clear" onClick={() => setFile(null)} disabled={busy}>×</button>
+        </div>
+      ) : (
+        <div
+          className="up-pdf-drop"
+          onClick={() => inputRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("drag-over"); }}
+          onDragLeave={(e) => e.currentTarget.classList.remove("drag-over")}
+          onDrop={(e) => {
+            e.preventDefault(); e.currentTarget.classList.remove("drag-over");
+            const f = e.dataTransfer.files?.[0];
+            if (f) setFile(f);
+          }}
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            accept="application/pdf,image/*"
+            style={{ display: "none" }}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) setFile(f); }}
+          />
+          <div style={{ marginBottom: 8 }}><Paperclip size={28} /></div>
+          <div style={{ fontSize: 13.5, color: "#374151", fontWeight: 500 }}>
+            <span style={{ color: "#9b0000", fontWeight: 600 }}>Click to upload</span> or drag & drop
+          </div>
+          <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>PDF or image files</div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <>
       <style>{`
@@ -321,7 +389,9 @@ export default function UploadPaper() {
         .up-pdf-clear { background: none; border: none; cursor: pointer; color: #fca5a5; font-size: 18px; line-height: 1; padding: 0; transition: color 0.15s; }
         .up-pdf-clear:hover { color: #dc2626; }
 
-        /* ── Terms & Conditions inline block ── */
+        .up-cert-group { border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 18px; background: #fff; display: flex; flex-direction: column; gap: 16px; }
+        .up-cert-group-title { font-size: 13px; font-weight: 700; color: #374151; display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6; }
+
         .up-terms-box { border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; overflow: hidden; }
         .up-terms-box-header { display: flex; align-items: center; gap: 10px; padding: 13px 16px; background: #fafafa; border-bottom: 1px solid #f3f4f6; }
         .up-terms-box-title { font-size: 13.5px; font-weight: 600; color: #111827; flex: 1; }
@@ -355,7 +425,6 @@ export default function UploadPaper() {
         .up-success-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; border-radius: 10px; border: none; background: linear-gradient(135deg, #9b0000, #c0392b); color: #fff; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; margin-bottom: 10px; }
         .up-success-btn-ghost { width: 100%; padding: 11px; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; color: #374151; font-size: 14px; font-weight: 500; font-family: inherit; cursor: pointer; }
 
-        /* ── Modals ── */
         .up-modal-backdrop { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 20px; }
         .up-modal { width: 100%; max-width: 480px; background: #fff; border-radius: 18px; box-shadow: 0 24px 64px rgba(0,0,0,0.2); overflow: hidden; animation: upModalIn 0.2s cubic-bezier(0.34,1.4,0.64,1); }
         @keyframes upModalIn { from{opacity:0;transform:translateY(12px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
@@ -371,7 +440,6 @@ export default function UploadPaper() {
         .up-modal-btn-submit { display: flex; align-items: center; gap: 7px; padding: 9px 20px; border-radius: 9px; border: none; background: linear-gradient(135deg, #9b0000, #c0392b); color: #fff; font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; box-shadow: 0 3px 10px rgba(155,0,0,0.25); transition: opacity 0.15s, transform 0.1s; }
         .up-modal-btn-submit:hover { opacity: 0.9; transform: translateY(-1px); }
 
-        /* ── Terms Modal (wider, scrollable) ── */
         .up-terms-modal { width: 100%; max-width: 560px; background: #fff; border-radius: 18px; box-shadow: 0 24px 64px rgba(0,0,0,0.2); display: flex; flex-direction: column; max-height: 88vh; animation: upModalIn 0.2s cubic-bezier(0.34,1.4,0.64,1); }
         .up-terms-modal-header { padding: 22px 24px 14px; border-bottom: 1px solid #f3f4f6; flex-shrink: 0; }
         .up-terms-modal-title { font-family: 'Schibsted Grotesk', serif; font-size: 21px; color: #111827; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
@@ -429,7 +497,6 @@ export default function UploadPaper() {
                   ? "Your paper is pending admin approval. It will go live once approved."
                   : "Your paper has been received. Once an admin approves it, you'll be granted Author access."}
               </p>
-
               <div className="up-success-steps">
                 <div className="up-success-steps-title">What happens next</div>
                 {isAuthor ? (
@@ -446,13 +513,10 @@ export default function UploadPaper() {
                   </>
                 )}
               </div>
-
               <button className="up-success-btn" onClick={() => navigate(isAuthor ? "/author/dashboard" : "/profile")}>
                 {isAuthor ? "Back to Dashboard" : "Check Request Status"}
               </button>
-              <button className="up-success-btn-ghost" onClick={() => navigate("/")}>
-                Back to Home
-              </button>
+              <button className="up-success-btn-ghost" onClick={() => navigate("/")}>Back to Home</button>
             </div>
 
           ) : (
@@ -485,116 +549,85 @@ export default function UploadPaper() {
               )}
 
               <form className="up-form" onSubmit={handleSubmitClick}>
+
+                {/* ── Title ── */}
                 <div className="up-field">
                   <label className="up-label">Title <span style={{ color: "#9b0000" }}>*</span></label>
-                  <input 
-                    className="up-input" 
-                    name="title" 
-                    value={form.title} 
-                    onChange={set}
-                    placeholder="Full title of your research paper" 
-                    disabled={busy} 
-                    autoComplete="off" 
-                  />
+                  <input className="up-input" name="title" value={form.title} onChange={set} placeholder="Full title of your research paper" disabled={busy} autoComplete="off" />
                 </div>
 
-                {/* ── Primary Author (auto-filled for authors, required for students) ── */}
+                {/* ── Primary Author ── */}
                 <div className="up-field">
                   <label className="up-label">
-                    Primary Author 
-                    <span style={{ color: "#9b0000" }}>*</span>
+                    Primary Author <span style={{ color: "#9b0000" }}>*</span>
                     {isAuthor && <span className="up-label-helper">(Your registered name)</span>}
                   </label>
-                  <input 
-                    className="up-input" 
-                    name="primary_author" 
-                    value={form.primary_author} 
-                    onChange={set}
-                    placeholder={isAuthor ? "" : "e.g. Juan Dela Cruz"} 
-                    disabled={busy || isAuthor}
-                    autoComplete="off" 
-                  />
+                  <input className="up-input" name="primary_author" value={form.primary_author} onChange={set} placeholder={isAuthor ? "" : "e.g. Juan Dela Cruz"} disabled={busy || isAuthor} autoComplete="off" />
                 </div>
 
-                {/* ── Co-Authors (optional) ── */}
+                {/* ── Co-Authors ── */}
                 <div className="up-field">
-                  <label className="up-label">
-                    Co-Authors
-                    <span className="up-label-hint">(optional, comma-separated)</span>
-                  </label>
-                  <input 
-                    className="up-input" 
-                    name="co_authors" 
-                    value={form.co_authors} 
-                    onChange={set}
-                    placeholder="e.g. Maria Santos, Juan Reyes" 
-                    disabled={busy} 
-                    autoComplete="off" 
-                  />
+                  <label className="up-label">Co-Authors <span className="up-label-hint">(optional, comma-separated)</span></label>
+                  <input className="up-input" name="co_authors" value={form.co_authors} onChange={set} placeholder="e.g. Maria Santos, Juan Reyes" disabled={busy} autoComplete="off" />
                 </div>
 
+                {/* ── Year + Program ── */}
                 <div className="up-row">
                   <div className="up-field">
                     <label className="up-label">Year <span style={{ color: "#9b0000" }}>*</span></label>
-                    <input 
-                      className="up-input" 
-                      name="year" 
-                      type="number" 
-                      value={form.year}
-                      onChange={set} 
-                      min="1990" 
-                      max="2099" 
-                      disabled={busy} 
-                    />
+                    <input className="up-input" name="year" type="number" value={form.year} onChange={set} min="1990" max="2099" disabled={busy} />
                   </div>
                   <div className="up-field">
                     <label className="up-label">Program / Course <span style={{ color: "#9b0000" }}>*</span></label>
-                    <select 
-                      className="up-select" 
-                      name="course_or_program" 
-                      value={form.course_or_program}
-                      onChange={set} 
-                      disabled={busy}
-                    >
+                    <select className="up-select" name="course_or_program" value={form.course_or_program} onChange={set} disabled={busy}>
                       <option value="">Select a program...</option>
-                      {PROGRAM_OPTIONS.map((prog) => (
-                        <option key={prog.value} value={prog.value}>{prog.label}</option>
+                      {PROGRAM_OPTIONS.map((p) => (
+                        <option key={p.value} value={p.value}>{p.label}</option>
                       ))}
                     </select>
                   </div>
                 </div>
 
+                {/* ── Abstract ── */}
                 <div className="up-field">
                   <label className="up-label">Abstract <span style={{ color: "#9b0000" }}>*</span></label>
-                  <textarea 
-                    className="up-textarea" 
-                    name="abstract" 
-                    value={form.abstract}
-                    onChange={set} 
-                    placeholder="Paste your paper's abstract here…" 
-                    disabled={busy} 
-                  />
+                  <textarea className="up-textarea" name="abstract" value={form.abstract} onChange={set} placeholder="Paste your paper's abstract here…" disabled={busy} />
                 </div>
 
-                {/* ── Secondary Email (pre-filled & disabled for authors) ── */}
+                {/* ── Secondary Email ── */}
                 <div className="up-field">
                   <label className="up-label">
-                    Secondary Email 
-                    <span style={{ color: "#9b0000" }}>*</span>
+                    Secondary Email <span style={{ color: "#9b0000" }}>*</span>
                     {isAuthor && <span className="up-label-helper">(Backup access email)</span>}
                   </label>
-                  <input 
-                    className="up-input" 
-                    name="secondary_email" 
-                    type="email" 
-                    value={form.secondary_email} 
-                    onChange={set}
-                    placeholder={isAuthor ? "" : "Your additional contact email"} 
-                    disabled={busy || isAuthor}
-                    autoComplete="off" 
-                  />
+                  <input className="up-input" name="secondary_email" type="email" value={form.secondary_email} onChange={set} placeholder={isAuthor ? "" : "Your additional contact email"} disabled={busy || isAuthor} autoComplete="off" />
                 </div>
 
+                {/* ── Research Type ── */}
+                <div className="up-field">
+                  <label className="up-label">Research Type <span style={{ color: "#9b0000" }}>*</span></label>
+                  <div className="up-access-grid">
+                    {RESEARCH_TYPE_OPTIONS.map((opt) => (
+                      <label key={opt.value} className={`up-access-card${form.research_type === opt.value ? " selected" : ""}`}>
+                        <div>
+                          <div className="up-access-label">{opt.label}</div>
+                          <div className="up-access-desc">{opt.desc}</div>
+                        </div>
+                        <input
+                          type="radio"
+                          name="research_type"
+                          value={opt.value}
+                          checked={form.research_type === opt.value}
+                          onChange={set}
+                          className="up-access-radio"
+                          disabled={busy}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Access Type ── */}
                 <div className="up-field">
                   <label className="up-label">Access Type <span style={{ color: "#9b0000" }}>*</span></label>
                   <div className="up-access-grid">
@@ -605,20 +638,13 @@ export default function UploadPaper() {
                           <div className="up-access-label">{opt.label}</div>
                           <div className="up-access-desc">{opt.desc}</div>
                         </div>
-                        <input 
-                          type="radio" 
-                          name="access_type" 
-                          value={opt.value}
-                          checked={form.access_type === opt.value} 
-                          onChange={set}
-                          className="up-access-radio" 
-                          disabled={busy} 
-                        />
+                        <input type="radio" name="access_type" value={opt.value} checked={form.access_type === opt.value} onChange={set} className="up-access-radio" disabled={busy} />
                       </label>
                     ))}
                   </div>
                 </div>
 
+                {/* ── PDF Upload ── */}
                 <div className="up-field">
                   <label className="up-label">PDF File <span style={{ color: "#9b0000" }}>*</span></label>
                   {pdf ? (
@@ -640,13 +666,7 @@ export default function UploadPaper() {
                         const f = e.dataTransfer.files?.[0];
                         if (f?.type === "application/pdf") setPdf(f);
                       }}>
-                      <input 
-                        ref={fileRef} 
-                        type="file" 
-                        accept="application/pdf" 
-                        style={{ display: "none" }}
-                        onChange={(e) => { const f = e.target.files?.[0]; if (f) setPdf(f); }} 
-                      />
+                      <input ref={fileRef} type="file" accept="application/pdf" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) setPdf(f); }} />
                       <div style={{ marginBottom: 8 }}><Paperclip size={28} /></div>
                       <div style={{ fontSize: 13.5, color: "#374151", fontWeight: 500 }}>
                         <span style={{ color: "#9b0000", fontWeight: 600 }}>Click to upload</span> or drag & drop
@@ -656,41 +676,69 @@ export default function UploadPaper() {
                   )}
                 </div>
 
-                {/* ── Terms & Conditions ── */}
+                {/* ── Supporting Certificates ── */}
                 <div className="up-field">
                   <label className="up-label">
-                    Terms & Conditions <span style={{ color: "#9b0000" }}>*</span>
+                    Supporting Certificates <span style={{ color: "#9b0000" }}>*</span>
                   </label>
+                  <div className="up-cert-group">
+                    <div className="up-cert-group-title">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9b0000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+                      </svg>
+                      Required documents to verify your paper
+                    </div>
+
+                    <CertUpload
+                      label="Certificate of Grammarian"
+                      required
+                      file={grammarianCert}
+                      setFile={setGrammarianCert}
+                      inputRef={grammarianRef}
+                      hint="(PDF or image)"
+                    />
+
+                    <CertUpload
+                      label="Turnitin / Plagiarism Report"
+                      required
+                      file={turnitinCert}
+                      setFile={setTurnitinCert}
+                      inputRef={turnitinRef}
+                      hint="(PDF or image)"
+                    />
+
+                    {needsStatistician && (
+                      <CertUpload
+                        label="Certificate of Statistician"
+                        required
+                        file={statisticianCert}
+                        setFile={setStatisticianCert}
+                        inputRef={statisticianRef}
+                        hint="(required for Quantitative / Mixed Methods)"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Terms & Conditions ── */}
+                <div className="up-field">
+                  <label className="up-label">Terms & Conditions <span style={{ color: "#9b0000" }}>*</span></label>
                   <div className="up-terms-box">
                     <div className="up-terms-box-header">
                       <ScrollText size={15} style={{ color: "#9b0000", flexShrink: 0 }} />
                       <span className="up-terms-box-title">Submission Terms & Conditions</span>
-                      <button
-                        type="button"
-                        className="up-terms-read-link"
-                        onClick={() => { setTermsScrolled(false); setShowTermsModal(true); }}
-                      >
+                      <button type="button" className="up-terms-read-link" onClick={() => { setTermsScrolled(false); setShowTermsModal(true); }}>
                         Read full terms
                       </button>
                     </div>
                     <div className="up-terms-check-row">
-                      <input
-                        type="checkbox"
-                        id="terms-inline-check"
-                        checked={termsChecked}
-                        disabled={!termsRead || busy}
-                        onChange={(e) => setTermsChecked(e.target.checked)}
-                      />
+                      <input type="checkbox" id="terms-inline-check" checked={termsChecked} disabled={!termsRead || busy} onChange={(e) => setTermsChecked(e.target.checked)} />
                       <label htmlFor="terms-inline-check" className="up-terms-check-label">
                         I have read and agree to the{" "}
-                        <span
-                          className="up-terms-link"
-                          onClick={() => { setTermsScrolled(false); setShowTermsModal(true); }}
-                        >
+                        <span className="up-terms-link" onClick={() => { setTermsScrolled(false); setShowTermsModal(true); }}>
                           Submission Terms & Conditions
                         </span>
-                        . I confirm this paper is an original academic work produced at{" "}
-                        <strong>De La Salle Lipa</strong> as part of my program requirements.
+                        . I confirm this paper is an original academic work produced at <strong>De La Salle Lipa</strong> as part of my program requirements.
                       </label>
                     </div>
                     {!termsRead ? (
@@ -713,7 +761,7 @@ export default function UploadPaper() {
                       <div className="up-progress-bar" style={{ width: `${progress}%` }} />
                     </div>
                     <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 6, textAlign: "center" }}>
-                      {progress < 65 ? "Uploading PDF…" : "Saving paper…"}
+                      {progress < 50 ? "Uploading PDF…" : progress < 75 ? "Uploading certificates…" : "Saving paper…"}
                     </div>
                   </div>
                 )}
@@ -742,12 +790,10 @@ export default function UploadPaper() {
         </div>
       </div>
 
-      {/* ══ Terms & Conditions Modal ══ */}
+      {/* ══ Terms Modal ══ */}
       {showTermsModal && (
         <div className="up-modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowTermsModal(false); }}>
           <div className="up-terms-modal" onMouseDown={(e) => e.stopPropagation()}>
-
-            {/* Header */}
             <div className="up-terms-modal-header">
               <div className="up-terms-modal-title">
                 <ScrollText size={20} style={{ color: "#9b0000", flexShrink: 0 }} />
@@ -755,23 +801,13 @@ export default function UploadPaper() {
               </div>
               <p className="up-terms-modal-sub">DLSL Thesis Management System — please read carefully before submitting.</p>
             </div>
-
-            {/* Scroll hint */}
             <div className={`up-terms-modal-scroll-hint ${termsScrolled ? "done" : "pending"}`}>
               {termsScrolled ? (
-                <>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  You've read all the terms — check the box below to agree.
-                </>
+                <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>You've read all the terms — check the box below to agree.</>
               ) : (
-                <>
-                  <Clock size={13} />
-                  Scroll to the bottom to read all terms before agreeing.
-                </>
+                <><Clock size={13} />Scroll to the bottom to read all terms before agreeing.</>
               )}
             </div>
-
-            {/* Scrollable body */}
             <div className="up-terms-modal-body" onScroll={handleTermsScroll}>
               {TERMS_CONTENT.map((section, i) => (
                 <div key={section.num} className="up-terms-section">
@@ -784,31 +820,17 @@ export default function UploadPaper() {
                 </div>
               ))}
             </div>
-
-            {/* Footer */}
             <div className="up-terms-modal-footer">
               <div className="up-terms-modal-check-row">
-                <input
-                  type="checkbox"
-                  id="terms-modal-check"
-                  checked={termsChecked}
-                  disabled={!termsScrolled}
-                  onChange={(e) => setTermsChecked(e.target.checked)}
-                />
+                <input type="checkbox" id="terms-modal-check" checked={termsChecked} disabled={!termsScrolled} onChange={(e) => setTermsChecked(e.target.checked)} />
                 <label htmlFor="terms-modal-check" className="up-terms-modal-check-label">
                   I have read and agree to the Submission Terms & Conditions.
-                  {!termsScrolled && (
-                    <span className="hint">Scroll to the bottom first to enable this checkbox.</span>
-                  )}
+                  {!termsScrolled && <span className="hint">Scroll to the bottom first to enable this checkbox.</span>}
                 </label>
               </div>
               <div className="up-terms-modal-actions">
                 <button className="up-modal-btn-cancel" onClick={() => setShowTermsModal(false)}>Close</button>
-                <button
-                  className="up-modal-btn-submit"
-                  disabled={!termsScrolled || !termsChecked}
-                  onClick={() => { setTermsRead(true); setShowTermsModal(false); }}
-                >
+                <button className="up-modal-btn-submit" disabled={!termsScrolled || !termsChecked} onClick={() => { setTermsRead(true); setShowTermsModal(false); }}>
                   I Agree
                 </button>
               </div>
@@ -817,7 +839,7 @@ export default function UploadPaper() {
         </div>
       )}
 
-      {/* ── Confirmation Modal ── */}
+      {/* ══ Confirm Modal ══ */}
       {showConfirmModal && (
         <div className="up-modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowConfirmModal(false); }}>
           <div className="up-modal" onMouseDown={(e) => e.stopPropagation()}>
@@ -828,30 +850,28 @@ export default function UploadPaper() {
               </div>
             </div>
             <div className="up-modal-body">
-              <div className="up-modal-item"><strong>Title:</strong> {form.title}</div>
-              <div className="up-modal-item"><strong>Primary Author:</strong> {form.primary_author}</div>
-              {form.co_authors.trim() && <div className="up-modal-item"><strong>Co-Authors:</strong> {form.co_authors}</div>}
-              <div className="up-modal-item"><strong>Year:</strong> {form.year}</div>
-              <div className="up-modal-item"><strong>Program:</strong> {form.course_or_program}</div>
-              <div className="up-modal-item"><strong>Secondary Email:</strong> {form.secondary_email}</div>
-              <div className="up-modal-item"><strong>Access:</strong> {ACCESS_OPTIONS.find(o => o.value === form.access_type)?.label}</div>
-              <div className="up-modal-item"><strong>PDF:</strong> {pdf?.name}</div>
+              <div className="up-modal-item"><strong>Title:</strong>&nbsp;{form.title}</div>
+              <div className="up-modal-item"><strong>Primary Author:</strong>&nbsp;{form.primary_author}</div>
+              {form.co_authors.trim() && <div className="up-modal-item"><strong>Co-Authors:</strong>&nbsp;{form.co_authors}</div>}
+              <div className="up-modal-item"><strong>Year:</strong>&nbsp;{form.year}</div>
+              <div className="up-modal-item"><strong>Program:</strong>&nbsp;{form.course_or_program}</div>
+              <div className="up-modal-item"><strong>Research Type:</strong>&nbsp;{RESEARCH_TYPE_OPTIONS.find(o => o.value === form.research_type)?.label}</div>
+              <div className="up-modal-item"><strong>Secondary Email:</strong>&nbsp;{form.secondary_email}</div>
+              <div className="up-modal-item"><strong>Access:</strong>&nbsp;{ACCESS_OPTIONS.find(o => o.value === form.access_type)?.label}</div>
+              <div className="up-modal-item"><strong>PDF:</strong>&nbsp;{pdf?.name}</div>
+              <div className="up-modal-item"><strong>Grammarian Cert:</strong>&nbsp;{grammarianCert?.name}</div>
+              <div className="up-modal-item"><strong>Turnitin Report:</strong>&nbsp;{turnitinCert?.name}</div>
+              {needsStatistician && <div className="up-modal-item"><strong>Statistician Cert:</strong>&nbsp;{statisticianCert?.name}</div>}
             </div>
             <div className="up-modal-actions">
               <button className="up-modal-btn-cancel" onClick={() => setShowConfirmModal(false)}>Cancel</button>
-              <button
-                className="up-modal-btn-submit"
-                onClick={handleConfirmedSubmit}
-                disabled={busy}
-              >
+              <button className="up-modal-btn-submit" onClick={handleConfirmedSubmit} disabled={busy}>
                 {busy ? (
                   <>
                     <div style={{ width: 13, height: 13, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.35)", borderTopColor: "#fff", animation: "upSpin 0.75s linear infinite" }} />
                     Submitting...
                   </>
-                ) : (
-                  <>Confirm & Submit</>
-                )}
+                ) : <>Confirm & Submit</>}
               </button>
             </div>
           </div>
