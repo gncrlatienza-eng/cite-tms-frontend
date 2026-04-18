@@ -25,14 +25,10 @@ const getStorageUrl = (path) => path
 const safeFileName = (name) => name.replace(/[^a-zA-Z0-9._-]/g, "_");
 
 const splitAuthors = (authors) => {
-  const list = Array.isArray(authors) ? authors.map((author) => author?.trim()).filter(Boolean) : [];
-  return {
-    primary_author: list[0] || "",
-    co_authors: list.slice(1).join(", "),
-  };
+  const list = Array.isArray(authors) ? authors.map((a) => a?.trim()).filter(Boolean) : [];
+  return { primary_author: list[0] || "", co_authors: list.slice(1).join(", ") };
 };
 
-// Access display labels — matches user-facing language
 const ACCESS_LABELS = {
   open:          { label: "Public",           bg: "#f0fdf4", color: "#15803d" },
   students_only: { label: "Sign-in Required", bg: "#eff6ff", color: "#1d4ed8" },
@@ -45,6 +41,13 @@ const STATUS_LABELS = {
   rejected:  { label: "Rejected",  bg: "#fef2f2", color: "#9b0000" },
 };
 
+const REQ_STATUS = {
+  pending:  { bg: "#fffbeb", color: "#92400e", border: "#fde68a", dot: "#f59e0b" },
+  approved: { bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", dot: "#16a34a" },
+  rejected: { bg: "#fef2f2", color: "#9b0000", border: "#fecaca", dot: "#dc2626" },
+};
+
+// ── Icons ─────────────────────────────────────────────────────
 const CloseIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -59,6 +62,16 @@ const FileIcon = ({ size = 13 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
     <polyline points="14 2 14 8 20 8"/>
+  </svg>
+);
+const BackIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+  </svg>
+);
+const CertIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
   </svg>
 );
 const Spinner = ({ size = 14, color = "rgba(255,255,255,0.4)", top = "#fff" }) => (
@@ -98,7 +111,7 @@ function DropZone({ file, setFile, disabled, isEdit, onCancel }) {
   );
 }
 
-// ── Paper Modal ───────────────────────────────────────────────
+// ── Paper Modal (Add/Edit) ─────────────────────────────────────
 function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
   const [form, setForm] = useState(
     isEdit && editTarget ? {
@@ -109,11 +122,7 @@ function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
       abstract: editTarget.abstract || "",
       secondary_email: editTarget.secondary_email || "",
       access_type: editTarget.access_type || "open",
-    } : {
-      ...EMPTY,
-      primary_author: "",
-      co_authors: "",
-    }
+    } : { ...EMPTY, primary_author: "", co_authors: "" }
   );
   const [pdf, setPdf] = useState(null);
   const [replaceFile, setReplaceFile] = useState(false);
@@ -127,8 +136,7 @@ function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
   const uploadPdf = async (file) => {
     setProgress(15);
     const path = `papers/${Date.now()}_${safeFileName(file.name)}`;
-    const { error } = await supabase.storage.from(BUCKET)
-      .upload(path, file, { contentType: "application/pdf", upsert: false });
+    const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: "application/pdf", upsert: false });
     if (error) throw new Error(`Upload failed: ${error.message}`);
     setProgress(75);
     return path;
@@ -139,22 +147,16 @@ function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
     if (!form.title.trim()) return setErr("Title is required.");
     if (!form.primary_author.trim()) return setErr("Primary author is required.");
     if (!form.year || isNaN(Number(form.year))) return setErr("A valid year is required.");
-
     setBusy(true); setProgress(0);
     try {
-      const authors = [
-        form.primary_author.trim(),
-        ...form.co_authors.split(",").map((a) => a.trim()).filter(Boolean),
-      ];
+      const authors = [form.primary_author.trim(), ...form.co_authors.split(",").map((a) => a.trim()).filter(Boolean)];
       const payload = {
-        title: form.title.trim(), authors,
-        year: Number(form.year),
+        title: form.title.trim(), authors, year: Number(form.year),
         course_or_program: form.course_or_program.trim() || null,
         abstract: form.abstract.trim() || null,
         secondary_email: form.secondary_email.trim() || null,
         access_type: form.access_type,
       };
-
       if (isEdit) {
         let file_path = editTarget.file_path;
         if (replaceFile && pdf) {
@@ -164,18 +166,14 @@ function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
         await api.put(`/api/admin/papers/${editTarget.id}`, { ...payload, file_path });
       } else {
         const file_path = pdf ? await uploadPdf(pdf) : null;
-        // Admin-added papers go straight to published
         await api.post("/api/admin/papers", { ...payload, file_path, status: "published" });
       }
-
       setProgress(100); setOk(true);
       await onSuccess();
       setTimeout(onClose, 1200);
     } catch (e) {
       setErr(e?.response?.data?.detail || e.message || "Something went wrong.");
-    } finally {
-      setBusy(false);
-    }
+    } finally { setBusy(false); }
   };
 
   return (
@@ -186,62 +184,40 @@ function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
           <button className="ad-modal-close" onClick={onClose} disabled={busy}><CloseIcon /></button>
         </div>
         <div className="ad-modal-body">
-          <div className="ad-field">
-            <label className="ad-label">Title <span className="ad-required">*</span></label>
-            <input className="ad-input" name="title" value={form.title} onChange={set} disabled={busy} placeholder="e.g. IoT-Based Smart Monitoring System" autoComplete="off" />
-          </div>
-          <div className="ad-field">
-            <label className="ad-label">Primary Author <span className="ad-required">*</span></label>
-            <input className="ad-input" name="primary_author" value={form.primary_author} onChange={set} disabled={busy} placeholder="e.g. Juan Dela Cruz" autoComplete="off" />
-          </div>
-          <div className="ad-field">
-            <label className="ad-label">Co-Authors <span className="ad-label-hint"> (optional, comma-separated)</span></label>
-            <input className="ad-input" name="co_authors" value={form.co_authors} onChange={set} disabled={busy} placeholder="e.g. Maria Santos, Juan Reyes" autoComplete="off" />
-          </div>
+          <div className="ad-field"><label className="ad-label">Title <span className="ad-required">*</span></label>
+            <input className="ad-input" name="title" value={form.title} onChange={set} disabled={busy} placeholder="e.g. IoT-Based Smart Monitoring System" autoComplete="off" /></div>
+          <div className="ad-field"><label className="ad-label">Primary Author <span className="ad-required">*</span></label>
+            <input className="ad-input" name="primary_author" value={form.primary_author} onChange={set} disabled={busy} placeholder="e.g. Juan Dela Cruz" autoComplete="off" /></div>
+          <div className="ad-field"><label className="ad-label">Co-Authors <span className="ad-label-hint">(optional, comma-separated)</span></label>
+            <input className="ad-input" name="co_authors" value={form.co_authors} onChange={set} disabled={busy} placeholder="e.g. Maria Santos, Juan Reyes" autoComplete="off" /></div>
           <div className="ad-row">
-            <div className="ad-field">
-              <label className="ad-label">Year <span className="ad-required">*</span></label>
-              <input className="ad-input" name="year" type="number" value={form.year} onChange={set} disabled={busy} placeholder="e.g. 2024" min="1990" max="2099" />
-            </div>
-            <div className="ad-field">
-              <label className="ad-label">Program / Course</label>
+            <div className="ad-field"><label className="ad-label">Year <span className="ad-required">*</span></label>
+              <input className="ad-input" name="year" type="number" value={form.year} onChange={set} disabled={busy} placeholder="e.g. 2024" min="1990" max="2099" /></div>
+            <div className="ad-field"><label className="ad-label">Program / Course</label>
               <select className="ad-input" name="course_or_program" value={form.course_or_program} onChange={set} disabled={busy}>
                 <option value="">Select a program...</option>
-                {PROGRAM_OPTIONS.map((prog) => (
-                  <option key={prog.value} value={prog.value}>{prog.label}</option>
-                ))}
-              </select>
-            </div>
+                {PROGRAM_OPTIONS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+              </select></div>
           </div>
-          <div className="ad-field">
-            <label className="ad-label">Abstract</label>
-            <textarea className="ad-textarea" name="abstract" value={form.abstract} onChange={set} disabled={busy} placeholder="Paste the paper abstract here…" />
-          </div>
-          <div className="ad-field">
-            <label className="ad-label">Secondary Email</label>
-            <input className="ad-input" type="email" name="secondary_email" value={form.secondary_email} onChange={set} disabled={busy} placeholder="Backup contact email (optional)" autoComplete="off" />
-          </div>
-          <div className="ad-field">
-            <label className="ad-label">Access Type</label>
+          <div className="ad-field"><label className="ad-label">Abstract</label>
+            <textarea className="ad-textarea" name="abstract" value={form.abstract} onChange={set} disabled={busy} placeholder="Paste the paper abstract here…" /></div>
+          <div className="ad-field"><label className="ad-label">Secondary Email</label>
+            <input className="ad-input" type="email" name="secondary_email" value={form.secondary_email} onChange={set} disabled={busy} placeholder="Backup contact email (optional)" autoComplete="off" /></div>
+          <div className="ad-field"><label className="ad-label">Access Type</label>
             <select className="ad-input" name="access_type" value={form.access_type} onChange={set} disabled={busy}>
               <option value="open">Public — anyone can view</option>
               <option value="students_only">Sign-in Required — DLSL accounts only</option>
               <option value="restricted">Request Required — must request access</option>
-            </select>
-          </div>
-          <div className="ad-field">
-            <label className="ad-label">PDF File</label>
+            </select></div>
+          <div className="ad-field"><label className="ad-label">PDF File</label>
             {isEdit && editTarget?.file_path && !replaceFile ? (
-              <div className="ad-existing-file">
-                <FileIcon /> <span>Current PDF on file</span>
-                <button className="ad-replace-btn" onClick={() => setReplaceFile(true)} disabled={busy}>Replace file</button>
-              </div>
+              <div className="ad-existing-file"><FileIcon /> <span>Current PDF on file</span>
+                <button className="ad-replace-btn" onClick={() => setReplaceFile(true)} disabled={busy}>Replace file</button></div>
             ) : isEdit && !editTarget?.file_path && !replaceFile ? (
               <button className="ad-replace-btn" style={{ alignSelf: "flex-start" }} onClick={() => setReplaceFile(true)} disabled={busy}>+ Upload a PDF</button>
             ) : (
               <DropZone file={pdf} setFile={setPdf} disabled={busy} isEdit={isEdit} onCancel={() => { setReplaceFile(false); setPdf(null); }} />
-            )}
-          </div>
+            )}</div>
           {busy && progress > 0 && progress < 100 && (
             <div className="ad-progress-wrap">
               <div className="ad-progress-bar" style={{ width: `${progress}%` }} />
@@ -262,29 +238,401 @@ function PaperModal({ title, isEdit = false, editTarget, onClose, onSuccess }) {
   );
 }
 
+// ── Cert Link ─────────────────────────────────────────────────
+function CertLink({ path, label }) {
+  if (!path) return <span style={{ fontSize: 12, color: "#c4c9d0" }}>Not uploaded</span>;
+  return (
+    <a href={getStorageUrl(path)} target="_blank" rel="noopener noreferrer" className="ad-pdf-link">
+      <FileIcon size={11} /> {label}
+    </a>
+  );
+}
+
+// ── Detail Field ──────────────────────────────────────────────
+function DetailField({ label, children }) {
+  return (
+    <div className="ad-detail-field">
+      <div className="ad-detail-label">{label}</div>
+      <div className="ad-detail-value">{children}</div>
+    </div>
+  );
+}
+
+// ── Paper Detail Panel ────────────────────────────────────────
+function PaperDetail({ paper, onBack, onEdit, onDelete, deletingId }) {
+  const at = ACCESS_LABELS[paper.access_type] || ACCESS_LABELS.open;
+  const st = STATUS_LABELS[paper.status] || STATUS_LABELS.pending;
+  const hasCerts = paper.grammarian_cert_path || paper.turnitin_cert_path || paper.statistician_cert_path;
+
+  return (
+    <div className="ad-detail-wrap">
+      <div className="ad-detail-topbar">
+        <button className="ad-back-btn" onClick={onBack}><BackIcon /> Back to Papers</button>
+        <div className="ad-detail-actions">
+          <button className="ad-icon-btn" title="Edit" onClick={() => onEdit(paper)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button className="ad-icon-btn del" title="Delete" disabled={deletingId === paper.id} onClick={() => onDelete(paper)}>
+            {deletingId === paper.id
+              ? <Spinner size={12} color="rgba(0,0,0,0.15)" top="#b91c1c" />
+              : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+                </svg>}
+          </button>
+        </div>
+      </div>
+
+      <div className="ad-detail-card">
+        <div className="ad-detail-header">
+          <h2 className="ad-detail-title">{paper.title || "Untitled"}</h2>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+            <span style={{ background: at.bg, color: at.color, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>{at.label}</span>
+            <span style={{ background: st.bg, color: st.color, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>{st.label}</span>
+            {paper.research_type && (
+              <span style={{ background: "#f3f4f6", color: "#374151", fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, textTransform: "capitalize" }}>{paper.research_type.replace("_", " ")}</span>
+            )}
+          </div>
+        </div>
+
+        <div className="ad-detail-grid">
+          <DetailField label="Authors">
+            {paper.authors?.length > 0 ? paper.authors.join(", ") : <span style={{ color: "#c4c9d0" }}>—</span>}
+          </DetailField>
+          <DetailField label="Year">
+            {paper.year ? <span className="ad-pill ad-pill-year">{paper.year}</span> : <span style={{ color: "#c4c9d0" }}>—</span>}
+          </DetailField>
+          <DetailField label="Program">
+            {paper.course_or_program ? <span className="ad-pill ad-pill-prog">{paper.course_or_program}</span> : <span style={{ color: "#c4c9d0" }}>—</span>}
+          </DetailField>
+          <DetailField label="Secondary Email">
+            {paper.secondary_email || <span style={{ color: "#c4c9d0" }}>—</span>}
+          </DetailField>
+          <DetailField label="Submitted">
+            {paper.created_at ? new Date(paper.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "—"}
+          </DetailField>
+          <DetailField label="PDF File">
+            {paper.file_path
+              ? <a className="ad-pdf-link" href={getStorageUrl(paper.file_path)} target="_blank" rel="noopener noreferrer"><FileIcon size={11} /> View PDF</a>
+              : <span style={{ color: "#c4c9d0" }}>No file uploaded</span>}
+          </DetailField>
+        </div>
+
+        {paper.abstract && (
+          <div className="ad-detail-abstract">
+            <div className="ad-detail-label" style={{ marginBottom: 8 }}>Abstract</div>
+            <p style={{ fontSize: 13.5, color: "#374151", lineHeight: 1.7 }}>{paper.abstract}</p>
+          </div>
+        )}
+
+        {/* ── Admin-only certificates section ── */}
+        <div className="ad-cert-section">
+          <div className="ad-cert-section-title">
+            <CertIcon />
+            Supporting Certificates 
+          </div>
+          {hasCerts ? (
+            <div className="ad-cert-grid">
+              <div className="ad-cert-item">
+                <div className="ad-cert-item-label">Certificate of Grammarian</div>
+                <CertLink path={paper.grammarian_cert_path} label="View Certificate" />
+              </div>
+              <div className="ad-cert-item">
+                <div className="ad-cert-item-label">Turnitin / Plagiarism Report</div>
+                <CertLink path={paper.turnitin_cert_path} label="View Report" />
+              </div>
+              <div className="ad-cert-item">
+                <div className="ad-cert-item-label">Certificate of Statistician</div>
+                <CertLink path={paper.statistician_cert_path} label="View Certificate" />
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: "#9aa0a6", padding: "12px 0" }}>
+              No certificates uploaded for this paper.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Request Detail Panel ──────────────────────────────────────
+function RequestDetail({ req, onBack, onAction }) {
+  const s = REQ_STATUS[req.status] || REQ_STATUS.pending;
+  return (
+    <div className="ad-detail-wrap">
+      <div className="ad-detail-topbar">
+        <button className="ad-back-btn" onClick={onBack}><BackIcon /> Back to Access Requests</button>
+      </div>
+      <div className="ad-detail-card">
+        <div className="ad-detail-header">
+          <h2 className="ad-detail-title">{req.paper_title || "Access Request"}</h2>
+          <div style={{ marginTop: 10 }}>
+            <span className="ad-status-pill" style={{ background: s.bg, color: s.color, borderColor: s.border }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
+              {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+            </span>
+          </div>
+        </div>
+        <div className="ad-detail-grid">
+          <DetailField label="Requester Name">{req.requester_name || "—"}</DetailField>
+          <DetailField label="Requester Email">{req.requester_email || "—"}</DetailField>
+          <DetailField label="Date Submitted">
+            {req.created_at ? new Date(req.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "—"}
+          </DetailField>
+        </div>
+        {req.message && (
+          <div className="ad-detail-abstract">
+            <div className="ad-detail-label" style={{ marginBottom: 8 }}>Message from Requester</div>
+            <p style={{ fontSize: 13.5, color: "#374151", lineHeight: 1.7 }}>{req.message}</p>
+          </div>
+        )}
+        {req.status === "pending" && (
+          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+            <button className="ad-approve-btn" onClick={() => onAction(req.id, "approved")}>✓ Approve Access</button>
+            <button className="ad-reject-btn" onClick={() => onAction(req.id, "rejected")}>Reject</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Upgrade Detail Panel ──────────────────────────────────────
+function UpgradeDetail({ req, onBack, onDecide, decidingId }) {
+  const s = REQ_STATUS[req.status] || REQ_STATUS.pending;
+  const busy = decidingId === req.id;
+  const paper = req.paper || {};
+
+  return (
+    <div className="ad-detail-wrap">
+      <div className="ad-detail-topbar">
+        <button className="ad-back-btn" onClick={onBack}><BackIcon /> Back to Author Upgrades</button>
+      </div>
+      <div className="ad-detail-card">
+        <div className="ad-detail-header">
+          <h2 className="ad-detail-title">Author Upgrade Request</h2>
+          <div style={{ marginTop: 10 }}>
+            <span className="ad-status-pill" style={{ background: s.bg, color: s.color, borderColor: s.border }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
+              {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+            </span>
+          </div>
+        </div>
+
+        {/* Student info */}
+        <div className="ad-cert-section" style={{ marginBottom: 0 }}>
+          <div className="ad-cert-section-title" style={{ marginBottom: 12 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            Student Information
+          </div>
+          <div className="ad-detail-grid">
+            <DetailField label="Full Name">{req.user?.full_name || "—"}</DetailField>
+            <DetailField label="Email">{req.user?.email || "—"}</DetailField>
+            <DetailField label="Date Requested">
+              {req.created_at ? new Date(req.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "—"}
+            </DetailField>
+          </div>
+        </div>
+
+        {/* Submitted paper */}
+        <div className="ad-cert-section" style={{ marginTop: 20 }}>
+          <div className="ad-cert-section-title" style={{ marginBottom: 12 }}>
+            <FileIcon size={14} />
+            Submitted Paper
+          </div>
+          <div className="ad-detail-grid">
+            <DetailField label="Title">{paper.title || "—"}</DetailField>
+            <DetailField label="Authors">{paper.authors?.join(", ") || "—"}</DetailField>
+            <DetailField label="Year">{paper.year ? <span className="ad-pill ad-pill-year">{paper.year}</span> : "—"}</DetailField>
+            <DetailField label="Program">{paper.course_or_program ? <span className="ad-pill ad-pill-prog">{paper.course_or_program}</span> : "—"}</DetailField>
+            <DetailField label="Research Type">
+              {paper.research_type ? <span style={{ textTransform: "capitalize" }}>{paper.research_type.replace("_", " ")}</span> : "—"}
+            </DetailField>
+            <DetailField label="PDF">
+              {paper.file_path
+                ? <a className="ad-pdf-link" href={getStorageUrl(paper.file_path)} target="_blank" rel="noopener noreferrer"><FileIcon size={11} /> View PDF</a>
+                : <span style={{ color: "#c4c9d0" }}>No file</span>}
+            </DetailField>
+          </div>
+          {paper.abstract && (
+            <div style={{ marginTop: 16 }}>
+              <div className="ad-detail-label" style={{ marginBottom: 6 }}>Abstract</div>
+              <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.7 }}>{paper.abstract}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Certificates */}
+        <div className="ad-cert-section" style={{ marginTop: 20 }}>
+          <div className="ad-cert-section-title">
+            <CertIcon />
+            Certificates to Verify 
+          </div>
+          <div className="ad-cert-grid">
+            <div className="ad-cert-item">
+              <div className="ad-cert-item-label">Certificate of Grammarian</div>
+              <CertLink path={paper.grammarian_cert_path} label="View Certificate" />
+            </div>
+            <div className="ad-cert-item">
+              <div className="ad-cert-item-label">Turnitin / Plagiarism Report</div>
+              <CertLink path={paper.turnitin_cert_path} label="View Report" />
+            </div>
+            <div className="ad-cert-item">
+              <div className="ad-cert-item-label">Certificate of Statistician</div>
+              <CertLink path={paper.statistician_cert_path} label="View Certificate" />
+            </div>
+          </div>
+        </div>
+
+        {req.status === "pending" && (
+          <div style={{ display: "flex", gap: 10, marginTop: 24, paddingTop: 20, borderTop: "1px solid #f1f3f4" }}>
+            <button className="ad-approve-btn" disabled={busy} onClick={() => onDecide(req.id, "approve")}>
+              {busy ? <Spinner size={12} color="rgba(0,100,0,0.3)" top="#166534" /> : "✓ Approve & Grant Author"}
+            </button>
+            <button className="ad-reject-btn" disabled={busy} onClick={() => onDecide(req.id, "reject")}>Reject</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Upload Request Detail Panel ───────────────────────────────
+function UploadRequestDetail({ req, onBack, onDecide, decidingId }) {
+  const s = REQ_STATUS[req.status] || REQ_STATUS.pending;
+  const busy = decidingId === req.id;
+  const paper = req.papers && typeof req.papers === "object" ? req.papers : {};
+
+  return (
+    <div className="ad-detail-wrap">
+      <div className="ad-detail-topbar">
+        <button className="ad-back-btn" onClick={onBack}><BackIcon /> Back to Upload Requests</button>
+      </div>
+      <div className="ad-detail-card">
+        <div className="ad-detail-header">
+          <h2 className="ad-detail-title">{paper.title || "Upload Paper Request"}</h2>
+          <div style={{ marginTop: 10 }}>
+            <span className="ad-status-pill" style={{ background: s.bg, color: s.color, borderColor: s.border }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
+              {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+            </span>
+          </div>
+        </div>
+
+        <div className="ad-cert-section" style={{ marginBottom: 0 }}>
+          <div className="ad-cert-section-title" style={{ marginBottom: 12 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            Author Information
+          </div>
+          <div className="ad-detail-grid">
+            <DetailField label="Full Name">{req.user?.full_name || "—"}</DetailField>
+            <DetailField label="Email">{req.user?.email || "—"}</DetailField>
+            <DetailField label="Date Submitted">
+              {req.created_at ? new Date(req.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "—"}
+            </DetailField>
+          </div>
+        </div>
+
+        <div className="ad-cert-section" style={{ marginTop: 20 }}>
+          <div className="ad-cert-section-title" style={{ marginBottom: 12 }}>
+            <FileIcon size={14} /> Paper Details
+          </div>
+          <div className="ad-detail-grid">
+            <DetailField label="Authors">{paper.authors?.join(", ") || "—"}</DetailField>
+            <DetailField label="Year">{paper.year ? <span className="ad-pill ad-pill-year">{paper.year}</span> : "—"}</DetailField>
+            <DetailField label="Program">{paper.course_or_program ? <span className="ad-pill ad-pill-prog">{paper.course_or_program}</span> : "—"}</DetailField>
+            <DetailField label="Access">
+              {(() => { const at = ACCESS_LABELS[paper.access_type] || ACCESS_LABELS.open;
+                return <span style={{ background: at.bg, color: at.color, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10 }}>{at.label}</span>; })()}
+            </DetailField>
+            <DetailField label="Research Type">
+              {paper.research_type ? <span style={{ textTransform: "capitalize" }}>{paper.research_type.replace("_", " ")}</span> : "—"}
+            </DetailField>
+            <DetailField label="PDF">
+              {paper.file_path
+                ? <a className="ad-pdf-link" href={getStorageUrl(paper.file_path)} target="_blank" rel="noopener noreferrer"><FileIcon size={11} /> View PDF</a>
+                : <span style={{ color: "#c4c9d0" }}>No file</span>}
+            </DetailField>
+          </div>
+          {paper.abstract && (
+            <div style={{ marginTop: 16 }}>
+              <div className="ad-detail-label" style={{ marginBottom: 6 }}>Abstract</div>
+              <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.7 }}>{paper.abstract}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="ad-cert-section" style={{ marginTop: 20 }}>
+          <div className="ad-cert-section-title">
+            <CertIcon />
+            Certificates 
+          </div>
+          <div className="ad-cert-grid">
+            <div className="ad-cert-item">
+              <div className="ad-cert-item-label">Certificate of Grammarian</div>
+              <CertLink path={paper.grammarian_cert_path} label="View Certificate" />
+            </div>
+            <div className="ad-cert-item">
+              <div className="ad-cert-item-label">Turnitin / Plagiarism Report</div>
+              <CertLink path={paper.turnitin_cert_path} label="View Report" />
+            </div>
+            <div className="ad-cert-item">
+              <div className="ad-cert-item-label">Certificate of Statistician</div>
+              <CertLink path={paper.statistician_cert_path} label="View Certificate" />
+            </div>
+          </div>
+        </div>
+
+        {req.status === "pending" && (
+          <div style={{ display: "flex", gap: 10, marginTop: 24, paddingTop: 20, borderTop: "1px solid #f1f3f4" }}>
+            <button className="ad-approve-btn" disabled={busy} onClick={() => onDecide(req.id, "approve")}>
+              {busy ? <Spinner size={12} color="rgba(0,100,0,0.3)" top="#166534" /> : "✓ Approve & Publish"}
+            </button>
+            <button className="ad-reject-btn" disabled={busy} onClick={() => onDecide(req.id, "reject")}>Reject</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Dashboard ────────────────────────────────────────────
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab]     = useState("papers");
-  const [papers, setPapers]           = useState([]);
-  const [requests, setRequests]       = useState([]);
-  const [upgradeRequests, setUpgradeRequests] = useState([]);
+  const [activeTab, setActiveTab]               = useState("papers");
+  const [papers, setPapers]                     = useState([]);
+  const [requests, setRequests]                 = useState([]);
+  const [upgradeRequests, setUpgradeRequests]   = useState([]);
   const [uploadPaperRequests, setUploadPaperRequests] = useState([]);
-  const [whitelist, setWhitelist]     = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState("");
-  const [search, setSearch]           = useState("");
-  const [showAdd, setShowAdd]         = useState(false);
-  const [editTarget, setEditTarget]   = useState(null);
-  const [deletingId, setDeletingId]   = useState(null);
-  const [newEmail, setNewEmail]       = useState("");
-  const [addingEmail, setAddingEmail] = useState(false);
-  const [emailErr, setEmailErr]       = useState("");
-  const [decidingId, setDecidingId]   = useState(null);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [whitelist, setWhitelist]               = useState([]);
+  const [loading, setLoading]                   = useState(true);
+  const [error, setError]                       = useState("");
+  const [search, setSearch]                     = useState("");
+  const [showAdd, setShowAdd]                   = useState(false);
+  const [editTarget, setEditTarget]             = useState(null);
+  const [deletingId, setDeletingId]             = useState(null);
+  const [newEmail, setNewEmail]                 = useState("");
+  const [addingEmail, setAddingEmail]           = useState(false);
+  const [emailErr, setEmailErr]                 = useState("");
+  const [decidingId, setDecidingId]             = useState(null);
+  const [dropdownOpen, setDropdownOpen]         = useState(false);
   const dropdownRef = useRef(null);
+
+  // ── Detail view state ──
+  const [selectedPaper, setSelectedPaper]       = useState(null);
+  const [selectedRequest, setSelectedRequest]   = useState(null);
+  const [selectedUpgrade, setSelectedUpgrade]   = useState(null);
+  const [selectedUpload, setSelectedUpload]     = useState(null);
 
   const meta = user?.user_metadata ?? {};
   const avatar = meta.avatar_url || meta.picture || null;
@@ -292,12 +640,19 @@ export default function AdminDashboard() {
   const initials = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
   useEffect(() => {
-    const handler = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
-    };
+    const handler = (e) => { if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false); };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  // Clear detail views when switching tabs
+  const switchTab = (tab) => {
+    setActiveTab(tab);
+    setSelectedPaper(null);
+    setSelectedRequest(null);
+    setSelectedUpgrade(null);
+    setSelectedUpload(null);
+  };
 
   const fetchPapers = async () => {
     setLoading(true); setError("");
@@ -306,37 +661,27 @@ export default function AdminDashboard() {
       setPapers(res.data.results ?? []);
     } catch (e) {
       setError(e?.response?.data?.detail || e.message || "Failed to load papers.");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const fetchRequests = async () => {
-    try {
-      const res = await api.get("/api/admin/requests");
-      setRequests(res.data ?? []);
-    } catch (e) { console.error("Failed to load requests:", e.message); }
+    try { const res = await api.get("/api/admin/requests"); setRequests(res.data ?? []); }
+    catch (e) { console.error("Failed to load requests:", e.message); }
   };
 
   const fetchUpgradeRequests = async () => {
-    try {
-      const res = await api.get("/api/admin/upgrade-requests");
-      setUpgradeRequests(res.data ?? []);
-    } catch (e) { console.error("Failed to load upgrade requests:", e.message); }
+    try { const res = await api.get("/api/admin/upgrade-requests"); setUpgradeRequests(res.data ?? []); }
+    catch (e) { console.error("Failed to load upgrade requests:", e.message); }
   };
 
   const fetchWhitelist = async () => {
-    try {
-      const res = await api.get("/api/admin/whitelist");
-      setWhitelist(res.data ?? []);
-    } catch (e) { console.error("Failed to load whitelist:", e.message); }
+    try { const res = await api.get("/api/admin/whitelist"); setWhitelist(res.data ?? []); }
+    catch (e) { console.error("Failed to load whitelist:", e.message); }
   };
 
   const fetchUploadPaperRequests = async () => {
-    try {
-      const res = await api.get("/api/admin/upload-requests");
-      setUploadPaperRequests(res.data ?? []);
-    } catch (e) { console.error("Failed to load upload paper requests:", e.message); }
+    try { const res = await api.get("/api/admin/upload-requests"); setUploadPaperRequests(res.data ?? []); }
+    catch (e) { console.error("Failed to load upload paper requests:", e.message); }
   };
 
   useEffect(() => {
@@ -353,6 +698,7 @@ export default function AdminDashboard() {
     try {
       await api.delete(`/api/admin/papers/${paper.id}`);
       setPapers((prev) => prev.filter((p) => p.id !== paper.id));
+      setSelectedPaper(null);
     } catch (e) {
       alert("Delete failed: " + (e?.response?.data?.detail || e.message));
     } finally { setDeletingId(null); }
@@ -362,35 +708,36 @@ export default function AdminDashboard() {
     try {
       await api.patch(`/api/admin/requests/${requestId}`, { status: newStatus });
       setRequests((prev) => prev.map((r) => r.id === requestId ? { ...r, status: newStatus } : r));
-    } catch (e) {
-      alert("Failed: " + (e?.response?.data?.detail || e.message));
-    }
+      if (selectedRequest?.id === requestId) setSelectedRequest((r) => ({ ...r, status: newStatus }));
+    } catch (e) { alert("Failed: " + (e?.response?.data?.detail || e.message)); }
   };
 
-  // ── Approve / reject upgrade request ─────────────────────────
   const handleUpgradeDecision = async (requestId, action) => {
     setDecidingId(requestId);
     try {
       await api.post(`/api/admin/upgrade-requests/${requestId}/decide`, { action });
-
-      // On approval, add the paper's secondary_email to the whitelist
       if (action === "approve") {
         const req = upgradeRequests.find((r) => r.id === requestId);
         const secondaryEmail = req?.paper?.secondary_email;
         if (secondaryEmail) {
-          try {
-            await api.post("/api/admin/whitelist", { email: secondaryEmail });
-          } catch (e) {
-            console.warn("Whitelist add skipped:", e?.response?.data?.detail || e.message);
-          }
+          try { await api.post("/api/admin/whitelist", { email: secondaryEmail }); }
+          catch (e) { console.warn("Whitelist add skipped:", e?.response?.data?.detail || e.message); }
         }
       }
+      await Promise.all([fetchUpgradeRequests(), fetchPapers(), fetchWhitelist()]);
+      setSelectedUpgrade(null);
+    } catch (e) {
+      alert("Failed: " + (e?.response?.data?.detail || e.message));
+    } finally { setDecidingId(null); }
+  };
 
-      await Promise.all([
-        fetchUpgradeRequests(),
-        fetchPapers(),
-        fetchWhitelist(),
-      ]);
+  const handleUploadRequestDecision = async (requestId, action) => {
+    setDecidingId(requestId);
+    try {
+      await api.post(`/api/admin/upload-requests/${requestId}/decide`, { action });
+      await fetchUploadPaperRequests();
+      await fetchPapers();
+      setSelectedUpload(null);
     } catch (e) {
       alert("Failed: " + (e?.response?.data?.detail || e.message));
     } finally { setDecidingId(null); }
@@ -414,9 +761,7 @@ export default function AdminDashboard() {
     try {
       await api.delete(`/api/admin/whitelist/${id}`);
       setWhitelist((prev) => prev.filter((w) => w.id !== id));
-    } catch (e) {
-      alert("Failed to remove: " + (e?.response?.data?.detail || e.message));
-    }
+    } catch (e) { alert("Failed to remove: " + (e?.response?.data?.detail || e.message)); }
   };
 
   const filtered = papers.filter((p) => {
@@ -427,21 +772,9 @@ export default function AdminDashboard() {
       || p.course_or_program?.toLowerCase().includes(q);
   });
 
-  // ── Approve / reject author upload request ───────────────────
-  const handleUploadRequestDecision = async (requestId, action) => {
-    setDecidingId(requestId);
-    try {
-      await api.post(`/api/admin/upload-requests/${requestId}/decide`, { action });
-      await fetchUploadPaperRequests();
-      await fetchPapers();
-    } catch (e) {
-      alert("Failed: " + (e?.response?.data?.detail || e.message));
-    } finally { setDecidingId(null); }
-  };
-
-  const pendingRequestCount       = requests.filter((r) => r.status === "pending").length;
-  const pendingUpgradeCount       = upgradeRequests.filter((r) => r.status === "pending").length;
-  const pendingUploadPaperCount   = uploadPaperRequests.filter((r) => r.status === "pending").length;
+  const pendingRequestCount     = requests.filter((r) => r.status === "pending").length;
+  const pendingUpgradeCount     = upgradeRequests.filter((r) => r.status === "pending").length;
+  const pendingUploadPaperCount = uploadPaperRequests.filter((r) => r.status === "pending").length;
 
   return (
     <>
@@ -474,7 +807,7 @@ export default function AdminDashboard() {
 
         .ad-body { padding:32px; max-width:1100px; margin:0 auto; }
 
-        .ad-tabs { display:flex; gap:4px; margin-bottom:24px; background:#fff; border:1px solid #e8eaed; border-radius:10px; padding:4px; width:fit-content; }
+        .ad-tabs { display:flex; gap:4px; margin-bottom:24px; background:#fff; border:1px solid #e8eaed; border-radius:10px; padding:4px; width:fit-content; flex-wrap:wrap; }
         .ad-tab-btn { padding:8px 20px; border-radius:7px; border:none; background:none; font-size:13.5px; font-weight:500; font-family:inherit; color:#5f6368; cursor:pointer; transition:background 0.15s,color 0.15s; display:flex; align-items:center; gap:7px; white-space:nowrap; }
         .ad-tab-btn.active { background:#006400; color:#fff; font-weight:600; }
         .ad-tab-btn:hover:not(.active) { background:#f1f3f4; color:#202124; }
@@ -483,7 +816,7 @@ export default function AdminDashboard() {
         .ad-tab-btn:not(.active) .ad-tab-badge { background:#fef2f2; color:#9b0000; }
 
         .ad-controls { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; flex-wrap:wrap; }
-        .ad-section-title { font-family:'Schibsted Grotesk',serif; font-size:22px; color:#202124; }
+        .ad-section-title { font-family:'DM Sans',serif; font-size:22px; font-weight:700; color:#202124; }
         .ad-controls-right { display:flex; align-items:center; gap:10px; }
         .ad-add-btn { display:inline-flex; align-items:center; gap:7px; background:linear-gradient(135deg,#006400,#1a8a1a); color:#fff; border:none; border-radius:8px; padding:9px 18px; font-size:13.5px; font-weight:600; font-family:inherit; cursor:pointer; box-shadow:0 2px 6px rgba(0,100,0,0.25); white-space:nowrap; transition:opacity 0.15s; }
         .ad-add-btn:hover { opacity:.9; }
@@ -498,7 +831,7 @@ export default function AdminDashboard() {
         .ad-table th { padding:12px 16px; text-align:left; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#80868b; }
         .ad-table td { padding:14px 16px; border-bottom:1px solid #f1f3f4; vertical-align:top; color:#3c4043; }
         .ad-table tr:last-child td { border-bottom:none; }
-        .ad-table tr:hover td { background:#fafafa; }
+        .ad-table tbody tr.clickable:hover td { background:#f0faf0; cursor:pointer; }
         .ad-title-cell { font-weight:600; color:#202124; max-width:260px; line-height:1.4; }
         .ad-authors-cell { color:#5f6368; max-width:160px; line-height:1.4; }
         .ad-pill { display:inline-block; font-size:10.5px; font-weight:600; padding:2px 8px; border-radius:10px; }
@@ -521,13 +854,39 @@ export default function AdminDashboard() {
         .ad-reject-btn:hover { background:#fee2e2; }
         .ad-reject-btn:disabled { opacity:.5; cursor:not-allowed; }
 
-        .ad-upgrade-card { background:#fff; border:1px solid #e8eaed; border-radius:10px; padding:16px 20px; margin-bottom:10px; display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap; }
-        .ad-upgrade-info { flex:1; min-width:200px; }
-        .ad-upgrade-name { font-size:14px; font-weight:600; color:#202124; margin-bottom:2px; }
-        .ad-upgrade-email { font-size:12px; color:#9aa0a6; margin-bottom:8px; }
-        .ad-upgrade-paper { font-size:13px; color:#374151; font-style:italic; }
-        .ad-upgrade-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; align-self:center; }
+        /* ── Detail view ── */
+        .ad-detail-wrap { animation: adFadeIn 0.18s ease; }
+        .ad-detail-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+        .ad-back-btn { display:inline-flex; align-items:center; gap:8px; background:none; border:1px solid #e8eaed; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:600; color:#374151; cursor:pointer; font-family:inherit; transition:background 0.15s,border-color 0.15s; }
+        .ad-back-btn:hover { background:#f1f3f4; border-color:#d1d5db; }
+        .ad-detail-actions { display:flex; gap:6px; }
+        .ad-detail-card { background:#fff; border:1px solid #e8eaed; border-radius:14px; overflow:hidden; }
+        .ad-detail-header { padding:24px 28px 20px; border-bottom:1px solid #f1f3f4; }
+        .ad-detail-title { font-family:'DM Sans',sans-serif; font-size:20px; font-weight:700; color:#111827; line-height:1.4; }
+        .ad-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; padding:0 28px; }
+        .ad-detail-field { padding:14px 0; border-bottom:1px solid #f8f9fa; }
+        .ad-detail-field:nth-last-child(-n+2) { border-bottom:none; }
+        .ad-detail-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:#9aa0a6; margin-bottom:5px; }
+        .ad-detail-value { font-size:13.5px; color:#202124; font-weight:500; }
+        .ad-detail-abstract { padding:20px 28px; border-top:1px solid #f1f3f4; }
 
+        /* ── Cert section ── */
+        .ad-cert-section { padding:20px 28px; border-top:1px solid #f1f3f4; }
+        .ad-cert-section-title { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#374151; margin-bottom:16px; }
+        .ad-admin-badge { font-size:9.5px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; background:#fef2f2; color:#9b0000; border:1px solid #fecaca; padding:2px 7px; border-radius:10px; }
+        .ad-cert-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+        .ad-cert-item { background:#f8f9fa; border:1px solid #e8eaed; border-radius:10px; padding:14px 16px; }
+        .ad-cert-item-label { font-size:11.5px; font-weight:600; color:#5f6368; margin-bottom:8px; }
+
+        /* ── Request card ── */
+        .ad-req-card { background:#fff; border:1px solid #e8eaed; border-radius:10px; padding:16px 20px; margin-bottom:8px; display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap; cursor:pointer; transition:border-color 0.15s, box-shadow 0.15s; }
+        .ad-req-card:hover { border-color:#006400; box-shadow:0 2px 12px rgba(0,100,0,0.08); }
+        .ad-req-info { flex:1; min-width:200px; }
+        .ad-req-name { font-size:14px; font-weight:600; color:#202124; margin-bottom:2px; }
+        .ad-req-email { font-size:12px; color:#9aa0a6; margin-bottom:6px; }
+        .ad-req-paper { font-size:13px; color:#374151; font-style:italic; }
+
+        /* ── Whitelist ── */
         .ad-whitelist-wrap { background:#fff; border:1px solid #e8eaed; border-radius:12px; overflow:hidden; }
         .ad-whitelist-add { display:flex; gap:10px; padding:16px; border-bottom:1px solid #f1f3f4; align-items:flex-start; flex-wrap:wrap; }
         .ad-whitelist-input { flex:1; min-width:220px; border:1px solid #dadce0; border-radius:8px; padding:9px 12px; font-size:13.5px; font-family:inherit; color:#202124; outline:none; transition:border-color 0.15s; }
@@ -548,7 +907,7 @@ export default function AdminDashboard() {
         .ad-modal { background:#fff; border-radius:16px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.18); animation:adSlideUp 0.22s ease; }
         @keyframes adSlideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
         .ad-modal-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 0; position:sticky; top:0; background:#fff; z-index:1; }
-        .ad-modal-title { font-family:'Schibsted Grotesk',serif; font-size:20px; color:#202124; }
+        .ad-modal-title { font-family:'DM Sans',serif; font-size:20px; font-weight:700; color:#202124; }
         .ad-modal-close { background:none; border:none; cursor:pointer; color:#9aa0a6; padding:4px; border-radius:6px; line-height:1; transition:color 0.15s,background 0.15s; }
         .ad-modal-close:hover { color:#202124; background:#f1f3f4; }
         .ad-modal-body { padding:20px 24px 24px; display:flex; flex-direction:column; gap:16px; }
@@ -585,8 +944,9 @@ export default function AdminDashboard() {
         @media (max-width:768px) {
           .ad-body { padding:20px 16px; }
           .ad-header { padding:0 16px; }
-          .ad-user-info { display:none; }
           .ad-row { grid-template-columns:1fr; }
+          .ad-detail-grid { grid-template-columns:1fr; }
+          .ad-cert-grid { grid-template-columns:1fr; }
         }
       `}</style>
 
@@ -633,327 +993,289 @@ export default function AdminDashboard() {
 
           {/* ── Tabs ── */}
           <div className="ad-tabs">
-            <button className={`ad-tab-btn${activeTab === "papers" ? " active" : ""}`} onClick={() => setActiveTab("papers")}>
+            <button className={`ad-tab-btn${activeTab === "papers" ? " active" : ""}`} onClick={() => switchTab("papers")}>
               Papers <span className="ad-tab-badge">{papers.length}</span>
             </button>
-            <button className={`ad-tab-btn${activeTab === "requests" ? " active" : ""}`} onClick={() => setActiveTab("requests")}>
+            <button className={`ad-tab-btn${activeTab === "requests" ? " active" : ""}`} onClick={() => switchTab("requests")}>
               Access Requests
               {pendingRequestCount > 0 && <span className="ad-tab-badge">{pendingRequestCount}</span>}
             </button>
-            <button className={`ad-tab-btn${activeTab === "upgrades" ? " active" : ""}`} onClick={() => setActiveTab("upgrades")}>
+            <button className={`ad-tab-btn${activeTab === "upgrades" ? " active" : ""}`} onClick={() => switchTab("upgrades")}>
               Author Upgrades
               {pendingUpgradeCount > 0 && <span className="ad-tab-badge">{pendingUpgradeCount}</span>}
             </button>
-            <button className={`ad-tab-btn${activeTab === "upload-requests" ? " active" : ""}`} onClick={() => setActiveTab("upload-requests")}>
+            <button className={`ad-tab-btn${activeTab === "upload-requests" ? " active" : ""}`} onClick={() => switchTab("upload-requests")}>
               Upload Paper Requests
               {pendingUploadPaperCount > 0 && <span className="ad-tab-badge">{pendingUploadPaperCount}</span>}
             </button>
-            <button className={`ad-tab-btn${activeTab === "whitelist" ? " active" : ""}`} onClick={() => setActiveTab("whitelist")}>
+            <button className={`ad-tab-btn${activeTab === "whitelist" ? " active" : ""}`} onClick={() => switchTab("whitelist")}>
               Whitelist <span className="ad-tab-badge">{whitelist.length}</span>
             </button>
           </div>
 
-          {/* ── Papers Tab ── */}
+          {/* ══════════════════════════════════════════
+              PAPERS TAB
+          ══════════════════════════════════════════ */}
           {activeTab === "papers" && (
-            <>
-              <div className="ad-controls">
-                <div className="ad-section-title">All Papers</div>
-                <div className="ad-controls-right">
-                  <div className="ad-search-wrap">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
-                    <input className="ad-search-input" type="text" placeholder="Search title, author, program…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            selectedPaper ? (
+              <PaperDetail
+                paper={selectedPaper}
+                onBack={() => setSelectedPaper(null)}
+                onEdit={(p) => { setSelectedPaper(null); setEditTarget(p); }}
+                onDelete={handleDelete}
+                deletingId={deletingId}
+              />
+            ) : (
+              <>
+                <div className="ad-controls">
+                  <div className="ad-section-title">All Papers</div>
+                  <div className="ad-controls-right">
+                    <div className="ad-search-wrap">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                      </svg>
+                      <input className="ad-search-input" type="text" placeholder="Search title, author, program…" value={search} onChange={(e) => setSearch(e.target.value)} />
+                    </div>
+                    <button className="ad-add-btn" onClick={() => setShowAdd(true)}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                      Add Paper
+                    </button>
                   </div>
-                  <button className="ad-add-btn" onClick={() => setShowAdd(true)}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    Add Paper
-                  </button>
                 </div>
-              </div>
-              <div className="ad-table-wrap">
-                <table className="ad-table">
-                  <thead>
-                    <tr><th>#</th><th>Title</th><th>Authors</th><th>Year</th><th>Program</th><th>Access</th><th>Status</th><th>PDF</th><th /></tr>
-                  </thead>
-                  <tbody>
-                    {loading && [1,2,3,4,5].map((i) => (
-                      <tr className="ad-skel-row" key={i}>
-                        {[20,"80%","60%",36,"70%",80,80,48].map((w, j) => (
-                          <td key={j}><div className="ad-skel" style={{ width: w }} /></td>
-                        ))}
-                        <td />
-                      </tr>
-                    ))}
-                    {!loading && filtered.length === 0 && (
-                      <tr><td colSpan={9}><div className="ad-empty">{papers.length === 0 ? "No papers found." : "No papers match your search."}</div></td></tr>
-                    )}
-                    {!loading && filtered.map((paper, i) => {
-                      const at  = ACCESS_LABELS[paper.access_type] || ACCESS_LABELS.open;
-                      const st  = STATUS_LABELS[paper.status] || STATUS_LABELS.pending;
-                      return (
-                        <tr key={paper.id}>
-                          <td style={{ color: "#9aa0a6", fontSize: 12 }}>{i + 1}</td>
-                          <td className="ad-title-cell">{paper.title || "Untitled"}</td>
-                          <td className="ad-authors-cell">{paper.authors?.length > 0 ? paper.authors.join(", ") : <span style={{ color: "#c4c9d0" }}>—</span>}</td>
-                          <td>{paper.year ? <span className="ad-pill ad-pill-year">{paper.year}</span> : <span style={{ color: "#c4c9d0" }}>—</span>}</td>
-                          <td>{paper.course_or_program ? <span className="ad-pill ad-pill-prog">{paper.course_or_program}</span> : <span style={{ color: "#c4c9d0" }}>—</span>}</td>
-                          <td><span style={{ background: at.bg, color: at.color, fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 10 }}>{at.label}</span></td>
-                          <td><span style={{ background: st.bg, color: st.color, fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 10 }}>{st.label}</span></td>
-                          {/* ── FIXED: was paper.public_url, now uses getStorageUrl(paper.file_path) ── */}
-                          <td>
-                            {paper.file_path
-                              ? <a className="ad-pdf-link" href={getStorageUrl(paper.file_path)} target="_blank" rel="noopener noreferrer"><FileIcon size={11} /> View</a>
-                              : <span className="ad-pill ad-pill-nourl">No file</span>}
-                          </td>
-                          <td>
-                            <div className="ad-row-actions">
-                              <button className="ad-icon-btn" title="Edit" onClick={() => setEditTarget(paper)}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                </svg>
-                              </button>
-                              <button className="ad-icon-btn del" title="Delete" disabled={deletingId === paper.id} onClick={() => handleDelete(paper)}>
-                                {deletingId === paper.id
-                                  ? <Spinner size={12} color="rgba(0,0,0,0.15)" top="#b91c1c" />
-                                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/>
-                                    </svg>}
-                              </button>
-                            </div>
-                          </td>
+                <div className="ad-table-wrap">
+                  <table className="ad-table">
+                    <thead>
+                      <tr><th>#</th><th>Title</th><th>Authors</th><th>Year</th><th>Program</th><th>Access</th><th>Status</th><th>PDF</th><th /></tr>
+                    </thead>
+                    <tbody>
+                      {loading && [1,2,3,4,5].map((i) => (
+                        <tr className="ad-skel-row" key={i}>
+                          {[20,"80%","60%",36,"70%",80,80,48].map((w, j) => (
+                            <td key={j}><div className="ad-skel" style={{ width: w }} /></td>
+                          ))}
+                          <td />
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-
-          {/* ── Access Requests Tab ── */}
-          {activeTab === "requests" && (
-            <>
-              <div className="ad-controls">
-                <div className="ad-section-title">Access Requests</div>
-              </div>
-              <div className="ad-table-wrap">
-                <table className="ad-table">
-                  <thead>
-                    <tr><th>Requester</th><th>Paper</th><th>Message</th><th>Status</th><th>Date</th><th /></tr>
-                  </thead>
-                  <tbody>
-                    {requests.length === 0 && (
-                      <tr><td colSpan={6}><div className="ad-empty">No access requests yet.</div></td></tr>
-                    )}
-                    {requests.map((req) => {
-                      const STATUS = {
-                        pending:  { bg: "#fffbeb", color: "#92400e", border: "#fde68a", dot: "#f59e0b" },
-                        approved: { bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", dot: "#16a34a" },
-                        rejected: { bg: "#fef2f2", color: "#9b0000", border: "#fecaca", dot: "#dc2626" },
-                      };
-                      const s = STATUS[req.status] || STATUS.pending;
-                      return (
-                        <tr key={req.id}>
-                          <td>
-                            <div style={{ fontWeight: 500, fontSize: 13 }}>{req.requester_name || "—"}</div>
-                            <div style={{ fontSize: 11.5, color: "#9aa0a6" }}>{req.requester_email || "—"}</div>
-                          </td>
-                          <td className="ad-title-cell" style={{ maxWidth: 200 }}>{req.paper_title || "—"}</td>
-                          <td style={{ maxWidth: 200, fontSize: 12.5, color: "#5f6368" }}>{req.message ? req.message.slice(0, 80) + (req.message.length > 80 ? "…" : "") : "—"}</td>
-                          <td>
-                            <span className="ad-status-pill" style={{ background: s.bg, color: s.color, borderColor: s.border }}>
-                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
-                              {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
-                            </span>
-                          </td>
-                          <td style={{ fontSize: 12.5, color: "#9aa0a6", whiteSpace: "nowrap" }}>
-                            {new Date(req.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-                          </td>
-                          <td>
-                            {req.status === "pending" && (
-                              <div style={{ display: "flex", gap: 6 }}>
-                                <button className="ad-approve-btn" onClick={() => handleRequestAction(req.id, "approved")}>Approve</button>
-                                <button className="ad-reject-btn" onClick={() => handleRequestAction(req.id, "rejected")}>Reject</button>
+                      ))}
+                      {!loading && filtered.length === 0 && (
+                        <tr><td colSpan={9}><div className="ad-empty">{papers.length === 0 ? "No papers found." : "No papers match your search."}</div></td></tr>
+                      )}
+                      {!loading && filtered.map((paper, i) => {
+                        const at = ACCESS_LABELS[paper.access_type] || ACCESS_LABELS.open;
+                        const st = STATUS_LABELS[paper.status] || STATUS_LABELS.pending;
+                        return (
+                          <tr key={paper.id} className="clickable" onClick={() => setSelectedPaper(paper)}>
+                            <td style={{ color: "#9aa0a6", fontSize: 12 }}>{i + 1}</td>
+                            <td className="ad-title-cell">{paper.title || "Untitled"}</td>
+                            <td className="ad-authors-cell">{paper.authors?.length > 0 ? paper.authors.join(", ") : <span style={{ color: "#c4c9d0" }}>—</span>}</td>
+                            <td>{paper.year ? <span className="ad-pill ad-pill-year">{paper.year}</span> : <span style={{ color: "#c4c9d0" }}>—</span>}</td>
+                            <td>{paper.course_or_program ? <span className="ad-pill ad-pill-prog">{paper.course_or_program}</span> : <span style={{ color: "#c4c9d0" }}>—</span>}</td>
+                            <td><span style={{ background: at.bg, color: at.color, fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 10 }}>{at.label}</span></td>
+                            <td><span style={{ background: st.bg, color: st.color, fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 10 }}>{st.label}</span></td>
+                            <td onClick={(e) => e.stopPropagation()}>
+                              {paper.file_path
+                                ? <a className="ad-pdf-link" href={getStorageUrl(paper.file_path)} target="_blank" rel="noopener noreferrer"><FileIcon size={11} /> View</a>
+                                : <span className="ad-pill ad-pill-nourl">No file</span>}
+                            </td>
+                            <td onClick={(e) => e.stopPropagation()}>
+                              <div className="ad-row-actions">
+                                <button className="ad-icon-btn" title="Edit" onClick={() => setEditTarget(paper)}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                  </svg>
+                                </button>
+                                <button className="ad-icon-btn del" title="Delete" disabled={deletingId === paper.id} onClick={() => handleDelete(paper)}>
+                                  {deletingId === paper.id
+                                    ? <Spinner size={12} color="rgba(0,0,0,0.15)" top="#b91c1c" />
+                                    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+                                      </svg>}
+                                </button>
                               </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )
           )}
 
-          {/* ── Author Upgrades Tab ── */}
+          {/* ══════════════════════════════════════════
+              ACCESS REQUESTS TAB
+          ══════════════════════════════════════════ */}
+          {activeTab === "requests" && (
+            selectedRequest ? (
+              <RequestDetail
+                req={selectedRequest}
+                onBack={() => setSelectedRequest(null)}
+                onAction={handleRequestAction}
+              />
+            ) : (
+              <>
+                <div className="ad-controls">
+                  <div className="ad-section-title">Access Requests</div>
+                </div>
+                <div className="ad-table-wrap">
+                  <table className="ad-table">
+                    <thead>
+                      <tr><th>Requester</th><th>Paper</th><th>Message</th><th>Status</th><th>Date</th></tr>
+                    </thead>
+                    <tbody>
+                      {requests.length === 0 && (
+                        <tr><td colSpan={5}><div className="ad-empty">No access requests yet.</div></td></tr>
+                      )}
+                      {requests.map((req) => {
+                        const s = REQ_STATUS[req.status] || REQ_STATUS.pending;
+                        return (
+                          <tr key={req.id} className="clickable" onClick={() => setSelectedRequest(req)}>
+                            <td>
+                              <div style={{ fontWeight: 500, fontSize: 13 }}>{req.requester_name || "—"}</div>
+                              <div style={{ fontSize: 11.5, color: "#9aa0a6" }}>{req.requester_email || "—"}</div>
+                            </td>
+                            <td className="ad-title-cell" style={{ maxWidth: 200 }}>{req.paper_title || "—"}</td>
+                            <td style={{ maxWidth: 200, fontSize: 12.5, color: "#5f6368" }}>{req.message ? req.message.slice(0, 80) + (req.message.length > 80 ? "…" : "") : "—"}</td>
+                            <td>
+                              <span className="ad-status-pill" style={{ background: s.bg, color: s.color, borderColor: s.border }}>
+                                <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
+                                {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                              </span>
+                            </td>
+                            <td style={{ fontSize: 12.5, color: "#9aa0a6", whiteSpace: "nowrap" }}>
+                              {new Date(req.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )
+          )}
+
+          {/* ══════════════════════════════════════════
+              AUTHOR UPGRADES TAB
+              — Students requesting to become an Author
+          ══════════════════════════════════════════ */}
           {activeTab === "upgrades" && (
-            <>
-              <div className="ad-controls">
-                <div className="ad-section-title">Author Upgrade Requests</div>
-              </div>
-
-              {upgradeRequests.length === 0 && (
-                <div className="ad-table-wrap">
-                  <div className="ad-empty">No upgrade requests yet.</div>
-                </div>
-              )}
-
-              {upgradeRequests.map((req) => {
-                const UPGRADE_STATUS = {
-                  pending:  { bg: "#fffbeb", color: "#92400e", border: "#fde68a", dot: "#f59e0b" },
-                  approved: { bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", dot: "#16a34a" },
-                  rejected: { bg: "#fef2f2", color: "#9b0000", border: "#fecaca", dot: "#dc2626" },
-                };
-                const s    = UPGRADE_STATUS[req.status] || UPGRADE_STATUS.pending;
-                const busy = decidingId === req.id;
-
-                return (
-                  <div key={req.id} className="ad-upgrade-card">
-                    <div className="ad-upgrade-info">
-                      <div className="ad-upgrade-name">{req.user?.full_name || "Unknown user"}</div>
-                      <div className="ad-upgrade-email">{req.user?.email || "—"}</div>
-                      <div className="ad-upgrade-paper">
-                        {req.paper?.title || "Untitled paper"}
-                      </div>
-                      {req.paper?.abstract && (
-                        <div style={{ fontSize: 12, color: "#9aa0a6", marginTop: 6, lineHeight: 1.5 }}>
-                          {req.paper.abstract.slice(0, 160)}{req.paper.abstract.length > 160 ? "…" : ""}
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10, flexShrink: 0 }}>
-                      <span className="ad-status-pill" style={{ background: s.bg, color: s.color, borderColor: s.border }}>
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
-                        {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
-                      </span>
-
-                      {req.paper?.file_path && (
-                        <a
-                          href={getStorageUrl(req.paper.file_path)}
-                          target="_blank" rel="noopener noreferrer"
-                          className="ad-pdf-link"
-                        >
-                          <FileIcon size={11} /> View PDF
-                        </a>
-                      )}
-
-                      {req.status === "pending" && (
-                        <div className="ad-upgrade-actions">
-                          <button
-                            className="ad-approve-btn"
-                            disabled={busy}
-                            onClick={() => handleUpgradeDecision(req.id, "approve")}
-                          >
-                            {busy ? <Spinner size={12} color="rgba(0,100,0,0.3)" top="#166534" /> : "✓ Approve"}
-                          </button>
-                          <button
-                            className="ad-reject-btn"
-                            disabled={busy}
-                            onClick={() => handleUpgradeDecision(req.id, "reject")}
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      )}
-
-                      <div style={{ fontSize: 11.5, color: "#9aa0a6" }}>
-                        {new Date(req.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-                      </div>
+            selectedUpgrade ? (
+              <UpgradeDetail
+                req={selectedUpgrade}
+                onBack={() => setSelectedUpgrade(null)}
+                onDecide={handleUpgradeDecision}
+                decidingId={decidingId}
+              />
+            ) : (
+              <>
+                <div className="ad-controls">
+                  <div>
+                    <div className="ad-section-title">Author Upgrade Requests</div>
+                    <div style={{ fontSize: 13, color: "#9aa0a6", marginTop: 4 }}>
+                      Students requesting to upgrade their account to Author status
                     </div>
                   </div>
-                );
-              })}
-            </>
+                </div>
+                {upgradeRequests.length === 0 ? (
+                  <div className="ad-table-wrap"><div className="ad-empty">No upgrade requests yet.</div></div>
+                ) : (
+                  upgradeRequests.map((req) => {
+                    const s = REQ_STATUS[req.status] || REQ_STATUS.pending;
+                    return (
+                      <div key={req.id} className="ad-req-card" onClick={() => setSelectedUpgrade(req)}>
+                        <div className="ad-req-info">
+                          <div className="ad-req-name">{req.user?.full_name || "Unknown user"}</div>
+                          <div className="ad-req-email">{req.user?.email || "—"}</div>
+                          <div className="ad-req-paper">📄 {req.paper?.title || "Untitled paper"}</div>
+                          {req.paper?.abstract && (
+                            <div style={{ fontSize: 12, color: "#9aa0a6", marginTop: 4, lineHeight: 1.5 }}>
+                              {req.paper.abstract.slice(0, 120)}{req.paper.abstract.length > 120 ? "…" : ""}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
+                          <span className="ad-status-pill" style={{ background: s.bg, color: s.color, borderColor: s.border }}>
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
+                            {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                          </span>
+                          <div style={{ fontSize: 11.5, color: "#9aa0a6" }}>
+                            {new Date(req.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                          </div>
+                          <div style={{ fontSize: 11.5, color: "#1a73e8", fontWeight: 600 }}>Click to review →</div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </>
+            )
           )}
 
-          {/* ── Upload Paper Requests Tab ── */}
+          {/* ══════════════════════════════════════════
+              UPLOAD PAPER REQUESTS TAB
+              — Existing authors uploading new papers
+          ══════════════════════════════════════════ */}
           {activeTab === "upload-requests" && (
-            <>
-              <div className="ad-controls">
-                <div className="ad-section-title">Upload Paper Requests</div>
-              </div>
-
-              {uploadPaperRequests.length === 0 && (
-                <div className="ad-table-wrap">
-                  <div className="ad-empty">No upload paper requests yet.</div>
-                </div>
-              )}
-
-              {uploadPaperRequests.map((req) => {
-                const UP_STATUS = {
-                  pending:  { bg: "#fffbeb", color: "#92400e", border: "#fde68a", dot: "#f59e0b" },
-                  approved: { bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", dot: "#16a34a" },
-                  rejected: { bg: "#fef2f2", color: "#9b0000", border: "#fecaca", dot: "#dc2626" },
-                };
-                const s    = UP_STATUS[req.status] || UP_STATUS.pending;
-                const busy = decidingId === req.id;
-                const paper = req.papers && typeof req.papers === "object" ? req.papers : {};
-
-                return (
-                  <div key={req.id} className="ad-upgrade-card">
-                    <div className="ad-upgrade-info">
-                      <div className="ad-upgrade-name">{req.user?.full_name || "Unknown author"}</div>
-                      <div className="ad-upgrade-email">{req.user?.email || "—"}</div>
-                      <div className="ad-upgrade-paper">📄 {paper.title || "Untitled paper"}</div>
-                      {paper.abstract && (
-                        <div style={{ fontSize: 12, color: "#9aa0a6", marginTop: 6, lineHeight: 1.5 }}>
-                          {paper.abstract.slice(0, 160)}{paper.abstract.length > 160 ? "…" : ""}
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10, flexShrink: 0 }}>
-                      <span className="ad-status-pill" style={{ background: s.bg, color: s.color, borderColor: s.border }}>
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
-                        {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
-                      </span>
-
-                      {paper.file_path && (
-                        <a
-                          href={getStorageUrl(paper.file_path)}
-                          target="_blank" rel="noopener noreferrer"
-                          className="ad-pdf-link"
-                        >
-                          <FileIcon size={11} /> View PDF
-                        </a>
-                      )}
-
-                      {req.status === "pending" && (
-                        <div className="ad-upgrade-actions">
-                          <button
-                            className="ad-approve-btn"
-                            disabled={busy}
-                            onClick={() => handleUploadRequestDecision(req.id, "approve")}
-                          >
-                            {busy ? <Spinner size={12} color="rgba(0,100,0,0.3)" top="#166534" /> : "✓ Approve"}
-                          </button>
-                          <button
-                            className="ad-reject-btn"
-                            disabled={busy}
-                            onClick={() => handleUploadRequestDecision(req.id, "reject")}
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      )}
-
-                      <div style={{ fontSize: 11.5, color: "#9aa0a6" }}>
-                        {new Date(req.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-                      </div>
+            selectedUpload ? (
+              <UploadRequestDetail
+                req={selectedUpload}
+                onBack={() => setSelectedUpload(null)}
+                onDecide={handleUploadRequestDecision}
+                decidingId={decidingId}
+              />
+            ) : (
+              <>
+                <div className="ad-controls">
+                  <div>
+                    <div className="ad-section-title">Upload Paper Requests</div>
+                    <div style={{ fontSize: 13, color: "#9aa0a6", marginTop: 4 }}>
+                      Papers submitted by Authors pending review and publication
                     </div>
                   </div>
-                );
-              })}
-            </>
+                </div>
+                {uploadPaperRequests.length === 0 ? (
+                  <div className="ad-table-wrap"><div className="ad-empty">No upload paper requests yet.</div></div>
+                ) : (
+                  uploadPaperRequests.map((req) => {
+                    const s = REQ_STATUS[req.status] || REQ_STATUS.pending;
+                    const paper = req.papers && typeof req.papers === "object" ? req.papers : {};
+                    return (
+                      <div key={req.id} className="ad-req-card" onClick={() => setSelectedUpload(req)}>
+                        <div className="ad-req-info">
+                          <div className="ad-req-name">{req.user?.full_name || "Unknown author"}</div>
+                          <div className="ad-req-email">{req.user?.email || "—"}</div>
+                          <div className="ad-req-paper">📄 {paper.title || "Untitled paper"}</div>
+                          {paper.abstract && (
+                            <div style={{ fontSize: 12, color: "#9aa0a6", marginTop: 4, lineHeight: 1.5 }}>
+                              {paper.abstract.slice(0, 120)}{paper.abstract.length > 120 ? "…" : ""}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
+                          <span className="ad-status-pill" style={{ background: s.bg, color: s.color, borderColor: s.border }}>
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
+                            {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                          </span>
+                          <div style={{ fontSize: 11.5, color: "#9aa0a6" }}>
+                            {new Date(req.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                          </div>
+                          <div style={{ fontSize: 11.5, color: "#1a73e8", fontWeight: 600 }}>Click to review →</div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </>
+            )
           )}
 
-          {/* ── Whitelist Tab ── */}
+          {/* ══════════════════════════════════════════
+              WHITELIST TAB — no detail view needed
+          ══════════════════════════════════════════ */}
           {activeTab === "whitelist" && (
             <>
               <div className="ad-controls">

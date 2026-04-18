@@ -4,19 +4,24 @@ import { ALLOWED_ADMIN_EMAILS } from '../utils/constants';
 
 const AuthContext = createContext(null);
 
+// ── NEW: Resolves once the initial session check is complete.
+// api.js awaits this before sending any authenticated request.
+let _resolveSessionReady;
+export const sessionReady = new Promise((resolve) => {
+  _resolveSessionReady = resolve;
+});
+
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const initializedRef        = useRef(false);
 
-  // ── Fetch profile by primary email, fallback to secondary_email ──
   const fetchProfile = async (authUser) => {
     if (!authUser) { setProfile(null); return null; }
     try {
       const SELECT_FIELDS = 'id, email, full_name, role, is_author, is_active, secondary_email, department, year_level, student_id, last_login';
 
-      // Primary lookup — match by DLSL email
       const { data: primaryData } = await supabase
         .from('users')
         .select(SELECT_FIELDS)
@@ -28,7 +33,6 @@ export function AuthProvider({ children }) {
         return primaryData;
       }
 
-      // Fallback — logged-in email might be a registered secondary_email
       const { data: secondaryData } = await supabase
         .from('users')
         .select(SELECT_FIELDS)
@@ -69,6 +73,7 @@ export function AuthProvider({ children }) {
         setProfile(null);
       } finally {
         setLoading(false);
+        _resolveSessionReady(); // ── NEW: unblocks any api.js calls waiting on sessionReady
       }
     };
 
@@ -102,18 +107,12 @@ export function AuthProvider({ children }) {
     await fetchProfile(user);
   };
 
-  // FIX Bug 1: isAdmin must check profile.email (the primary DLSL email stored
-  // in the DB), NOT user?.email (the Google auth email, which could be a
-  // secondary Gmail). If we check user?.email, an author whose secondary Gmail
-  // is also in ALLOWED_ADMIN_EMAILS would incorrectly get isAdmin = true.
   const isAdmin = !!(profile && (
     profile.role === 'admin' || ALLOWED_ADMIN_EMAILS.includes(profile.email)
   ));
 
   const isAuthor = profile?.is_author === true;
 
-  // ── Author convenience exports ──
-  // Pre-fill author name & secondary email for UploadPaper form
   const authorName = profile?.full_name || null;
   const secondaryEmail = profile?.secondary_email || null;
 
@@ -126,8 +125,8 @@ export function AuthProvider({ children }) {
       isAdmin, 
       isAuthor, 
       refreshProfile,
-      authorName,      // ← NEW: primary author name
-      secondaryEmail   // ← NEW: backup email
+      authorName,
+      secondaryEmail
     }}>
       {loading ? (
         <div style={{
