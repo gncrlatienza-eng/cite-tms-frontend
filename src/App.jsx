@@ -17,18 +17,14 @@ import AdminRoute from "./routes/AdminRoute";
 import AuthorRoute from "./routes/AuthorRoute";
 import { useAuth } from "./context/AuthContext";
 
+// Only redirects logged-in admins — never blocks public visitors
 function PublicRoute({ children }) {
-  const { user, isAdmin, loading, profile } = useAuth();
+  const { user, isAdmin, loading, profileLoading } = useAuth();
 
-  if (loading) return null;
+  // Auth still resolving — show page immediately, redirect after if needed
+  if (loading || profileLoading) return children;
 
-  // No user (or auth timed out) — just show the public page
-  if (!user) return children;
-
-  // User logged in but profile still loading — wait
-  if (user && profile === null) return null;
-
-  // User is admin — redirect to dashboard
+  // Logged-in admin → redirect to dashboard
   if (user && isAdmin) return <Navigate to="/admin/dashboard" replace />;
 
   return children;
@@ -37,27 +33,23 @@ function PublicRoute({ children }) {
 function App() {
   return (
     <Routes>
-      {/* Public — admins get bounced to dashboard */}
+      {/* Public — renders immediately, no auth gate */}
       <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/papers" element={<PapersPage />} />
       <Route path="/papers/:id" element={<PaperPreviewPage />} />
-
-      {/* Terms & Conditions */}
       <Route path="/terms" element={<TermsPage />} />
-
-      {/* Auth callback */}
       <Route path="/auth/callback" element={<AuthCallback />} />
 
-      {/* Protected — any logged in user */}
+      {/* Protected — any logged-in user */}
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/bookmarks" element={<BookmarksPage />} />
       <Route path="/requests" element={<RequestsPage />} />
 
-      {/* Student — upload paper */}
+      {/* Student */}
       <Route path="/student/upload" element={<UploadPaper />} />
 
-      {/* Author — requires is_author = true */}
+      {/* Author */}
       <Route path="/author/dashboard" element={<AuthorRoute><AuthorDashboard /></AuthorRoute>} />
       <Route path="/author/papers" element={<AuthorRoute><MyPapers /></AuthorRoute>} />
       <Route path="/author/requests" element={<AuthorRoute><AccessRequests /></AuthorRoute>} />

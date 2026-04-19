@@ -10,12 +10,15 @@ export const sessionReady = new Promise((resolve) => {
 });
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser]                 = useState(null);
+  const [profile, setProfile]           = useState(null);
+  const [loading, setLoading]           = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const fetchProfile = async (authUser) => {
     if (!authUser) { setProfile(null); return null; }
+
+    setProfileLoading(true);
     try {
       const SELECT_FIELDS = 'id, email, full_name, role, is_author, is_active, secondary_email, department, year_level, student_id, last_login';
 
@@ -43,6 +46,8 @@ export function AuthProvider({ children }) {
       console.warn('fetchProfile error (non-fatal):', err);
       setProfile(null);
       return null;
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -57,7 +62,7 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    // Safety timeout: force loading to stop after 8s no matter what
+    // Safety timeout — stops loading spinner after 8s no matter what
     const timeout = setTimeout(() => {
       console.warn('Auth init timed out — forcing loading to stop');
       setLoading(false);
@@ -67,7 +72,6 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'INITIAL_SESSION') {
-          // Replaces getSession() — fires immediately with current session
           try {
             await applySession(session);
           } catch (err) {
@@ -115,18 +119,18 @@ export function AuthProvider({ children }) {
     await fetchProfile(user);
   };
 
-  const isAdmin = !!(profile && (
+  const isAdmin  = !!(profile && (
     profile.role === 'admin' || ALLOWED_ADMIN_EMAILS.includes(profile.email)
   ));
-
-  const isAuthor      = profile?.is_author === true;
-  const authorName    = profile?.full_name || null;
+  const isAuthor       = profile?.is_author === true;
+  const authorName     = profile?.full_name || null;
   const secondaryEmail = profile?.secondary_email || null;
 
   return (
     <AuthContext.Provider value={{
       user,
       profile,
+      profileLoading,
       logout,
       loading,
       isAdmin,
@@ -135,32 +139,7 @@ export function AuthProvider({ children }) {
       authorName,
       secondaryEmail,
     }}>
-      {loading ? (
-        <div style={{
-          position: 'fixed', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'radial-gradient(circle at top, #f0fdf4 0, #ffffff 52%)',
-          zIndex: 9999,
-        }}>
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: '50%',
-              border: '3px solid #bbf7d0', borderTopColor: '#166534',
-              animation: 'spin 0.9s ease-in-out infinite',
-            }} />
-            <div style={{
-              fontSize: 13, color: '#4b5563',
-              letterSpacing: '0.08em', textTransform: 'uppercase',
-            }}>
-              Loading CITE‑TMS
-            </div>
-          </div>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
-      ) : children}
+      {children}
     </AuthContext.Provider>
   );
 }

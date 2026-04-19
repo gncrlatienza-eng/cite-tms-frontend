@@ -27,7 +27,7 @@ export default function AuthCallback() {
       console.log('🔐 [AuthCallback] Processing login for:', email);
       console.log('🎯 [AuthCallback] Login intent:', intent);
 
-      // ── Check has_accepted_terms for all logged-in users ──────────────
+      // ── Check has_accepted_terms ──────────────────────────────────────
       const { data: termsRecord } = await supabase
         .from('users')
         .select('has_accepted_terms, is_author, role')
@@ -55,7 +55,7 @@ export default function AuthCallback() {
         return;
       }
 
-      // ── Author login — allow secondary (personal) Gmail ───────────────
+      // ── Author login ──────────────────────────────────────────────────
       if (intent === 'author') {
         if (!email.endsWith('@dlsl.edu.ph')) {
           const { data: secondaryUser } = await supabase
@@ -103,28 +103,24 @@ export default function AuthCallback() {
 
       // ── Student / fallback login ──────────────────────────────────────
       console.log('📧 [AuthCallback] Fallback login - email:', email);
+
       if (!email.endsWith('@dlsl.edu.ph')) {
-        console.log('🔍 [AuthCallback] Non-DLSL email detected, checking secondary_email...');
         const { data: secondaryUser } = await supabase
           .from('users')
           .select('is_author, role')
           .eq('secondary_email', email)
           .maybeSingle();
 
-        console.log('📊 [AuthCallback] Secondary user lookup result:', secondaryUser);
-
         if (secondaryUser) {
-          if (secondaryUser.is_author) {
-            console.log('✅ [AuthCallback] Secondary email is author, routing to /author/dashboard');
+          // ✅ Only go to author dashboard if they used author login intent
+          if (secondaryUser.is_author && intent === 'author') {
             navigate('/author/dashboard');
           } else {
-            console.log('👤 [AuthCallback] Secondary email is student, routing to /');
             navigate('/');
           }
           return;
         }
 
-        console.log('❌ [AuthCallback] Secondary email not found in database, blocking login');
         await supabase.auth.signOut({ scope: 'global' });
         setBlockedEmail(email);
         setBlockReason('domain');
@@ -132,9 +128,7 @@ export default function AuthCallback() {
         return;
       }
 
-      // ── DLSL email — verify exists in database before allowing in ─────
-      console.log('🎓 [AuthCallback] DLSL email detected, checking database...');
-
+      // ── DLSL email ────────────────────────────────────────────────────
       const { data: dlslUser } = await supabase
         .from('users')
         .select('id, role, is_author')
@@ -142,7 +136,6 @@ export default function AuthCallback() {
         .maybeSingle();
 
       if (!dlslUser) {
-        console.log('❌ [AuthCallback] DLSL email not found in database, blocking login');
         await supabase.auth.signOut({ scope: 'global' });
         setBlockedEmail(email);
         setBlockReason('domain');
@@ -150,15 +143,13 @@ export default function AuthCallback() {
         return;
       }
 
-      // ── Route authors to their dashboard ─────────────────────────────
-      if (dlslUser.is_author) {
-        console.log('✅ [AuthCallback] DLSL author detected, routing to /author/dashboard');
+      // ✅ Only route to author dashboard if intent was 'author'
+      if (dlslUser.is_author && intent === 'author') {
         navigate('/author/dashboard');
         return;
       }
 
-      // ── Regular DLSL student ──────────────────────────────────────────
-      console.log('✅ [AuthCallback] DLSL student found, routing to /');
+      // ✅ Students (and authors who clicked student login) → home
       const postLoginRedirect = sessionStorage.getItem('post_login_redirect');
       sessionStorage.removeItem('post_login_redirect');
       navigate(postLoginRedirect && postLoginRedirect !== '/' ? postLoginRedirect : '/');
@@ -182,7 +173,6 @@ export default function AuthCallback() {
     setBlockReason('');
 
     await supabase.auth.signOut({ scope: 'global' });
-
     localStorage.setItem('login_intent', intent);
     sessionStorage.setItem('login_intent', intent);
 
@@ -262,12 +252,12 @@ export default function AuthCallback() {
       minHeight: '100vh', display: 'flex', flexDirection: 'column',
       justifyContent: 'center', alignItems: 'center', gap: 12,
       background: 'radial-gradient(circle at top, #f0fdf4 0, #ffffff 52%)',
-      fontFamily: 'system-ui, sans-serif'
+      fontFamily: 'system-ui, sans-serif',
     }}>
       <div style={{
         width: 34, height: 34, borderRadius: '50%',
         border: '3px solid #bbf7d0', borderTopColor: '#166534',
-        animation: 'spin 0.9s ease-in-out infinite'
+        animation: 'spin 0.9s ease-in-out infinite',
       }} />
       <p style={{ color: '#4b5563', fontSize: 13, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
         Signing you in…
