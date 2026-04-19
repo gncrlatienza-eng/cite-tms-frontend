@@ -22,11 +22,15 @@ function PublicRoute({ children }) {
 
   if (loading) return null;
 
-  // ← Wait for profile — don't render public page while profile is loading
-  // This prevents LandingPage from showing behind AdminDashboard
+  // No user (or auth timed out) — just show the public page
+  if (!user) return children;
+
+  // User logged in but profile still loading — wait
   if (user && profile === null) return null;
 
+  // User is admin — redirect to dashboard
   if (user && isAdmin) return <Navigate to="/admin/dashboard" replace />;
+
   return children;
 }
 
