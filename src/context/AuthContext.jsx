@@ -4,8 +4,6 @@ import { ALLOWED_ADMIN_EMAILS } from '../utils/constants';
 
 const AuthContext = createContext(null);
 
-// ── NEW: Resolves once the initial session check is complete.
-// api.js awaits this before sending any authenticated request.
 let _resolveSessionReady;
 export const sessionReady = new Promise((resolve) => {
   _resolveSessionReady = resolve;
@@ -64,6 +62,13 @@ export function AuthProvider({ children }) {
     initializedRef.current = true;
 
     const init = async () => {
+      // ── Safety timeout: force loading to stop after 8 seconds no matter what
+      const timeout = setTimeout(() => {
+        console.warn('Auth init timed out — forcing loading to stop');
+        setLoading(false);
+        _resolveSessionReady();
+      }, 8000);
+
       try {
         const { data: { session } } = await supabase.auth.getSession();
         await applySession(session);
@@ -72,8 +77,9 @@ export function AuthProvider({ children }) {
         setUser(null);
         setProfile(null);
       } finally {
+        clearTimeout(timeout);
         setLoading(false);
-        _resolveSessionReady(); // ── NEW: unblocks any api.js calls waiting on sessionReady
+        _resolveSessionReady();
       }
     };
 
