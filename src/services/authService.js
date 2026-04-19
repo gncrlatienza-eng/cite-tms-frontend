@@ -6,7 +6,6 @@ const authService = {
     localStorage.setItem('login_intent', intent);
     sessionStorage.setItem('login_intent', intent);
 
-    // Save current page so we can return to it after login
     const redirect = window.location.pathname + window.location.search;
     sessionStorage.setItem('post_login_redirect', redirect);
 
@@ -15,7 +14,7 @@ const authService = {
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: {
-          hd: 'dlsl.edu.ph', // restrict to DLSL accounts for students only
+          hd: 'dlsl.edu.ph',
           prompt: 'select_account',
         },
       },
@@ -28,10 +27,18 @@ const authService = {
   },
 
   loginAsAdminWithGoogle: async () => {
-    await supabase.auth.signOut({ scope: 'global' });
+    // ── FIXED: timeout signOut so it doesn't hang if Supabase lock is busy
+    try {
+      await Promise.race([
+        supabase.auth.signOut({ scope: 'global' }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('signOut timeout')), 3000))
+      ]);
+    } catch (e) {
+      console.warn('signOut timed out or failed, continuing anyway:', e.message);
+    }
+
     localStorage.removeItem('login_intent');
     sessionStorage.removeItem('login_intent');
-
     localStorage.setItem('login_intent', 'admin');
     sessionStorage.setItem('login_intent', 'admin');
 
@@ -49,14 +56,19 @@ const authService = {
     }
   },
 
-  // FIX: authors may use a personal Gmail (secondary email),
-  // so we must NOT pass hd: 'dlsl.edu.ph' — that restricts the
-  // Google account picker to DLSL accounts only.
   loginAsAuthorWithGoogle: async () => {
-    await supabase.auth.signOut({ scope: 'global' });
+    // ── FIXED: timeout signOut so it doesn't hang if Supabase lock is busy
+    try {
+      await Promise.race([
+        supabase.auth.signOut({ scope: 'global' }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('signOut timeout')), 3000))
+      ]);
+    } catch (e) {
+      console.warn('signOut timed out or failed, continuing anyway:', e.message);
+    }
+
     localStorage.removeItem('login_intent');
     sessionStorage.removeItem('login_intent');
-
     localStorage.setItem('login_intent', 'author');
     sessionStorage.setItem('login_intent', 'author');
 
@@ -65,7 +77,7 @@ const authService = {
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: {
-          prompt: 'select_account', // no hd — allow any Google account
+          prompt: 'select_account',
         },
       },
     });
@@ -105,7 +117,15 @@ const authService = {
   },
 
   logout: async () => {
-    await supabase.auth.signOut({ scope: 'global' });
+    // ── FIXED: timeout signOut so it doesn't hang
+    try {
+      await Promise.race([
+        supabase.auth.signOut({ scope: 'global' }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('signOut timeout')), 3000))
+      ]);
+    } catch (e) {
+      console.warn('signOut timed out or failed:', e.message);
+    }
     localStorage.removeItem('login_intent');
     sessionStorage.removeItem('login_intent');
     localStorage.removeItem('access_token');
