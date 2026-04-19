@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import SearchBar from "../../components/search/SearchBar";
 import LoginPage from "./LoginPage";
@@ -210,6 +210,17 @@ export default function LandingPage() {
         }
         .lp-browse-btn:active { transform: translateY(0); }
 
+        .lp-terms-link {
+          font-size: 12px;
+          color: #9ca3af;
+          text-decoration: none;
+          font-weight: 500;
+          font-family: 'DM Sans', system-ui, sans-serif;
+          transition: color 0.15s;
+          margin-top: 20px;
+        }
+        .lp-terms-link:hover { color: #9b0000; }
+
         @media (max-width: 640px) {
           .lp-title { font-size: 52px; letter-spacing: -1px; }
           .lp-sub { font-size: 16px; }
@@ -277,6 +288,15 @@ export default function LandingPage() {
               <div className="lp-stat-label">Access</div>
             </div>
           </div>
+
+          {/* ── T&C link inside hero — visible without scrolling ── */}
+          <Link
+            to="/terms"
+            className="lp-terms-link lp-anim lp-anim-in lp-d600"
+          >
+            Terms & Conditions
+          </Link>
+
         </section>
       </div>
 

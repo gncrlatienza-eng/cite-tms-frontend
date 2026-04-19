@@ -204,7 +204,7 @@ export default function PaperPreviewPage() {
 
         .pp-page { min-height: 100vh; padding-top: 57px; background: #fff; font-family: 'DM Sans', system-ui, sans-serif; }
 
-        .pp-breadcrumb { padding: 12px 40px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #9ca3af; border-bottom: 1px solid #f3f4f6; background: #fff; }
+        .pp-breadcrumb { padding: 12px 40px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #9ca3af; border-bottom: 1px solid #f3f4f6; background: #fff; position: sticky; top: 57px; z-index: 50; }
         .pp-breadcrumb-link { background: none; border: none; padding: 0; cursor: pointer; color: #9b0000; font-size: 13px; font-family: inherit; font-weight: 500; transition: color 0.15s; display: flex; align-items: center; gap: 5px; }
         .pp-breadcrumb-link:hover { color: #7f1d1d; }
         .pp-bc-sep { color: #d1d5db; }
