@@ -24,9 +24,11 @@ const LoadingScreen = () => (
 );
 
 export default function AuthorRoute({ children }) {
-  const { user, isAuthor, loading, profileLoading } = useAuth();
+  const { user, isAuthor, loading, profileLoading, profile } = useAuth();
 
-  if (loading || profileLoading) return <LoadingScreen />;
+  if (loading) return <LoadingScreen />;
+  if (profileLoading && !profile) return <LoadingScreen />;
+
   if (!user) return <Navigate to="/" replace />;
   if (!isAuthor) return <Navigate to="/" replace />;
 

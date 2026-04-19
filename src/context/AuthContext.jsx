@@ -10,9 +10,9 @@ export const sessionReady = new Promise((resolve) => {
 });
 
 export function AuthProvider({ children }) {
-  const [user, setUser]                 = useState(null);
-  const [profile, setProfile]           = useState(null);
-  const [loading, setLoading]           = useState(true);
+  const [user, setUser]                     = useState(null);
+  const [profile, setProfile]               = useState(null);
+  const [loading, setLoading]               = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
 
   const fetchProfile = async (authUser) => {
@@ -62,7 +62,6 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    // Safety timeout — stops loading spinner after 8s no matter what
     const timeout = setTimeout(() => {
       console.warn('Auth init timed out — forcing loading to stop');
       setLoading(false);
@@ -92,8 +91,15 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        if (['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED'].includes(event)) {
+        // Only re-fetch profile on actual user changes, not token refresh
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
           await applySession(session);
+          return;
+        }
+
+        // TOKEN_REFRESHED — just update user token, skip profile re-fetch
+        if (event === 'TOKEN_REFRESHED') {
+          if (session?.user) setUser(session.user);
         }
       }
     );

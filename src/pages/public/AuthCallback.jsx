@@ -112,7 +112,7 @@ export default function AuthCallback() {
           .maybeSingle();
 
         if (secondaryUser) {
-          // ✅ Only go to author dashboard if they used author login intent
+          // Only go to author dashboard if they used author login intent
           if (secondaryUser.is_author && intent === 'author') {
             navigate('/author/dashboard');
           } else {
@@ -143,13 +143,13 @@ export default function AuthCallback() {
         return;
       }
 
-      // ✅ Only route to author dashboard if intent was 'author'
+      // Only route to author dashboard if intent was explicitly 'author'
       if (dlslUser.is_author && intent === 'author') {
         navigate('/author/dashboard');
         return;
       }
 
-      // ✅ Students (and authors who clicked student login) → home
+      // Students (and authors who clicked student login) → home
       const postLoginRedirect = sessionStorage.getItem('post_login_redirect');
       sessionStorage.removeItem('post_login_redirect');
       navigate(postLoginRedirect && postLoginRedirect !== '/' ? postLoginRedirect : '/');

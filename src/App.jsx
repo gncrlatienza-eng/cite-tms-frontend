@@ -17,14 +17,12 @@ import AdminRoute from "./routes/AdminRoute";
 import AuthorRoute from "./routes/AuthorRoute";
 import { useAuth } from "./context/AuthContext";
 
-// Only redirects logged-in admins — never blocks public visitors
+// Renders immediately — only redirects logged-in admins
 function PublicRoute({ children }) {
   const { user, isAdmin, loading, profileLoading } = useAuth();
 
-  // Auth still resolving — show page immediately, redirect after if needed
   if (loading || profileLoading) return children;
 
-  // Logged-in admin → redirect to dashboard
   if (user && isAdmin) return <Navigate to="/admin/dashboard" replace />;
 
   return children;
@@ -33,7 +31,7 @@ function PublicRoute({ children }) {
 function App() {
   return (
     <Routes>
-      {/* Public — renders immediately, no auth gate */}
+      {/* Public — renders immediately */}
       <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/papers" element={<PapersPage />} />
@@ -41,7 +39,7 @@ function App() {
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
 
-      {/* Protected — any logged-in user */}
+      {/* Protected */}
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/bookmarks" element={<BookmarksPage />} />
       <Route path="/requests" element={<RequestsPage />} />
