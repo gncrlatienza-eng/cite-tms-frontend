@@ -132,8 +132,25 @@ export default function AuthCallback() {
         return;
       }
 
-      // ── DLSL email — student or null intent ───────────────────────────
-      console.log('🎓 [AuthCallback] DLSL email detected, intent was student or null - routing to /');
+      // ── DLSL email — verify exists in database before allowing in ─────
+      console.log('🎓 [AuthCallback] DLSL email detected, checking database...');
+
+      const { data: dlslUser } = await supabase
+        .from('users')
+        .select('id, role, is_author')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (!dlslUser) {
+        console.log('❌ [AuthCallback] DLSL email not found in database, blocking login');
+        await supabase.auth.signOut({ scope: 'global' });
+        setBlockedEmail(email);
+        setBlockReason('domain');
+        setPhase('unauthorized');
+        return;
+      }
+
+      console.log('✅ [AuthCallback] DLSL email found in database, routing to /');
       const postLoginRedirect = sessionStorage.getItem('post_login_redirect');
       sessionStorage.removeItem('post_login_redirect');
       navigate(postLoginRedirect && postLoginRedirect !== '/' ? postLoginRedirect : '/');
