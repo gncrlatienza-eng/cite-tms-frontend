@@ -22,9 +22,9 @@ function PublicRoute({ children }) {
 
   if (loading) return null;
 
-  // ← FIXED: was returning null (blank page) when profile not yet loaded
-  // Now renders children instead of blocking forever
-  if (user && profile === null) return children;
+  // ← Wait for profile — don't render public page while profile is loading
+  // This prevents LandingPage from showing behind AdminDashboard
+  if (user && profile === null) return null;
 
   if (user && isAdmin) return <Navigate to="/admin/dashboard" replace />;
   return children;
