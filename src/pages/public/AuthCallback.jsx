@@ -150,7 +150,15 @@ export default function AuthCallback() {
         return;
       }
 
-      console.log('✅ [AuthCallback] DLSL email found in database, routing to /');
+      // ── Route authors to their dashboard ─────────────────────────────
+      if (dlslUser.is_author) {
+        console.log('✅ [AuthCallback] DLSL author detected, routing to /author/dashboard');
+        navigate('/author/dashboard');
+        return;
+      }
+
+      // ── Regular DLSL student ──────────────────────────────────────────
+      console.log('✅ [AuthCallback] DLSL student found, routing to /');
       const postLoginRedirect = sessionStorage.getItem('post_login_redirect');
       sessionStorage.removeItem('post_login_redirect');
       navigate(postLoginRedirect && postLoginRedirect !== '/' ? postLoginRedirect : '/');
