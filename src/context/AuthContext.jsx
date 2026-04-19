@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { ALLOWED_ADMIN_EMAILS } from '../utils/constants';
 
@@ -13,7 +13,6 @@ export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const initializedRef        = useRef(false);
 
   const fetchProfile = async (authUser) => {
     if (!authUser) { setProfile(null); return null; }
@@ -58,44 +57,47 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
-
-    const init = async () => {
-      // ── Safety timeout: force loading to stop after 8 seconds no matter what
-      const timeout = setTimeout(() => {
-        console.warn('Auth init timed out — forcing loading to stop');
-        setLoading(false);
-        _resolveSessionReady();
-      }, 8000);
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        await applySession(session);
-      } catch (err) {
-        console.error('Auth init error:', err);
-        setUser(null);
-        setProfile(null);
-      } finally {
-        clearTimeout(timeout);
-        setLoading(false);
-        _resolveSessionReady();
-      }
-    };
+    // Safety timeout: force loading to stop after 8s no matter what
+    const timeout = setTimeout(() => {
+      console.warn('Auth init timed out — forcing loading to stop');
+      setLoading(false);
+      _resolveSessionReady();
+    }, 8000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'INITIAL_SESSION') return;
-        if (event === 'SIGNED_OUT') { setUser(null); setProfile(null); return; }
+        if (event === 'INITIAL_SESSION') {
+          // Replaces getSession() — fires immediately with current session
+          try {
+            await applySession(session);
+          } catch (err) {
+            console.error('Auth init error:', err);
+            setUser(null);
+            setProfile(null);
+          } finally {
+            clearTimeout(timeout);
+            setLoading(false);
+            _resolveSessionReady();
+          }
+          return;
+        }
+
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setProfile(null);
+          return;
+        }
+
         if (['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED'].includes(event)) {
           await applySession(session);
         }
       }
     );
 
-    init();
-
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const logout = async () => {
@@ -117,22 +119,21 @@ export function AuthProvider({ children }) {
     profile.role === 'admin' || ALLOWED_ADMIN_EMAILS.includes(profile.email)
   ));
 
-  const isAuthor = profile?.is_author === true;
-
-  const authorName = profile?.full_name || null;
+  const isAuthor      = profile?.is_author === true;
+  const authorName    = profile?.full_name || null;
   const secondaryEmail = profile?.secondary_email || null;
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      profile, 
-      logout, 
-      loading, 
-      isAdmin, 
-      isAuthor, 
+    <AuthContext.Provider value={{
+      user,
+      profile,
+      logout,
+      loading,
+      isAdmin,
+      isAuthor,
       refreshProfile,
       authorName,
-      secondaryEmail
+      secondaryEmail,
     }}>
       {loading ? (
         <div style={{
