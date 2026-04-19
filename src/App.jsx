@@ -22,7 +22,9 @@ function PublicRoute({ children }) {
 
   if (loading) return null;
 
-  if (user && profile === null) return null;
+  // ← FIXED: was returning null (blank page) when profile not yet loaded
+  // Now renders children instead of blocking forever
+  if (user && profile === null) return children;
 
   if (user && isAdmin) return <Navigate to="/admin/dashboard" replace />;
   return children;
