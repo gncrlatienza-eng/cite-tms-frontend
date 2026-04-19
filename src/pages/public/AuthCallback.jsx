@@ -27,7 +27,22 @@ export default function AuthCallback() {
       console.log('🔐 [AuthCallback] Processing login for:', email);
       console.log('🎯 [AuthCallback] Login intent:', intent);
 
-      // ── Admin login ───────────────────────────────────────
+      // ── Check has_accepted_terms for all logged-in users ──────────────
+      const { data: termsRecord } = await supabase
+        .from('users')
+        .select('has_accepted_terms, is_author, role')
+        .or(`email.eq.${email},secondary_email.eq.${email}`)
+        .maybeSingle();
+
+      if (termsRecord && termsRecord.has_accepted_terms === false) {
+        let redirectAfter = '/';
+        if (intent === 'admin') redirectAfter = '/admin/dashboard';
+        else if (intent === 'author' || termsRecord.is_author) redirectAfter = '/author/dashboard';
+        navigate(`/terms?new=true&redirect=${encodeURIComponent(redirectAfter)}`);
+        return;
+      }
+
+      // ── Admin login ───────────────────────────────────────────────────
       if (intent === 'admin') {
         if (!ALLOWED_ADMIN_EMAILS.includes(email)) {
           await supabase.auth.signOut({ scope: 'global' });
@@ -40,10 +55,9 @@ export default function AuthCallback() {
         return;
       }
 
-      // ── Author login — allow secondary (personal) Gmail ───
+      // ── Author login — allow secondary (personal) Gmail ───────────────
       if (intent === 'author') {
         if (!email.endsWith('@dlsl.edu.ph')) {
-          // Non-DLSL email: check if it's a registered secondary_email
           const { data: secondaryUser } = await supabase
             .from('users')
             .select('is_author')
@@ -55,7 +69,6 @@ export default function AuthCallback() {
             return;
           }
 
-          // Not a recognized secondary email — block
           await supabase.auth.signOut({ scope: 'global' });
           setBlockedEmail(email);
           setBlockReason('domain');
@@ -63,7 +76,6 @@ export default function AuthCallback() {
           return;
         }
 
-        // DLSL email: check is_author flag
         try {
           const { data: userRecord } = await supabase
             .from('users')
@@ -89,14 +101,10 @@ export default function AuthCallback() {
         }
       }
 
-      // ── Student / fallback login ───────────────────────────
-      // intent may be 'student' or null (e.g. lost across OAuth redirect)
+      // ── Student / fallback login ──────────────────────────────────────
       console.log('📧 [AuthCallback] Fallback login - email:', email);
       if (!email.endsWith('@dlsl.edu.ph')) {
         console.log('🔍 [AuthCallback] Non-DLSL email detected, checking secondary_email...');
-        // FIX: Before blocking, check if this is a registered secondary email.
-        // This handles the case where intent was lost during the OAuth redirect
-        // but the user is a valid author signing in with their personal Gmail.
         const { data: secondaryUser } = await supabase
           .from('users')
           .select('is_author, role')
@@ -106,7 +114,6 @@ export default function AuthCallback() {
         console.log('📊 [AuthCallback] Secondary user lookup result:', secondaryUser);
 
         if (secondaryUser) {
-          // Recognized secondary email — route to the right place
           if (secondaryUser.is_author) {
             console.log('✅ [AuthCallback] Secondary email is author, routing to /author/dashboard');
             navigate('/author/dashboard');
@@ -118,7 +125,6 @@ export default function AuthCallback() {
         }
 
         console.log('❌ [AuthCallback] Secondary email not found in database, blocking login');
-        // Truly unrecognized non-DLSL email — block
         await supabase.auth.signOut({ scope: 'global' });
         setBlockedEmail(email);
         setBlockReason('domain');
@@ -126,10 +132,7 @@ export default function AuthCallback() {
         return;
       }
 
-      // DLSL email logging in as student
-      // FIX: Respect the user's intent - if they clicked "Login as Student",
-      // send them to the student page even if they're an author.
-      // Authors can switch portals using the UI if they want author access.
+      // ── DLSL email — student or null intent ───────────────────────────
       console.log('🎓 [AuthCallback] DLSL email detected, intent was student or null - routing to /');
       const postLoginRedirect = sessionStorage.getItem('post_login_redirect');
       sessionStorage.removeItem('post_login_redirect');
@@ -164,7 +167,6 @@ export default function AuthCallback() {
         redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: {
           prompt: 'select_account',
-          // No hd restriction for author — they may use personal Gmail
           ...(intent !== 'admin' && intent !== 'author' && { hd: 'dlsl.edu.ph' }),
         },
       },

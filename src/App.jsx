@@ -4,6 +4,7 @@ import LoginPage from "./pages/public/LoginPage";
 import AuthCallback from "./pages/public/AuthCallback";
 import PapersPage from "./pages/public/PapersPage";
 import PaperPreviewPage from "./pages/public/PaperPreviewPage";
+import TermsPage from "./pages/public/TermsPage";
 import ProfilePage from "./pages/protected/ProfilePage";
 import BookmarksPage from "./pages/protected/BookmarksPage";
 import RequestsPage from "./pages/protected/RequestsPage";
@@ -21,10 +22,6 @@ function PublicRoute({ children }) {
 
   if (loading) return null;
 
-  // FIX Bug 2: If user is logged in but profile hasn't loaded yet, wait.
-  // Without this, isAdmin is false (profile is null) and the redirect to
-  // /admin/dashboard never fires — but more importantly, for AuthorRoute,
-  // isAuthor would also be false, causing a premature redirect to "/".
   if (user && profile === null) return null;
 
   if (user && isAdmin) return <Navigate to="/admin/dashboard" replace />;
@@ -39,6 +36,9 @@ function App() {
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/papers" element={<PapersPage />} />
       <Route path="/papers/:id" element={<PaperPreviewPage />} />
+
+      {/* Terms & Conditions */}
+      <Route path="/terms" element={<TermsPage />} />
 
       {/* Auth callback */}
       <Route path="/auth/callback" element={<AuthCallback />} />
