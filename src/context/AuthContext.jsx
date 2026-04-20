@@ -14,7 +14,15 @@ export function AuthProvider({ children }) {
   const [profile, setProfile]               = useState(null);
   const [loading, setLoading]               = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
-  const profileFetchedRef                   = useRef(false); // ← guard: fetch once
+  const profileFetchedRef                   = useRef(false);
+
+  // ── Timeout helper ────────────────────────────────────────────────────────
+  const withTimeout = (promise, ms) => Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('fetchProfile timeout')), ms)
+    )
+  ]);
 
   const fetchProfile = async (authUser) => {
     if (!authUser) { setProfile(null); return null; }
@@ -23,11 +31,10 @@ export function AuthProvider({ children }) {
     try {
       const SELECT_FIELDS = 'id, email, full_name, role, is_author, is_active, secondary_email, department, year_level, student_id, last_login';
 
-      const { data: primaryData } = await supabase
-        .from('users')
-        .select(SELECT_FIELDS)
-        .eq('email', authUser.email)
-        .single();
+      const { data: primaryData } = await withTimeout(
+        supabase.from('users').select(SELECT_FIELDS).eq('email', authUser.email).single(),
+        5000
+      );
 
       if (primaryData) {
         setProfile(primaryData);
@@ -35,11 +42,10 @@ export function AuthProvider({ children }) {
         return primaryData;
       }
 
-      const { data: secondaryData } = await supabase
-        .from('users')
-        .select(SELECT_FIELDS)
-        .eq('secondary_email', authUser.email)
-        .single();
+      const { data: secondaryData } = await withTimeout(
+        supabase.from('users').select(SELECT_FIELDS).eq('secondary_email', authUser.email).single(),
+        5000
+      );
 
       setProfile(secondaryData ?? null);
       profileFetchedRef.current = true;
@@ -64,7 +70,7 @@ export function AuthProvider({ children }) {
 
     setUser(session.user);
 
-    // ✅ Skip fetchProfile if already fetched — prevents tab refocus re-fetch
+    // Skip fetchProfile if already fetched — prevents tab refocus re-fetch
     if (!profileFetchedRef.current) {
       await fetchProfile(session.user);
     }
@@ -101,7 +107,6 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        // SIGNED_IN / USER_UPDATED — only fetch profile if not already fetched
         if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
           await applySession(session);
           return;
@@ -133,7 +138,7 @@ export function AuthProvider({ children }) {
 
   const refreshProfile = async () => {
     if (!user) return;
-    profileFetchedRef.current = false; // allow re-fetch on manual refresh
+    profileFetchedRef.current = false;
     await fetchProfile(user);
   };
 
