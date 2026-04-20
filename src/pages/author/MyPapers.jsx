@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabase";
 import api from "../../services/api";
@@ -187,11 +187,25 @@ function EditModal({ paper, onClose, onSuccess }) {
 }
 
 export default function MyPapers() {
+  const { user, profile, logout } = useAuth();
+  const navigate = useNavigate();
+  
   const [papers, setPapers]         = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState("");
   const [editTarget, setEditTarget] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const fetchPapers = async () => {
     setLoading(true); setError("");
@@ -220,29 +234,105 @@ export default function MyPapers() {
     }
   };
 
+  // User info for header
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email || "Author";
+  const firstName   = displayName.split(" ")[0];
+  const avatar      = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
+  const initials    = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        .mp-page { min-height: 100vh; background: #fafafa; font-family: 'DM Sans', system-ui, sans-serif; }
+        
+        .mp-page { min-height: 100vh; background: #f0f2f5; font-family: 'Schibsted Grotesk', system-ui, sans-serif; }
 
-        .mp-header { background: #fff; border-bottom: 1px solid #efefef; padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-        .mp-header-left { display: flex; align-items: center; gap: 14px; }
-        .mp-back-link { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #9b0000; text-decoration: none; transition: color 0.15s; }
-        .mp-back-link:hover { color: #7f1d1d; }
-        .mp-header-title { font-family: 'Schibsted Grotesk', serif; font-size: 20px; color: #111827; }
-        .mp-upload-btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: 9px; border: none; background: linear-gradient(135deg, #9b0000, #c0392b); color: #fff; font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; text-decoration: none; box-shadow: 0 4px 14px rgba(155,0,0,0.25); transition: opacity 0.15s; }
+        /* ── Header (matching AuthorDashboard) ── */
+        .mp-header {
+          background: #fff;
+          border-bottom: 1px solid #e8eaed;
+          padding: 0 32px;
+          height: 60px;
+          display: flex; align-items: center; justify-content: space-between;
+          position: sticky; top: 0; z-index: 10;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .mp-header-left { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .mp-header-icon {
+          width: 34px; height: 34px; border-radius: 9px;
+          background: linear-gradient(135deg, #9b0000, #c0392b);
+          display: flex; align-items: center; justify-content: center;
+          box-shadow: 0 2px 6px rgba(155,0,0,0.3);
+        }
+        .mp-header-title { font-size: 15px; font-weight: 700; color: #111827; letter-spacing: -0.2px; }
+        .mp-header-right { display: flex; align-items: center; gap: 12px; }
+        .mp-avatar-btn {
+          display: flex; align-items: center; gap: 9px;
+          background: #f9fafb; border: 1px solid #e5e7eb;
+          border-radius: 40px; padding: 4px 12px 4px 4px;
+          cursor: pointer; transition: all 0.15s; position: relative;
+        }
+        .mp-avatar-btn:hover { border-color: #d1d5db; background: #f3f4f6; }
+        .mp-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 2px solid #e8eaed; flex-shrink: 0; }
+        .mp-avatar-fallback {
+          width: 30px; height: 30px; border-radius: 50%;
+          background: linear-gradient(135deg, #9b0000, #c0392b);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+        }
+        .mp-user-name { font-size: 13px; font-weight: 600; color: #374151; }
+
+        .mp-dropdown {
+          position: absolute; top: calc(100% + 10px); right: 0;
+          background: #fff; border: 1px solid #e5e7eb;
+          border-radius: 14px; min-width: 220px; z-index: 999;
+          box-shadow: 0 12px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+          overflow: hidden;
+          animation: mpDropIn 0.18s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes mpDropIn { from { opacity:0; transform:translateY(-8px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+        .mp-dropdown-header { padding: 14px 16px; border-bottom: 1px solid #f3f4f6; }
+        .mp-dropdown-name { font-size: 13.5px; font-weight: 600; color: #111827; }
+        .mp-dropdown-email { font-size: 11.5px; color: #9ca3af; margin-top: 2px; }
+        .mp-dropdown-role { display: inline-block; margin-top: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; padding: 2px 9px; border-radius: 20px; background: #fef2f2; color: #9b0000; }
+        .mp-dropdown-item {
+          display: flex; align-items: center; gap: 10px;
+          padding: 10px 16px; font-size: 13px; color: #374151;
+          cursor: pointer; border: none; background: none;
+          width: 100%; text-align: left; font-family: inherit; font-weight: 400;
+          transition: background 0.12s;
+        }
+        .mp-dropdown-item:hover { background: #f9fafb; }
+        .mp-dropdown-item.danger { color: #dc2626; }
+        .mp-dropdown-item.danger:hover { background: #fff5f5; }
+        .mp-dropdown-divider { height: 1px; background: #f3f4f6; }
+
+        /* ── Body ── */
+        .mp-body { max-width: 1120px; margin: 0 auto; padding: 32px 40px 80px; }
+
+        .mp-page-header { margin-bottom: 28px; }
+        .mp-page-title { font-size: 28px; font-weight: 700; color: #111827; letter-spacing: -0.6px; margin-bottom: 6px; }
+        .mp-page-subtitle { font-size: 14px; color: #6b7280; }
+
+        .mp-upload-btn { 
+          display: inline-flex; align-items: center; gap: 7px; 
+          padding: 10px 20px; border-radius: 10px; border: none; 
+          background: linear-gradient(135deg, #9b0000, #c0392b); 
+          color: #fff; font-size: 13.5px; font-weight: 600; 
+          font-family: inherit; cursor: pointer; text-decoration: none; 
+          box-shadow: 0 4px 14px rgba(155,0,0,0.25); 
+          transition: opacity 0.15s; 
+        }
         .mp-upload-btn:hover { opacity: 0.9; }
 
-        .mp-body { max-width: 900px; margin: 0 auto; padding: 32px 40px 80px; }
-
-        .mp-card { background: #fff; border: 1px solid #f0f0f0; border-radius: 14px; padding: 20px 24px; margin-bottom: 14px; animation: mpFadeUp 0.22s ease both; transition: box-shadow 0.18s; }
+        /* ── Cards ── */
+        .mp-card { background: #fff; border: 1px solid #e8eaed; border-radius: 16px; padding: 20px 24px; margin-bottom: 14px; animation: mpFadeUp 0.22s ease both; transition: box-shadow 0.18s; }
         .mp-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
         @keyframes mpFadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 
         .mp-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
-        .mp-card-title { font-family: 'Schibsted Grotesk', serif; font-size: 17px; color: #111827; line-height: 1.4; }
+        .mp-card-title { font-size: 17px; font-weight: 600; color: #111827; line-height: 1.4; }
         .mp-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
         .mp-card-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
@@ -267,10 +357,11 @@ export default function MyPapers() {
 
         .mp-skel { border-radius: 6px; background: linear-gradient(90deg,#f5f5f5 25%,#ececec 50%,#f5f5f5 75%); background-size: 900px 100%; animation: mpShimmer 1.4s infinite linear; }
         @keyframes mpShimmer { 0%{background-position:-900px 0} 100%{background-position:900px 0} }
-        .mp-skel-card { background: #fff; border: 1px solid #f0f0f0; border-radius: 14px; padding: 20px 24px; margin-bottom: 14px; }
+        .mp-skel-card { background: #fff; border: 1px solid #e8eaed; border-radius: 16px; padding: 20px 24px; margin-bottom: 14px; }
 
-        .mp-empty { background: #fff; border: 1px solid #f0f0f0; border-radius: 14px; padding: 72px 20px; text-align: center; }
-        .mp-empty-title { font-family: 'Schibsted Grotesk', serif; font-size: 22px; color: #111827; margin-bottom: 10px; }
+        .mp-empty { background: #fff; border: 1px solid #e8eaed; border-radius: 16px; padding: 72px 20px; text-align: center; }
+        .mp-empty-icon { width: 52px; height: 52px; border-radius: 14px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; color: #9ca3af; }
+        .mp-empty-title { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 10px; }
         .mp-empty-sub { font-size: 14px; color: #6b7280; margin-bottom: 24px; }
         .mp-error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 14px 18px; color: #b91c1c; font-size: 13px; margin-bottom: 20px; }
 
@@ -278,7 +369,7 @@ export default function MyPapers() {
         .mp-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .mp-modal { background: #fff; border-radius: 16px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.18); }
         .mp-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 0; position: sticky; top: 0; background: #fff; }
-        .mp-modal-title { font-family: 'Schibsted Grotesk', serif; font-size: 20px; color: #202124; }
+        .mp-modal-title { font-size: 20px; font-weight: 700; color: #111827; }
         .mp-modal-close { background: none; border: none; cursor: pointer; color: #9aa0a6; padding: 4px; border-radius: 6px; }
         .mp-modal-close:hover { color: #202124; background: #f1f3f4; }
         .mp-modal-body { padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 14px; }
@@ -291,7 +382,6 @@ export default function MyPapers() {
         .mp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .mp-replace-btn { background: none; border: 1px solid #dadce0; border-radius: 6px; padding: 5px 12px; font-size: 12px; color: #5f6368; cursor: pointer; font-family: inherit; transition: border-color 0.15s, color 0.15s; white-space: nowrap; }
         .mp-replace-btn:hover { border-color: #9b0000; color: #9b0000; }
-        .mp-error { font-size: 12.5px; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 14px; }
         .mp-success { font-size: 13px; color: #15803d; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; }
         .mp-modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px; }
         .mp-cancel-btn { background: #f1f3f4; border: none; border-radius: 8px; padding: 9px 20px; font-size: 13.5px; font-weight: 500; font-family: inherit; color: #374151; cursor: pointer; }
@@ -299,32 +389,76 @@ export default function MyPapers() {
         .mp-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
         @media (max-width: 768px) {
-          .mp-header { padding: 16px 20px; }
+          .mp-header { padding: 0 16px; }
           .mp-body { padding: 20px 16px 60px; }
+          .mp-user-name { display: none; }
         }
       `}</style>
 
       <div className="mp-page">
-        <div className="mp-header">
-          <div className="mp-header-left">
-            <Link to="/author/dashboard" className="mp-back-link">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+        {/* ── Header (matching AuthorDashboard) ── */}
+        <header className="mp-header">
+          <Link to="/" className="mp-header-left" style={{ textDecoration: "none" }}>
+            <div className="mp-header-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
               </svg>
-              Dashboard
-            </Link>
-            <h1 className="mp-header-title">My Papers</h1>
-          </div>
-          <Link to="/student/upload" className="mp-upload-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
-            Upload New Paper
+            </div>
+            <span className="mp-header-title">CITE-TMS</span>
           </Link>
-        </div>
+          <div className="mp-header-right">
+            <div style={{ position: "relative" }} ref={dropdownRef}>
+              <div className="mp-avatar-btn" onClick={() => setDropdownOpen((o) => !o)}>
+                {avatar
+                  ? <img className="mp-avatar" src={avatar} alt={displayName} referrerPolicy="no-referrer" />
+                  : <div className="mp-avatar-fallback">{initials}</div>}
+                <span className="mp-user-name">{firstName}</span>
+              </div>
+              {dropdownOpen && (
+                <div className="mp-dropdown">
+                  <div className="mp-dropdown-header">
+                    <div className="mp-dropdown-name">{displayName}</div>
+                    <div className="mp-dropdown-email">{user?.email}</div>
+                    <span className="mp-dropdown-role">Author</span>
+                  </div>
+                  <div className="mp-dropdown-divider" />
+                  <button className="mp-dropdown-item" onClick={() => { setDropdownOpen(false); navigate("/author/dashboard"); }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    Dashboard
+                  </button>
+                  <button className="mp-dropdown-item danger" onClick={async () => { setDropdownOpen(false); await logout(); navigate("/"); }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
 
         <div className="mp-body">
+          {/* Page header */}
+          <div className="mp-page-header">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div>
+                <h1 className="mp-page-title">My Papers</h1>
+                <p className="mp-page-subtitle">Manage your published research papers</p>
+              </div>
+              <Link to="/student/upload" className="mp-upload-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Upload New Paper
+              </Link>
+            </div>
+          </div>
+
           {error && <div className="mp-error">{error}</div>}
 
           {loading && [1,2,3].map((i) => (
@@ -338,6 +472,11 @@ export default function MyPapers() {
 
           {!loading && papers.length === 0 && (
             <div className="mp-empty">
+              <div className="mp-empty-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+              </div>
               <div className="mp-empty-title">No papers yet</div>
               <p className="mp-empty-sub">Upload your first paper to get started.</p>
               <Link to="/student/upload" className="mp-upload-btn">Upload Paper</Link>
@@ -368,12 +507,10 @@ export default function MyPapers() {
                 {paper.abstract && <p className="mp-snippet">{paper.abstract}</p>}
 
                 <div className="mp-card-footer">
-                  {/* Access type badge */}
                   <span className="mp-access-badge" style={{ background: at.bg, color: at.color, borderColor: at.color + "40" }}>
                     {at.label}
                   </span>
 
-                  {/* Publication status badge — key fix for Issue 1 */}
                   <span className="mp-status-badge" style={{ background: st.bg, color: st.color, borderColor: st.border }}>
                     {st.label}
                   </span>
