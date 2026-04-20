@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { ALLOWED_ADMIN_EMAILS } from '../utils/constants';
 
@@ -14,6 +14,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile]               = useState(null);
   const [loading, setLoading]               = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
+  const profileFetchedRef                   = useRef(false); // ← guard: fetch once
 
   const fetchProfile = async (authUser) => {
     if (!authUser) { setProfile(null); return null; }
@@ -30,6 +31,7 @@ export function AuthProvider({ children }) {
 
       if (primaryData) {
         setProfile(primaryData);
+        profileFetchedRef.current = true;
         return primaryData;
       }
 
@@ -40,6 +42,7 @@ export function AuthProvider({ children }) {
         .single();
 
       setProfile(secondaryData ?? null);
+      profileFetchedRef.current = true;
       return secondaryData ?? null;
 
     } catch (err) {
@@ -55,10 +58,16 @@ export function AuthProvider({ children }) {
     if (!session?.user) {
       setUser(null);
       setProfile(null);
+      profileFetchedRef.current = false;
       return;
     }
+
     setUser(session.user);
-    await fetchProfile(session.user);
+
+    // ✅ Skip fetchProfile if already fetched — prevents tab refocus re-fetch
+    if (!profileFetchedRef.current) {
+      await fetchProfile(session.user);
+    }
   };
 
   useEffect(() => {
@@ -88,16 +97,17 @@ export function AuthProvider({ children }) {
         if (event === 'SIGNED_OUT') {
           setUser(null);
           setProfile(null);
+          profileFetchedRef.current = false;
           return;
         }
 
-        // Only re-fetch profile on actual user changes, not token refresh
+        // SIGNED_IN / USER_UPDATED — only fetch profile if not already fetched
         if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
           await applySession(session);
           return;
         }
 
-        // TOKEN_REFRESHED — just update user token, skip profile re-fetch
+        // TOKEN_REFRESHED — just update token, never touch profile
         if (event === 'TOKEN_REFRESHED') {
           if (session?.user) setUser(session.user);
         }
@@ -113,6 +123,7 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     setUser(null);
     setProfile(null);
+    profileFetchedRef.current = false;
     try {
       await supabase.auth.signOut({ scope: 'global' });
     } catch (err) {
@@ -122,10 +133,11 @@ export function AuthProvider({ children }) {
 
   const refreshProfile = async () => {
     if (!user) return;
+    profileFetchedRef.current = false; // allow re-fetch on manual refresh
     await fetchProfile(user);
   };
 
-  const isAdmin  = !!(profile && (
+  const isAdmin        = !!(profile && (
     profile.role === 'admin' || ALLOWED_ADMIN_EMAILS.includes(profile.email)
   ));
   const isAuthor       = profile?.is_author === true;
