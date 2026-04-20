@@ -677,7 +677,7 @@ export default function AdminDashboard() {
         .ad-page { min-height:100vh; background:#f8f9fa; font-family:'DM Sans',system-ui,sans-serif; }
 
         /* ── Header ── */
-        .ad-header { background:#fff; border-bottom:1px solid #e8eaed; padding:0 32px; padding-top:env(safe-area-inset-top); height:calc(60px + env(safe-area-inset-top)); display:flex; align-items:center; justify-content:space-between; position:fixed; top:0; left:0; right:0; z-index:10; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+        .ad-header { background:#fff !important; border-bottom:1px solid #e8eaed; padding-left:32px !important; padding-right:32px !important; height:60px !important; display:flex !important; align-items:center; justify-content:space-between; position:fixed !important; top:0 !important; left:0 !important; right:0 !important; z-index:10; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
         .ad-header-left { display:flex; align-items:center; gap:10px; cursor:pointer; }
         .ad-header-icon { width:34px; height:34px; border-radius:9px; background:linear-gradient(135deg,#006400,#1a8a1a); display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,100,0,0.3); }
         .ad-header-title { font-size:15px; font-weight:700; color:#111827; letter-spacing:-0.2px; }
@@ -700,8 +700,8 @@ export default function AdminDashboard() {
         .ad-dropdown-divider { height:1px; background:#f3f4f6; }
 
         /* ── Body ── */
-        .ad-body { padding:32px; padding-top:calc(92px + env(safe-area-inset-top)); max-width:1100px; margin:0 auto; }
-        
+        .ad-body { padding:32px !important; padding-top:92px !important; max-width:1100px; margin:0 auto; }
+
         .ad-tabs { display:flex; gap:4px; margin-bottom:24px; background:#fff; border:1px solid #e8eaed; border-radius:10px; padding:4px; width:fit-content; flex-wrap:wrap; }
         .ad-tab-btn { padding:8px 20px; border-radius:7px; border:none; background:none; font-size:13.5px; font-weight:500; font-family:inherit; color:#5f6368; cursor:pointer; transition:background 0.15s,color 0.15s; display:flex; align-items:center; gap:7px; white-space:nowrap; }
         .ad-tab-btn.active { background:#006400; color:#fff; font-weight:600; }
