@@ -675,7 +675,7 @@ export default function AdminDashboard() {
         .ad-page { min-height:100vh; background:#f8f9fa; font-family:'DM Sans',system-ui,sans-serif; }
 
         /* ── Header ── */
-        .ad-header { background:#fff !important; border-bottom:1px solid #e8eaed; padding-left:32px !important; padding-right:32px !important; height:60px !important; display:flex !important; align-items:center; justify-content:space-between; position:fixed !important; top:0 !important; left:0 !important; right:0 !important; z-index:10; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+        .ad-header { background:#fff; border-bottom:1px solid #e8eaed; padding:0 32px; height:60px; display:flex; align-items:center; justify-content:space-between; position:fixed; top:0; left:0; right:0; z-index:10; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
         .ad-header-left { display:flex; align-items:center; gap:10px; cursor:pointer; }
         .ad-header-icon { width:34px; height:34px; border-radius:9px; background:linear-gradient(135deg,#006400,#1a8a1a); display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,100,0,0.3); }
         .ad-header-title { font-size:15px; font-weight:700; color:#111827; letter-spacing:-0.2px; }
@@ -698,7 +698,7 @@ export default function AdminDashboard() {
         .ad-dropdown-divider { height:1px; background:#f3f4f6; }
 
         /* ── Body ── */
-        .ad-body { padding:32px !important; padding-top:92px !important; max-width:1100px; margin:0 auto; }
+        .ad-body { padding:32px; padding-top:92px; max-width:1100px; margin:0 auto; }
 
         .ad-tabs { display:flex; gap:4px; margin-bottom:24px; background:#fff; border:1px solid #e8eaed; border-radius:10px; padding:4px; width:fit-content; flex-wrap:wrap; }
         .ad-tab-btn { padding:8px 20px; border-radius:7px; border:none; background:none; font-size:13.5px; font-weight:500; font-family:inherit; color:#5f6368; cursor:pointer; transition:background 0.15s,color 0.15s; display:flex; align-items:center; gap:7px; white-space:nowrap; }
@@ -830,7 +830,7 @@ export default function AdminDashboard() {
         @keyframes adSpin { to { transform:rotate(360deg); } }
 
         @media (max-width:768px) {
-          .ad-body { padding:20px 16px; }
+          .ad-body { padding:20px 16px; padding-top:92px; }
           .ad-header { padding:0 16px; }
           .ad-row { grid-template-columns:1fr; }
           .ad-detail-grid { grid-template-columns:1fr; }
@@ -839,68 +839,52 @@ export default function AdminDashboard() {
       `}</style>
 
       <div className="ad-page">
-
-       {/* ── Self-contained Header ── */}
-<header className="ad-header" style={{
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  height: '60px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  paddingLeft: '32px',
-  paddingRight: '32px',
-  background: '#fff',
-  borderBottom: '1px solid #e8eaed',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-  zIndex: 10,
-}}>
-  <div className="ad-header-left" onClick={() => navigate("/")}>
-    <div className="ad-header-icon">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-      </svg>
-    </div>
-    <span className="ad-header-title">CITE-TMS</span>
-  </div>
-  <div className="ad-header-right">
-    <div style={{ position: "relative" }} ref={dropdownRef}>
-      <div className="ad-avatar-btn" onClick={() => setDropdownOpen((o) => !o)}>
-        {avatar
-          ? <img className="ad-avatar" src={avatar} alt={displayName} referrerPolicy="no-referrer" />
-          : <div className="ad-avatar-fallback">{initials}</div>}
-        <span className="ad-user-name">{displayName.split(" ")[0]}</span>
-      </div>
-      {dropdownOpen && (
-        <div className="ad-dropdown">
-          <div className="ad-dropdown-header">
-            <div className="ad-dropdown-name">{displayName}</div>
-            <div className="ad-dropdown-email">{user?.email}</div>
-            <span className="ad-dropdown-role">Admin</span>
+        {/* ── Header ── */}
+        <header className="ad-header">
+          <div className="ad-header-left" onClick={() => navigate("/")}>
+            <div className="ad-header-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              </svg>
+            </div>
+            <span className="ad-header-title">CITE-TMS</span>
           </div>
-          <div className="ad-dropdown-divider" />
-          <button className="ad-dropdown-item danger" onClick={async () => {
-            setDropdownOpen(false);
-            await logout();
-            navigate("/");
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-            Sign out
-          </button>
-        </div>
-      )}
-    </div>
-  </div>
-</header>
+          <div className="ad-header-right">
+            <div style={{ position: "relative" }} ref={dropdownRef}>
+              <div className="ad-avatar-btn" onClick={() => setDropdownOpen((o) => !o)}>
+                {avatar
+                  ? <img className="ad-avatar" src={avatar} alt={displayName} referrerPolicy="no-referrer" />
+                  : <div className="ad-avatar-fallback">{initials}</div>}
+                <span className="ad-user-name">{displayName.split(" ")[0]}</span>
+              </div>
+              {dropdownOpen && (
+                <div className="ad-dropdown">
+                  <div className="ad-dropdown-header">
+                    <div className="ad-dropdown-name">{displayName}</div>
+                    <div className="ad-dropdown-email">{user?.email}</div>
+                    <span className="ad-dropdown-role">Admin</span>
+                  </div>
+                  <div className="ad-dropdown-divider" />
+                  <button className="ad-dropdown-item danger" onClick={async () => {
+                    setDropdownOpen(false);
+                    await logout();
+                    navigate("/");
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                      <polyline points="16 17 21 12 16 7"/>
+                      <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
 
-        <div className="ad-body" style={{ paddingTop: '92px' }}>
+        <div className="ad-body">
           {error && <div className="ad-error-box">{error}</div>}
 
           {/* ── Tabs ── */}
