@@ -12,3 +12,31 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ── Admin dashboard layout fix (Tailwind preflight override) ── */
+.ad-root {
+  display: flex !important;
+  min-height: 100vh;
+}
+.ad-sidebar {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 240px !important;
+  min-width: 240px !important;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+.ad-main {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+.ad-nav {
+  display: flex !important;
+  flex-direction: column !important;
+}
+.ad-sidebar-footer {
+  margin-top: auto;
+}
