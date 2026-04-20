@@ -842,52 +842,67 @@ export default function AdminDashboard() {
 
       <div className="ad-page">
 
-        {/* ── Self-contained Header (same pattern as AuthorDashboard) ── */}
-        <header className="ad-header">
-          <div className="ad-header-left" onClick={() => navigate("/")}>
-            <div className="ad-header-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-              </svg>
-            </div>
-            <span className="ad-header-title">CITE-TMS</span>
+       {/* ── Self-contained Header ── */}
+<header className="ad-header" style={{
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  height: '60px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  paddingLeft: '32px',
+  paddingRight: '32px',
+  background: '#fff',
+  borderBottom: '1px solid #e8eaed',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+  zIndex: 10,
+}}>
+  <div className="ad-header-left" onClick={() => navigate("/")}>
+    <div className="ad-header-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      </svg>
+    </div>
+    <span className="ad-header-title">CITE-TMS</span>
+  </div>
+  <div className="ad-header-right">
+    <div style={{ position: "relative" }} ref={dropdownRef}>
+      <div className="ad-avatar-btn" onClick={() => setDropdownOpen((o) => !o)}>
+        {avatar
+          ? <img className="ad-avatar" src={avatar} alt={displayName} referrerPolicy="no-referrer" />
+          : <div className="ad-avatar-fallback">{initials}</div>}
+        <span className="ad-user-name">{displayName.split(" ")[0]}</span>
+      </div>
+      {dropdownOpen && (
+        <div className="ad-dropdown">
+          <div className="ad-dropdown-header">
+            <div className="ad-dropdown-name">{displayName}</div>
+            <div className="ad-dropdown-email">{user?.email}</div>
+            <span className="ad-dropdown-role">Admin</span>
           </div>
-          <div className="ad-header-right">
-            <div style={{ position: "relative" }} ref={dropdownRef}>
-              <div className="ad-avatar-btn" onClick={() => setDropdownOpen((o) => !o)}>
-                {avatar
-                  ? <img className="ad-avatar" src={avatar} alt={displayName} referrerPolicy="no-referrer" />
-                  : <div className="ad-avatar-fallback">{initials}</div>}
-                <span className="ad-user-name">{displayName.split(" ")[0]}</span>
-              </div>
-              {dropdownOpen && (
-                <div className="ad-dropdown">
-                  <div className="ad-dropdown-header">
-                    <div className="ad-dropdown-name">{displayName}</div>
-                    <div className="ad-dropdown-email">{user?.email}</div>
-                    <span className="ad-dropdown-role">Admin</span>
-                  </div>
-                  <div className="ad-dropdown-divider" />
-                  <button className="ad-dropdown-item danger" onClick={async () => {
-                    setDropdownOpen(false);
-                    await logout();
-                    navigate("/");
-                  }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                      <polyline points="16 17 21 12 16 7"/>
-                      <line x1="21" y1="12" x2="9" y2="12"/>
-                    </svg>
-                    Sign out
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
+          <div className="ad-dropdown-divider" />
+          <button className="ad-dropdown-item danger" onClick={async () => {
+            setDropdownOpen(false);
+            await logout();
+            navigate("/");
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+</header>
 
-        <div className="ad-body">
+        <div className="ad-body" style={{ paddingTop: '92px' }}>
           {error && <div className="ad-error-box">{error}</div>}
 
           {/* ── Tabs ── */}
