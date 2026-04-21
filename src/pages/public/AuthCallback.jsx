@@ -38,7 +38,8 @@ export default function AuthCallback() {
         let redirectAfter = '/';
         if (intent === 'admin' || ALLOWED_ADMIN_EMAILS.includes(email) || termsRecord.role === 'admin') {
           redirectAfter = '/admin/dashboard';
-        } else if (intent === 'author' && termsRecord.is_author) {
+        } else if (termsRecord.is_author) {
+          // Author always redirects to author dashboard after terms
           redirectAfter = '/author/dashboard';
         }
         navigate(`/terms?new=true&redirect=${encodeURIComponent(redirectAfter)}`);
@@ -76,18 +77,21 @@ export default function AuthCallback() {
             navigate('/admin/dashboard');
             return;
           }
-          // ── Author via secondary email ──
-          if (secondaryUser.is_author && intent === 'author') {
+          // ── Author via secondary email — always author, no intent needed ──
+          if (secondaryUser.is_author) {
             localStorage.setItem('active_role', 'author');
             navigate('/author/dashboard');
             return;
           }
-          // ── Student via secondary email ──
-          localStorage.setItem('active_role', 'student');
-          navigate('/');
+          // ── Secondary email exists but is NOT author or admin — block ──
+          await supabase.auth.signOut({ scope: 'global' });
+          setBlockedEmail(email);
+          setBlockReason('domain');
+          setPhase('unauthorized');
           return;
         }
 
+        // ── Secondary email not found in DB at all ──
         await supabase.auth.signOut({ scope: 'global' });
         setBlockedEmail(email);
         setBlockReason('domain');

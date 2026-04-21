@@ -25,13 +25,14 @@ const LoadingScreen = () => (
 
 export default function AuthorRoute({ children }) {
   const { user, isAuthor, loading, profileLoading, profile } = useAuth();
+  const activeRole = localStorage.getItem('active_role');
 
   if (loading) return <LoadingScreen />;
   if (profileLoading && !profile) return <LoadingScreen />;
   if (user && !profile) return <LoadingScreen />;
 
   if (!user) return <Navigate to="/" replace />;
-  if (!isAuthor) return <Navigate to="/bookmarks" replace />;
+  if (!isAuthor || activeRole !== 'author') return <Navigate to="/" replace />;
 
   return children;
 }
