@@ -1,5 +1,5 @@
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useRef } from "react";
 import LandingPage from "./pages/public/LandingPage";
 import LoginPage from "./pages/public/LoginPage";
 import AuthCallback from "./pages/public/AuthCallback";
@@ -37,17 +37,44 @@ function GlobalLoader() {
 function RouteRestorer() {
   const { user, isAdmin, isAuthor, loading, profileLoading, profile } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const hasRestored = useRef(false);
 
   useEffect(() => {
     if (loading || profileLoading) return;
-    if (!user || !profile) return; // wait for full profile
+    if (!user || !profile) return;
     if (location.pathname !== "/") return;
+    if (hasRestored.current) return; // only run once per session
 
-    // Restore authors and admins to their dashboards when they revisit the site
-    // Students are intentionally left on the landing page
-    if (isAdmin)  { window.location.replace("/admin/dashboard");  return; }
-    if (isAuthor) { window.location.replace("/author/dashboard"); return; }
+    // Check what role the user chose when they logged in
+    const activeRole = sessionStorage.getItem("active_role");
+
+    // If they logged in as student, never redirect — let them stay on landing page
+    if (activeRole === "student") {
+      hasRestored.current = true;
+      return;
+    }
+
+    // Restore admins and authors to their dashboards
+    if (isAdmin) {
+      hasRestored.current = true;
+      navigate("/admin/dashboard", { replace: true });
+      return;
+    }
+
+    if (isAuthor && activeRole === "author") {
+      hasRestored.current = true;
+      navigate("/author/dashboard", { replace: true });
+      return;
+    }
+
+    hasRestored.current = true;
   }, [loading, profileLoading, user, profile, isAdmin, isAuthor, location.pathname]);
+
+  // Reset hasRestored when user logs out
+  useEffect(() => {
+    if (!user) hasRestored.current = false;
+  }, [user]);
 
   return null;
 }
@@ -57,7 +84,6 @@ function PublicRoute({ children }) {
 
   if (loading || (profileLoading && !profile)) return <GlobalLoader />;
 
-  // Only redirect admins — RouteRestorer handles authors, AuthCallback handles post-login
   if (user && isAdmin) return <Navigate to="/admin/dashboard" replace />;
 
   return children;

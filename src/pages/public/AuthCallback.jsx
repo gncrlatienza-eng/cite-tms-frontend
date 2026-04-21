@@ -47,6 +47,7 @@ export default function AuthCallback() {
 
       // ── Admin login ───────────────────────────────────────────────────
       if (ALLOWED_ADMIN_EMAILS.includes(email)) {
+        sessionStorage.setItem("active_role", "admin");
         navigate('/admin/dashboard');
         return;
       }
@@ -70,8 +71,10 @@ export default function AuthCallback() {
 
         if (secondaryUser) {
           if (secondaryUser.is_author && intent === 'author') {
+            sessionStorage.setItem("active_role", "author");
             navigate('/author/dashboard');
           } else {
+            sessionStorage.setItem("active_role", "student");
             navigate('/');
           }
           return;
@@ -102,6 +105,7 @@ export default function AuthCallback() {
       // ── Explicit author intent — enforce author check ─────────────────
       if (intent === 'author') {
         if (dlslUser.is_author) {
+          sessionStorage.setItem("active_role", "author");
           navigate('/author/dashboard');
           return;
         }
@@ -113,8 +117,6 @@ export default function AuthCallback() {
       }
 
       // ── Explicit student intent OR no intent ──────────────────────────
-      // Intent is the source of truth — always go to landing page.
-      // An author who logs in via Student tab still lands on '/'.
       if (intent === 'student' || !intent) {
         const postLoginRedirect = sessionStorage.getItem('post_login_redirect');
         sessionStorage.removeItem('post_login_redirect');
@@ -125,6 +127,7 @@ export default function AuthCallback() {
           !postLoginRedirect.startsWith('/admin')
             ? postLoginRedirect
             : '/';
+        sessionStorage.setItem("active_role", "student");
         navigate(safeFallback);
         return;
       }

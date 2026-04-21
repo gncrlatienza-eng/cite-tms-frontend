@@ -120,6 +120,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('login_intent');
     sessionStorage.removeItem('login_intent');
     sessionStorage.removeItem('post_login_redirect');
+    sessionStorage.removeItem('active_role');         // ← clears role on logout
     sessionStorage.removeItem('admin_active_tab');
     sessionStorage.removeItem('author_active_tab');
     setUser(null);
