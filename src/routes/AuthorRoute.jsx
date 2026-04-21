@@ -28,7 +28,7 @@ export default function AuthorRoute({ children }) {
   const activeRole = localStorage.getItem('active_role');
 
   if (loading) return <LoadingScreen />;
-  if (profileLoading && !profile) return <LoadingScreen />;
+  if (profileLoading) return <LoadingScreen />;   // ← fixed
   if (user && !profile) return <LoadingScreen />;
 
   if (!user) return <Navigate to="/" replace />;
