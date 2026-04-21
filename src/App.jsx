@@ -44,34 +44,27 @@ function RouteRestorer() {
     if (loading || profileLoading) return;
     if (!user || !profile) return;
     if (location.pathname !== "/") return;
-    if (hasRestored.current) return; // only run once per session
+    if (hasRestored.current) return;
 
-    // Check what role the user chose when they logged in
-    const activeRole = sessionStorage.getItem("active_role");
+    const activeRole = localStorage.getItem("active_role"); // ← localStorage persists across tab closes
 
-    // If they logged in as student, never redirect — let them stay on landing page
-    if (activeRole === "student") {
-      hasRestored.current = true;
-      return;
-    }
+    hasRestored.current = true;
 
-    // Restore admins and authors to their dashboards
+    // Admin always goes to dashboard regardless of active_role
     if (isAdmin) {
-      hasRestored.current = true;
       navigate("/admin/dashboard", { replace: true });
       return;
     }
 
+    // Author goes to dashboard only if they logged in as author
     if (isAuthor && activeRole === "author") {
-      hasRestored.current = true;
       navigate("/author/dashboard", { replace: true });
       return;
     }
 
-    hasRestored.current = true;
+    // Student or author who logged in as student — stay on landing page
   }, [loading, profileLoading, user, profile, isAdmin, isAuthor, location.pathname]);
 
-  // Reset hasRestored when user logs out
   useEffect(() => {
     if (!user) hasRestored.current = false;
   }, [user]);

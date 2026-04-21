@@ -118,9 +118,9 @@ export function AuthProvider({ children }) {
     // Clear ALL saved state so next login starts completely fresh
     localStorage.removeItem('last_route');
     localStorage.removeItem('login_intent');
+    localStorage.removeItem('active_role');           // ← localStorage now
     sessionStorage.removeItem('login_intent');
     sessionStorage.removeItem('post_login_redirect');
-    sessionStorage.removeItem('active_role');         // ← clears role on logout
     sessionStorage.removeItem('admin_active_tab');
     sessionStorage.removeItem('author_active_tab');
     setUser(null);

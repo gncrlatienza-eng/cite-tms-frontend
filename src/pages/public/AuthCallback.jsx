@@ -47,7 +47,7 @@ export default function AuthCallback() {
 
       // ── Admin login ───────────────────────────────────────────────────
       if (ALLOWED_ADMIN_EMAILS.includes(email)) {
-        sessionStorage.setItem("active_role", "admin");
+        localStorage.setItem('active_role', 'admin');
         navigate('/admin/dashboard');
         return;
       }
@@ -71,10 +71,10 @@ export default function AuthCallback() {
 
         if (secondaryUser) {
           if (secondaryUser.is_author && intent === 'author') {
-            sessionStorage.setItem("active_role", "author");
+            localStorage.setItem('active_role', 'author');
             navigate('/author/dashboard');
           } else {
-            sessionStorage.setItem("active_role", "student");
+            localStorage.setItem('active_role', 'student');
             navigate('/');
           }
           return;
@@ -105,7 +105,7 @@ export default function AuthCallback() {
       // ── Explicit author intent — enforce author check ─────────────────
       if (intent === 'author') {
         if (dlslUser.is_author) {
-          sessionStorage.setItem("active_role", "author");
+          localStorage.setItem('active_role', 'author');
           navigate('/author/dashboard');
           return;
         }
@@ -127,7 +127,7 @@ export default function AuthCallback() {
           !postLoginRedirect.startsWith('/admin')
             ? postLoginRedirect
             : '/';
-        sessionStorage.setItem("active_role", "student");
+        localStorage.setItem('active_role', 'student');
         navigate(safeFallback);
         return;
       }
