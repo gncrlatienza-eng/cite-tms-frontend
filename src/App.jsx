@@ -35,12 +35,13 @@ function RouteMemory() {
 }
 
 function RouteRestorer() {
-  const { user, isAdmin, isAuthor, loading, profileLoading } = useAuth();
+  const { user, isAdmin, isAuthor, loading, profileLoading, profile } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
     if (loading || profileLoading) return;
-    if (!user) return;
+    if (!user || !profile) return; // ← wait for full profile before any routing decision
+
     if (location.pathname !== "/") return;
 
     const lastRoute = localStorage.getItem("last_route");
@@ -52,13 +53,13 @@ function RouteRestorer() {
     if (isAdminRoute  && isAdmin)  { window.location.replace(lastRoute); return; }
     if (isAuthorRoute && isAuthor) { window.location.replace(lastRoute); return; }
 
-    // Clear stale routes so a student never gets sent to author/admin pages
+    // Profile is fully loaded — clear any stale routes that don't match the role
     if (isAuthorRoute && !isAuthor) { localStorage.removeItem("last_route"); return; }
     if (isAdminRoute  && !isAdmin)  { localStorage.removeItem("last_route"); return; }
 
-    // Student/protected routes
+    // Safe student/protected route — restore it
     if (!isAdminRoute && !isAuthorRoute) { window.location.replace(lastRoute); }
-  }, [loading, profileLoading, user, location.pathname]);
+  }, [loading, profileLoading, user, profile, location.pathname]); // ← profile added to deps
 
   return null;
 }
@@ -86,7 +87,7 @@ function PublicRoute({ children }) {
 
   if (user && isAdmin)  return <Navigate to="/admin/dashboard" replace />;
   if (user && isAuthor) return <Navigate to="/author/dashboard" replace />;
-  // ← Students are allowed to see public/landing pages — no redirect
+  // ← Students are allowed to see public/landing pages
 
   return children;
 }
