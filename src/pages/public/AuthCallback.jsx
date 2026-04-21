@@ -11,7 +11,6 @@ export default function AuthCallback() {
   const handled = useRef(false);
 
   useEffect(() => {
-    // ── Read intent from URL first (reliable on mobile), fallback to storage ──
     const urlParams = new URLSearchParams(window.location.search);
     const intent = urlParams.get('intent')
       || sessionStorage.getItem('login_intent')
@@ -39,11 +38,17 @@ export default function AuthCallback() {
 
       if (termsRecord && termsRecord.has_accepted_terms === false) {
         let redirectAfter = '/';
+
         if (intent === 'admin' || ALLOWED_ADMIN_EMAILS.includes(email) || termsRecord.role === 'admin') {
           redirectAfter = '/admin/dashboard';
+          localStorage.setItem('active_role', 'admin');       // ← FIX: set before redirect
         } else if (termsRecord.is_author) {
           redirectAfter = '/author/dashboard';
+          localStorage.setItem('active_role', 'author');      // ← FIX: set before redirect
+        } else {
+          localStorage.setItem('active_role', 'student');     // ← FIX: set before redirect
         }
+
         navigate(`/terms?new=true&redirect=${encodeURIComponent(redirectAfter)}`);
         return;
       }
@@ -158,7 +163,6 @@ export default function AuthCallback() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // ── Also pass intent via URL in handleTryAgain for mobile reliability ──
   const handleTryAgain = async (intent) => {
     handled.current = false;
     setPhase('loading');
