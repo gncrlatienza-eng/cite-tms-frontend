@@ -84,9 +84,9 @@ function PublicRoute({ children }) {
 
   if (loading || (profileLoading && !profile)) return <GlobalLoader />;
 
-  if (user && isAdmin)  return <Navigate to="/admin/dashboard"  replace />;
+  if (user && isAdmin)  return <Navigate to="/admin/dashboard" replace />;
   if (user && isAuthor) return <Navigate to="/author/dashboard" replace />;
-  if (user)             return <Navigate to="/bookmarks"        replace />;
+  // ← Students are allowed to see public/landing pages — no redirect
 
   return children;
 }

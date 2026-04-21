@@ -35,7 +35,7 @@ export default function AuthCallback() {
         .maybeSingle();
 
       if (termsRecord && termsRecord.has_accepted_terms === false) {
-        let redirectAfter = '/bookmarks';
+        let redirectAfter = '/';
         if (intent === 'admin' || ALLOWED_ADMIN_EMAILS.includes(email)) {
           redirectAfter = '/admin/dashboard';
         } else if (intent === 'author' && termsRecord.is_author) {
@@ -72,7 +72,7 @@ export default function AuthCallback() {
           if (secondaryUser.is_author && intent === 'author') {
             navigate('/author/dashboard');
           } else {
-            navigate('/bookmarks');
+            navigate('/');
           }
           return;
         }
@@ -113,8 +113,8 @@ export default function AuthCallback() {
       }
 
       // ── Explicit student intent OR no intent ──────────────────────────
-      // ALWAYS go to student home — never route by is_author here.
-      // An author who logs in via the Student tab should land on /bookmarks.
+      // Intent is the source of truth — always go to landing page.
+      // An author who logs in via Student tab still lands on '/'.
       if (intent === 'student' || !intent) {
         const postLoginRedirect = sessionStorage.getItem('post_login_redirect');
         sessionStorage.removeItem('post_login_redirect');
@@ -124,7 +124,7 @@ export default function AuthCallback() {
           !postLoginRedirect.startsWith('/author') &&
           !postLoginRedirect.startsWith('/admin')
             ? postLoginRedirect
-            : '/bookmarks';
+            : '/';
         navigate(safeFallback);
         return;
       }
