@@ -26,35 +26,44 @@ export default function AuthCallback() {
       if (!session) { navigate('/'); return; }
 
       const email = session.user.email;
-      console.log('🔐 [AuthCallback] Processing login for:', email);
-      console.log('🎯 [AuthCallback] Login intent:', intent);
+
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🔐 [AuthCallback] email:', email);
+      console.log('🎯 [AuthCallback] intent:', intent);
+      console.log('📌 [AuthCallback] is DLSL email:', email.endsWith('@dlsl.edu.ph'));
 
       // ── Check has_accepted_terms ──────────────────────────────────────
-      const { data: termsRecord } = await supabase
+      const { data: termsRecord, error: termsError } = await supabase
         .from('users')
         .select('has_accepted_terms, is_author, role')
         .or(`email.eq.${email},secondary_email.eq.${email}`)
         .maybeSingle();
+
+      console.log('📋 [AuthCallback] termsRecord:', termsRecord);
+      console.log('📋 [AuthCallback] termsError:', termsError);
 
       if (termsRecord && termsRecord.has_accepted_terms === false) {
         let redirectAfter = '/';
 
         if (intent === 'admin' || ALLOWED_ADMIN_EMAILS.includes(email) || termsRecord.role === 'admin') {
           redirectAfter = '/admin/dashboard';
-          localStorage.setItem('active_role', 'admin');       // ← FIX: set before redirect
+          localStorage.setItem('active_role', 'admin');
         } else if (termsRecord.is_author) {
           redirectAfter = '/author/dashboard';
-          localStorage.setItem('active_role', 'author');      // ← FIX: set before redirect
+          localStorage.setItem('active_role', 'author');
         } else {
-          localStorage.setItem('active_role', 'student');     // ← FIX: set before redirect
+          localStorage.setItem('active_role', 'student');
         }
 
+        console.log('📜 [AuthCallback] terms not accepted → redirect to:', redirectAfter);
+        console.log('💾 [AuthCallback] active_role set to:', localStorage.getItem('active_role'));
         navigate(`/terms?new=true&redirect=${encodeURIComponent(redirectAfter)}`);
         return;
       }
 
       // ── Admin login via primary email ─────────────────────────────────
       if (ALLOWED_ADMIN_EMAILS.includes(email)) {
+        console.log('👑 [AuthCallback] admin via primary email → /admin/dashboard');
         localStorage.setItem('active_role', 'admin');
         navigate('/admin/dashboard');
         return;
@@ -62,6 +71,7 @@ export default function AuthCallback() {
 
       // ── Explicit admin intent but not in allowed list ─────────────────
       if (intent === 'admin') {
+        console.log('🚫 [AuthCallback] admin intent but not in allowed list → unauthorized');
         await supabase.auth.signOut({ scope: 'global' });
         setBlockedEmail(email);
         setBlockReason('admin');
@@ -71,26 +81,35 @@ export default function AuthCallback() {
 
       // ── Non-DLSL email (secondary email / external) ───────────────────
       if (!email.endsWith('@dlsl.edu.ph')) {
-        const { data: secondaryUser } = await supabase
+        console.log('🔍 [AuthCallback] non-DLSL email → checking secondary_email in DB...');
+
+        const { data: secondaryUser, error: secondaryError } = await supabase
           .from('users')
           .select('is_author, role')
           .eq('secondary_email', email)
           .maybeSingle();
 
+        console.log('👤 [AuthCallback] secondaryUser:', secondaryUser);
+        console.log('👤 [AuthCallback] secondaryError:', secondaryError);
+
         if (secondaryUser) {
-          // ── Admin via secondary email ──
+          console.log('✅ [AuthCallback] secondary user found');
+          console.log('   is_author:', secondaryUser.is_author);
+          console.log('   role:', secondaryUser.role);
+
           if (secondaryUser.role === 'admin') {
+            console.log('👑 [AuthCallback] admin via secondary email → /admin/dashboard');
             localStorage.setItem('active_role', 'admin');
             navigate('/admin/dashboard');
             return;
           }
-          // ── Author via secondary email — always author, no intent needed ──
           if (secondaryUser.is_author) {
+            console.log('✍️  [AuthCallback] author via secondary email → /author/dashboard');
             localStorage.setItem('active_role', 'author');
             navigate('/author/dashboard');
             return;
           }
-          // ── Secondary email exists but is NOT author or admin — block ──
+          console.log('🚫 [AuthCallback] secondary user found but not author/admin → block');
           await supabase.auth.signOut({ scope: 'global' });
           setBlockedEmail(email);
           setBlockReason('domain');
@@ -98,7 +117,7 @@ export default function AuthCallback() {
           return;
         }
 
-        // ── Secondary email not found in DB at all ──
+        console.log('🚫 [AuthCallback] secondary email not found in DB → block');
         await supabase.auth.signOut({ scope: 'global' });
         setBlockedEmail(email);
         setBlockReason('domain');
@@ -107,13 +126,19 @@ export default function AuthCallback() {
       }
 
       // ── DLSL email ────────────────────────────────────────────────────
-      const { data: dlslUser } = await supabase
+      console.log('🏫 [AuthCallback] DLSL email → checking primary users table...');
+
+      const { data: dlslUser, error: dlslError } = await supabase
         .from('users')
         .select('id, role, is_author')
         .eq('email', email)
         .maybeSingle();
 
+      console.log('🏫 [AuthCallback] dlslUser:', dlslUser);
+      console.log('🏫 [AuthCallback] dlslError:', dlslError);
+
       if (!dlslUser) {
+        console.log('🚫 [AuthCallback] DLSL user not found in DB → block');
         await supabase.auth.signOut({ scope: 'global' });
         setBlockedEmail(email);
         setBlockReason('domain');
@@ -121,13 +146,15 @@ export default function AuthCallback() {
         return;
       }
 
-      // ── Explicit author intent — enforce author check ─────────────────
+      // ── Explicit author intent ────────────────────────────────────────
       if (intent === 'author') {
+        console.log('✍️  [AuthCallback] author intent → is_author:', dlslUser.is_author);
         if (dlslUser.is_author) {
           localStorage.setItem('active_role', 'author');
           navigate('/author/dashboard');
           return;
         }
+        console.log('🚫 [AuthCallback] not an author → block');
         await supabase.auth.signOut({ scope: 'global' });
         setBlockedEmail(email);
         setBlockReason('not_author');
@@ -135,7 +162,11 @@ export default function AuthCallback() {
         return;
       }
 
-      // ── Explicit student intent OR no intent ──────────────────────────
+      // ── Student intent or no intent ───────────────────────────────────
+      console.log('🎓 [AuthCallback] student/no intent branch hit');
+      console.log('   intent:', intent);
+      console.log('   dlslUser.is_author:', dlslUser.is_author, '← if true, wrong login button was used');
+
       if (intent === 'student' || !intent) {
         const postLoginRedirect = sessionStorage.getItem('post_login_redirect');
         sessionStorage.removeItem('post_login_redirect');
@@ -147,6 +178,8 @@ export default function AuthCallback() {
             ? postLoginRedirect
             : '/';
         localStorage.setItem('active_role', 'student');
+        console.log('💾 [AuthCallback] active_role set to: student');
+        console.log('➡️  [AuthCallback] navigating to:', safeFallback);
         navigate(safeFallback);
         return;
       }
