@@ -16,7 +16,6 @@ export function AuthProvider({ children }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const profileFetchedRef                   = useRef(false);
 
-  // ── Timeout helper ────────────────────────────────────────────────────────
   const withTimeout = (promise, ms) => Promise.race([
     promise,
     new Promise((_, reject) =>
@@ -26,31 +25,25 @@ export function AuthProvider({ children }) {
 
   const fetchProfile = async (authUser) => {
     if (!authUser) { setProfile(null); return null; }
-
     setProfileLoading(true);
     try {
       const SELECT_FIELDS = 'id, email, full_name, role, is_author, is_active, secondary_email, department, year_level, student_id, last_login';
-
       const { data: primaryData } = await withTimeout(
         supabase.from('users').select(SELECT_FIELDS).eq('email', authUser.email).single(),
         5000
       );
-
       if (primaryData) {
         setProfile(primaryData);
         profileFetchedRef.current = true;
         return primaryData;
       }
-
       const { data: secondaryData } = await withTimeout(
         supabase.from('users').select(SELECT_FIELDS).eq('secondary_email', authUser.email).single(),
         5000
       );
-
       setProfile(secondaryData ?? null);
       profileFetchedRef.current = true;
       return secondaryData ?? null;
-
     } catch (err) {
       console.warn('fetchProfile error (non-fatal):', err);
       setProfile(null);
@@ -67,10 +60,7 @@ export function AuthProvider({ children }) {
       profileFetchedRef.current = false;
       return;
     }
-
     setUser(session.user);
-
-    // Skip fetchProfile if already fetched — prevents tab refocus re-fetch
     if (!profileFetchedRef.current) {
       await fetchProfile(session.user);
     }
@@ -112,7 +102,6 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        // TOKEN_REFRESHED — just update token, never touch profile
         if (event === 'TOKEN_REFRESHED') {
           if (session?.user) setUser(session.user);
         }
@@ -126,6 +115,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = async () => {
+    // Clear all saved state so they start fresh after next login
+    localStorage.removeItem('last_route');
+    sessionStorage.removeItem('admin_active_tab');
+    sessionStorage.removeItem('author_active_tab');
     setUser(null);
     setProfile(null);
     profileFetchedRef.current = false;
@@ -151,16 +144,8 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user,
-      profile,
-      profileLoading,
-      logout,
-      loading,
-      isAdmin,
-      isAuthor,
-      refreshProfile,
-      authorName,
-      secondaryEmail,
+      user, profile, profileLoading, logout, loading,
+      isAdmin, isAuthor, refreshProfile, authorName, secondaryEmail,
     }}>
       {children}
     </AuthContext.Provider>

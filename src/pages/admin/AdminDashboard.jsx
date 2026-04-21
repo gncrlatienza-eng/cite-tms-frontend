@@ -18,12 +18,8 @@ const PROGRAM_OPTIONS = [
   { value: "BSIT",    label: "Bachelor of Science in Information Technology" },
 ];
 
-const getStorageUrl = (path) => path
-  ? supabase.storage.from(BUCKET).getPublicUrl(path).data?.publicUrl ?? null
-  : null;
-
+const getStorageUrl = (path) => path ? supabase.storage.from(BUCKET).getPublicUrl(path).data?.publicUrl ?? null : null;
 const safeFileName = (name) => name.replace(/[^a-zA-Z0-9._-]/g, "_");
-
 const splitAuthors = (authors) => {
   const list = Array.isArray(authors) ? authors.map((a) => a?.trim()).filter(Boolean) : [];
   return { primary_author: list[0] || "", co_authors: list.slice(1).join(", ") };
@@ -45,28 +41,28 @@ const REQ_STATUS = {
   rejected: { bg: "#fef2f2", color: "#9b0000", border: "#fecaca", dot: "#dc2626" },
 };
 
-// All critical layout styles as JS objects — immune to Tailwind preflight
+const VALID_TABS = ["papers", "requests", "upgrades", "upload-requests", "whitelist"];
+
 const S = {
-  root:     { display: "flex", minHeight: "100vh", background: "#f4f6f8", fontFamily: "'DM Sans', system-ui, sans-serif" },
-  sidebar:  { width: 240, minWidth: 240, maxWidth: 240, background: "#fff", borderRight: "1px solid #e8eaed", display: "flex", flexDirection: "column", height: "100vh", position: "sticky", top: 0, flexShrink: 0, boxSizing: "border-box" },
-  brand:    { display: "flex", alignItems: "center", gap: 10, padding: "20px 20px 16px", borderBottom: "1px solid #f1f3f4", cursor: "pointer" },
-  brandIcon:{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#006400,#1a8a1a)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,100,0,0.3)", flexShrink: 0 },
-  nav:      { flex: 1, padding: "12px 10px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 2, boxSizing: "border-box" },
-  navBtn:   { display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, border: "none", background: "none", fontFamily: "inherit", fontSize: 13.5, fontWeight: 500, color: "#5f6368", cursor: "pointer", width: "100%", textAlign: "left", boxSizing: "border-box" },
-  navBtnActive: { background: "#f0fdf4", color: "#166534", fontWeight: 600 },
-  navBadge: { fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 10, background: "#fef2f2", color: "#9b0000", minWidth: 18, textAlign: "center" },
+  root:         { display: "flex", minHeight: "100vh", background: "#f4f6f8", fontFamily: "'DM Sans', system-ui, sans-serif" },
+  sidebar:      { width: 240, minWidth: 240, maxWidth: 240, background: "#fff", borderRight: "1px solid #e8eaed", display: "flex", flexDirection: "column", height: "100vh", position: "sticky", top: 0, flexShrink: 0, boxSizing: "border-box" },
+  brand:        { display: "flex", alignItems: "center", gap: 10, padding: "20px 20px 16px", borderBottom: "1px solid #f1f3f4", cursor: "pointer" },
+  brandIcon:    { width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#006400,#1a8a1a)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,100,0,0.3)", flexShrink: 0 },
+  nav:          { flex: 1, padding: "12px 10px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 2, boxSizing: "border-box" },
+  navBtn:       { display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, border: "none", background: "none", fontFamily: "inherit", fontSize: 13.5, fontWeight: 500, color: "#5f6368", cursor: "pointer", width: "100%", textAlign: "left", boxSizing: "border-box" },
+  navBtnActive: { background: "#f0fdf4", color: "#166634", fontWeight: 600 },
+  navBadge:     { fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 10, background: "#fef2f2", color: "#9b0000", minWidth: 18, textAlign: "center" },
   navBadgeActive: { background: "#dcfce7", color: "#166534" },
-  footer:   { borderTop: "1px solid #f1f3f4", padding: "12px 10px", boxSizing: "border-box" },
-  userWrap: { display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, cursor: "pointer", position: "relative", boxSizing: "border-box" },
-  avatarFb: { width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#006400,#1a8a1a)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff", flexShrink: 0 },
-  avatarImg:{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", border: "2px solid #e8eaed", flexShrink: 0 },
-  dropdown: { position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, zIndex: 999, boxShadow: "0 -8px 30px rgba(0,0,0,0.1)", overflow: "hidden" },
-  main:     { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", boxSizing: "border-box" },
-  topbar:   { background: "#fff", borderBottom: "1px solid #e8eaed", padding: "0 28px", height: 56, display: "flex", alignItems: "center", flexShrink: 0, boxSizing: "border-box" },
-  body:     { flex: 1, padding: 28, overflowY: "auto", boxSizing: "border-box" },
+  footer:       { borderTop: "1px solid #f1f3f4", padding: "12px 10px", boxSizing: "border-box" },
+  userWrap:     { display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, cursor: "pointer", position: "relative", boxSizing: "border-box" },
+  avatarFb:     { width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#006400,#1a8a1a)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff", flexShrink: 0 },
+  avatarImg:    { width: 32, height: 32, borderRadius: "50%", objectFit: "cover", border: "2px solid #e8eaed", flexShrink: 0 },
+  dropdown:     { position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, zIndex: 999, boxShadow: "0 -8px 30px rgba(0,0,0,0.1)", overflow: "hidden" },
+  main:         { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", boxSizing: "border-box" },
+  topbar:       { background: "#fff", borderBottom: "1px solid #e8eaed", padding: "0 28px", height: 56, display: "flex", alignItems: "center", flexShrink: 0, boxSizing: "border-box" },
+  body:         { flex: 1, padding: 28, overflowY: "auto", boxSizing: "border-box" },
 };
 
-// ── Icons ─────────────────────────────────────────────────────
 const CloseIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 const CheckIcon = ({ size = 14 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
 const FileIcon = ({ size = 13 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>;
@@ -215,7 +211,6 @@ function UploadRequestDetail({ req, onBack, onDecide, decidingId }) {
   );
 }
 
-// ── Main ──────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -226,7 +221,12 @@ export default function AdminDashboard() {
   const displayName = meta.full_name || meta.name || user?.email || "Admin";
   const initials = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
-  const [activeTab, setActiveTab]                     = useState("papers");
+  // ── Restore active tab from sessionStorage ──────────────────
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = sessionStorage.getItem("admin_active_tab");
+    return saved && VALID_TABS.includes(saved) ? saved : "papers";
+  });
+
   const [papers, setPapers]                           = useState([]);
   const [requests, setRequests]                       = useState([]);
   const [upgradeRequests, setUpgradeRequests]         = useState([]);
@@ -252,7 +252,13 @@ export default function AdminDashboard() {
     document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  const switchTab = (tab) => { setActiveTab(tab); setSelectedPaper(null); setSelectedRequest(null); setSelectedUpgrade(null); setSelectedUpload(null); };
+  // ── Save tab to sessionStorage whenever it changes ──────────
+  const switchTab = (tab) => {
+    setActiveTab(tab);
+    sessionStorage.setItem("admin_active_tab", tab);
+    setSelectedPaper(null); setSelectedRequest(null); setSelectedUpgrade(null); setSelectedUpload(null);
+  };
+
   const fetchPapers = async () => { setLoading(true); setError(""); try { const res = await api.get("/api/admin/papers"); setPapers(res.data.results ?? []); } catch (e) { setError(e?.response?.data?.detail || e.message || "Failed to load papers."); } finally { setLoading(false); } };
   const fetchRequests = async () => { try { const res = await api.get("/api/admin/requests"); setRequests(res.data ?? []); } catch (e) { console.error(e.message); } };
   const fetchUpgradeRequests = async () => { try { const res = await api.get("/api/admin/upgrade-requests"); setUpgradeRequests(res.data ?? []); } catch (e) { console.error(e.message); } };
@@ -387,9 +393,7 @@ export default function AdminDashboard() {
         .ad-whitelist-err{font-size:12.5px;color:#b91c1c;padding:0 16px 12px}
       `}</style>
 
-      {/* ROOT — all critical layout via inline styles, Tailwind cannot touch these */}
       <div style={S.root}>
-
         {/* SIDEBAR */}
         <div style={S.sidebar}>
           <div style={S.brand} onClick={() => navigate("/")}>
@@ -406,8 +410,7 @@ export default function AdminDashboard() {
             {NAV_ITEMS.map((item) => {
               const active = activeTab === item.id;
               return (
-                <button key={item.id} onClick={() => switchTab(item.id)}
-                  style={{ ...S.navBtn, ...(active ? S.navBtnActive : {}) }}>
+                <button key={item.id} onClick={() => switchTab(item.id)} style={{ ...S.navBtn, ...(active ? S.navBtnActive : {}) }}>
                   <span style={{ width: 16, height: 16, flexShrink: 0, opacity: active ? 1 : 0.6, display: "flex", alignItems: "center" }}>{NAV_ICONS[item.id]}</span>
                   <span style={{ flex: 1 }}>{item.label}</span>
                   {item.badge > 0 && <span style={{ ...S.navBadge, ...(active ? S.navBadgeActive : {}) }}>{item.badge}</span>}
@@ -418,9 +421,7 @@ export default function AdminDashboard() {
 
           <div style={S.footer}>
             <div style={S.userWrap} ref={dropdownRef} onClick={() => setDropdownOpen((o) => !o)}>
-              {avatar
-                ? <img style={S.avatarImg} src={avatar} alt={displayName} referrerPolicy="no-referrer" />
-                : <div style={S.avatarFb}>{initials}</div>}
+              {avatar ? <img style={S.avatarImg} src={avatar} alt={displayName} referrerPolicy="no-referrer" /> : <div style={S.avatarFb}>{initials}</div>}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "#202124", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{displayName}</div>
                 <div style={{ fontSize: 10.5, color: "#9aa0a6" }}>Administrator</div>
@@ -450,11 +451,9 @@ export default function AdminDashboard() {
           <div style={S.topbar}>
             <div style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>{NAV_ITEMS.find((n) => n.id === activeTab)?.label}</div>
           </div>
-
           <div style={S.body}>
             {error && <div className="ad-error-box">{error}</div>}
 
-            {/* Papers */}
             {activeTab === "papers" && (selectedPaper
               ? <PaperDetail paper={selectedPaper} onBack={() => setSelectedPaper(null)} onEdit={(p) => { setSelectedPaper(null); setEditTarget(p); }} onDelete={handleDelete} deletingId={deletingId} />
               : <>
@@ -466,8 +465,7 @@ export default function AdminDashboard() {
                         <input style={{ border: "none", outline: "none", fontSize: 13.5, fontFamily: "inherit", color: "#202124", background: "transparent", flex: 1 }} type="text" placeholder="Search title, author, program…" value={search} onChange={(e) => setSearch(e.target.value)} />
                       </div>
                       <button style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "linear-gradient(135deg,#006400,#1a8a1a)", color: "#fff", border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 13.5, fontWeight: 600, fontFamily: "inherit", cursor: "pointer", boxShadow: "0 2px 6px rgba(0,100,0,.25)", whiteSpace: "nowrap" }} onClick={() => setShowAdd(true)}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        Add Paper
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Paper
                       </button>
                     </div>
                   </div>
@@ -499,11 +497,9 @@ export default function AdminDashboard() {
                 </>
             )}
 
-            {/* Access Requests */}
             {activeTab === "requests" && (selectedRequest
               ? <RequestDetail req={selectedRequest} onBack={()=>setSelectedRequest(null)} onAction={handleRequestAction}/>
-              : <>
-                  <div style={{fontSize:20,fontWeight:700,color:"#202124",marginBottom:20}}>Access Requests</div>
+              : <><div style={{fontSize:20,fontWeight:700,color:"#202124",marginBottom:20}}>Access Requests</div>
                   <div className="ad-table-wrap"><table className="ad-table">
                     <thead><tr><th>Requester</th><th>Paper</th><th>Message</th><th>Status</th><th>Date</th></tr></thead>
                     <tbody>
@@ -518,39 +514,31 @@ export default function AdminDashboard() {
                         </tr>
                       );})}
                     </tbody>
-                  </table></div>
-                </>
+                  </table></div></>
             )}
 
-            {/* Author Upgrades */}
             {activeTab === "upgrades" && (selectedUpgrade
               ? <UpgradeDetail req={selectedUpgrade} onBack={()=>setSelectedUpgrade(null)} onDecide={handleUpgradeDecision} decidingId={decidingId}/>
-              : <>
-                  <div style={{marginBottom:20}}><div style={{fontSize:20,fontWeight:700,color:"#202124"}}>Author Upgrade Requests</div><div style={{fontSize:13,color:"#9aa0a6",marginTop:4}}>Students requesting to upgrade their account to Author status</div></div>
+              : <><div style={{marginBottom:20}}><div style={{fontSize:20,fontWeight:700,color:"#202124"}}>Author Upgrade Requests</div><div style={{fontSize:13,color:"#9aa0a6",marginTop:4}}>Students requesting to upgrade their account to Author status</div></div>
                   {upgradeRequests.length===0?<div className="ad-table-wrap"><div className="ad-empty">No upgrade requests yet.</div></div>:upgradeRequests.map((req)=>{const s=REQ_STATUS[req.status]||REQ_STATUS.pending;return(
                     <div key={req.id} className="ad-req-card" onClick={()=>setSelectedUpgrade(req)}>
                       <div className="ad-req-info"><div className="ad-req-name">{req.user?.full_name||"Unknown user"}</div><div className="ad-req-email">{req.user?.email||"—"}</div><div className="ad-req-paper">📄 {req.paper?.title||"Untitled paper"}</div>{req.paper?.abstract&&<div style={{fontSize:12,color:"#9aa0a6",marginTop:4,lineHeight:1.5}}>{req.paper.abstract.slice(0,120)}{req.paper.abstract.length>120?"…":""}</div>}</div>
                       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8,flexShrink:0}}><span className="ad-status-pill" style={{background:s.bg,color:s.color,borderColor:s.border}}><span style={{width:6,height:6,borderRadius:"50%",background:s.dot,flexShrink:0}}/>{req.status.charAt(0).toUpperCase()+req.status.slice(1)}</span><div style={{fontSize:11.5,color:"#9aa0a6"}}>{new Date(req.created_at).toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"})}</div><div style={{fontSize:11.5,color:"#1a73e8",fontWeight:600}}>Click to review →</div></div>
                     </div>
-                  );})}
-                </>
+                  );})}</>
             )}
 
-            {/* Upload Requests */}
             {activeTab === "upload-requests" && (selectedUpload
               ? <UploadRequestDetail req={selectedUpload} onBack={()=>setSelectedUpload(null)} onDecide={handleUploadRequestDecision} decidingId={decidingId}/>
-              : <>
-                  <div style={{marginBottom:20}}><div style={{fontSize:20,fontWeight:700,color:"#202124"}}>Upload Paper Requests</div><div style={{fontSize:13,color:"#9aa0a6",marginTop:4}}>Papers submitted by Authors pending review and publication</div></div>
+              : <><div style={{marginBottom:20}}><div style={{fontSize:20,fontWeight:700,color:"#202124"}}>Upload Paper Requests</div><div style={{fontSize:13,color:"#9aa0a6",marginTop:4}}>Papers submitted by Authors pending review and publication</div></div>
                   {uploadPaperRequests.length===0?<div className="ad-table-wrap"><div className="ad-empty">No upload paper requests yet.</div></div>:uploadPaperRequests.map((req)=>{const s=REQ_STATUS[req.status]||REQ_STATUS.pending;const paper=req.papers&&typeof req.papers==="object"?req.papers:{};return(
                     <div key={req.id} className="ad-req-card" onClick={()=>setSelectedUpload(req)}>
                       <div className="ad-req-info"><div className="ad-req-name">{req.user?.full_name||"Unknown author"}</div><div className="ad-req-email">{req.user?.email||"—"}</div><div className="ad-req-paper">📄 {paper.title||"Untitled paper"}</div>{paper.abstract&&<div style={{fontSize:12,color:"#9aa0a6",marginTop:4,lineHeight:1.5}}>{paper.abstract.slice(0,120)}{paper.abstract.length>120?"…":""}</div>}</div>
                       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8,flexShrink:0}}><span className="ad-status-pill" style={{background:s.bg,color:s.color,borderColor:s.border}}><span style={{width:6,height:6,borderRadius:"50%",background:s.dot,flexShrink:0}}/>{req.status.charAt(0).toUpperCase()+req.status.slice(1)}</span><div style={{fontSize:11.5,color:"#9aa0a6"}}>{new Date(req.created_at).toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"})}</div><div style={{fontSize:11.5,color:"#1a73e8",fontWeight:600}}>Click to review →</div></div>
                     </div>
-                  );})}
-                </>
+                  );})}</>
             )}
 
-            {/* Whitelist */}
             {activeTab === "whitelist" && <>
               <div style={{fontSize:20,fontWeight:700,color:"#202124",marginBottom:20}}>Author Whitelist</div>
               <div className="ad-whitelist-wrap">
@@ -562,9 +550,7 @@ export default function AdminDashboard() {
                 <table className="ad-table"><thead><tr><th>Email</th><th>Added</th><th/></tr></thead>
                   <tbody>
                     {whitelist.length===0&&<tr><td colSpan={3}><div className="ad-empty">No emails in the whitelist yet.</div></td></tr>}
-                    {whitelist.map((entry)=>(
-                      <tr key={entry.id}><td style={{fontWeight:500}}>{entry.email}</td><td style={{fontSize:12.5,color:"#9aa0a6"}}>{entry.created_at?new Date(entry.created_at).toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"}):"—"}</td><td><button className="ad-icon-btn del" onClick={()=>handleRemoveEmail(entry.id)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button></td></tr>
-                    ))}
+                    {whitelist.map((entry)=>(<tr key={entry.id}><td style={{fontWeight:500}}>{entry.email}</td><td style={{fontSize:12.5,color:"#9aa0a6"}}>{entry.created_at?new Date(entry.created_at).toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"}):"—"}</td><td><button className="ad-icon-btn del" onClick={()=>handleRemoveEmail(entry.id)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg></button></td></tr>))}
                   </tbody>
                 </table>
               </div>
