@@ -36,7 +36,7 @@ export default function AuthCallback() {
 
       if (termsRecord && termsRecord.has_accepted_terms === false) {
         let redirectAfter = '/';
-        if (intent === 'admin' || ALLOWED_ADMIN_EMAILS.includes(email)) {
+        if (intent === 'admin' || ALLOWED_ADMIN_EMAILS.includes(email) || termsRecord.role === 'admin') {
           redirectAfter = '/admin/dashboard';
         } else if (intent === 'author' && termsRecord.is_author) {
           redirectAfter = '/author/dashboard';
@@ -45,7 +45,7 @@ export default function AuthCallback() {
         return;
       }
 
-      // ── Admin login ───────────────────────────────────────────────────
+      // ── Admin login via primary email ─────────────────────────────────
       if (ALLOWED_ADMIN_EMAILS.includes(email)) {
         localStorage.setItem('active_role', 'admin');
         navigate('/admin/dashboard');
@@ -70,13 +70,21 @@ export default function AuthCallback() {
           .maybeSingle();
 
         if (secondaryUser) {
+          // ── Admin via secondary email ──
+          if (secondaryUser.role === 'admin') {
+            localStorage.setItem('active_role', 'admin');
+            navigate('/admin/dashboard');
+            return;
+          }
+          // ── Author via secondary email ──
           if (secondaryUser.is_author && intent === 'author') {
             localStorage.setItem('active_role', 'author');
             navigate('/author/dashboard');
-          } else {
-            localStorage.setItem('active_role', 'student');
-            navigate('/');
+            return;
           }
+          // ── Student via secondary email ──
+          localStorage.setItem('active_role', 'student');
+          navigate('/');
           return;
         }
 
