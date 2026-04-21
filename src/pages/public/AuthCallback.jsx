@@ -36,74 +36,37 @@ export default function AuthCallback() {
 
       if (termsRecord && termsRecord.has_accepted_terms === false) {
         let redirectAfter = '/';
-        if (intent === 'admin') redirectAfter = '/admin/dashboard';
-        else if (intent === 'author' || termsRecord.is_author) redirectAfter = '/author/dashboard';
+        if (intent === 'admin' || ALLOWED_ADMIN_EMAILS.includes(email)) {
+          redirectAfter = '/admin/dashboard';
+        } else if (termsRecord.is_author) {
+          redirectAfter = '/author/dashboard';
+        }
         navigate(`/terms?new=true&redirect=${encodeURIComponent(redirectAfter)}`);
         return;
       }
 
       // ── Admin login ───────────────────────────────────────────────────
-      if (intent === 'admin') {
-        if (!ALLOWED_ADMIN_EMAILS.includes(email)) {
-          await supabase.auth.signOut({ scope: 'global' });
-          setBlockedEmail(email);
-          setBlockReason('admin');
-          setPhase('unauthorized');
+      // Check admin by email regardless of intent
+      if (ALLOWED_ADMIN_EMAILS.includes(email)) {
+        if (intent === 'admin' || !intent) {
+          navigate('/admin/dashboard');
           return;
         }
+        // Admin tried to sign in as author/student — still send to admin
         navigate('/admin/dashboard');
         return;
       }
 
-      // ── Author login ──────────────────────────────────────────────────
-      if (intent === 'author') {
-        if (!email.endsWith('@dlsl.edu.ph')) {
-          const { data: secondaryUser } = await supabase
-            .from('users')
-            .select('is_author')
-            .eq('secondary_email', email)
-            .maybeSingle();
-
-          if (secondaryUser?.is_author) {
-            navigate('/author/dashboard');
-            return;
-          }
-
-          await supabase.auth.signOut({ scope: 'global' });
-          setBlockedEmail(email);
-          setBlockReason('domain');
-          setPhase('unauthorized');
-          return;
-        }
-
-        try {
-          const { data: userRecord } = await supabase
-            .from('users')
-            .select('is_author')
-            .eq('email', email)
-            .maybeSingle();
-
-          if (userRecord?.is_author) {
-            navigate('/author/dashboard');
-            return;
-          }
-
-          await supabase.auth.signOut({ scope: 'global' });
-          setBlockedEmail(email);
-          setBlockReason('not_author');
-          setPhase('unauthorized');
-          return;
-        } catch (e) {
-          console.warn('Could not fetch user record:', e.message);
-          await supabase.auth.signOut({ scope: 'global' });
-          navigate('/?error=auth_failed');
-          return;
-        }
+      // ── Explicit admin intent but not in allowed list ─────────────────
+      if (intent === 'admin') {
+        await supabase.auth.signOut({ scope: 'global' });
+        setBlockedEmail(email);
+        setBlockReason('admin');
+        setPhase('unauthorized');
+        return;
       }
 
-      // ── Student / fallback login ──────────────────────────────────────
-      console.log('📧 [AuthCallback] Fallback login - email:', email);
-
+      // ── Non-DLSL email (secondary email / external) ───────────────────
       if (!email.endsWith('@dlsl.edu.ph')) {
         const { data: secondaryUser } = await supabase
           .from('users')
@@ -112,8 +75,8 @@ export default function AuthCallback() {
           .maybeSingle();
 
         if (secondaryUser) {
-          // Only go to author dashboard if they used author login intent
-          if (secondaryUser.is_author && intent === 'author') {
+          // Route based on actual role, not intent
+          if (secondaryUser.is_author) {
             navigate('/author/dashboard');
           } else {
             navigate('/');
@@ -143,13 +106,27 @@ export default function AuthCallback() {
         return;
       }
 
-      // Only route to author dashboard if intent was explicitly 'author'
-      if (dlslUser.is_author && intent === 'author') {
+      // ── Explicit author intent — enforce author check ─────────────────
+      if (intent === 'author') {
+        if (dlslUser.is_author) {
+          navigate('/author/dashboard');
+          return;
+        }
+        await supabase.auth.signOut({ scope: 'global' });
+        setBlockedEmail(email);
+        setBlockReason('not_author');
+        setPhase('unauthorized');
+        return;
+      }
+
+      // ── No intent (e.g. signed out and back in) ───────────────────────
+      // Route based on actual role in DB
+      if (dlslUser.is_author) {
         navigate('/author/dashboard');
         return;
       }
 
-      // Students (and authors who clicked student login) → home
+      // Regular student → home or post-login redirect
       const postLoginRedirect = sessionStorage.getItem('post_login_redirect');
       sessionStorage.removeItem('post_login_redirect');
       navigate(postLoginRedirect && postLoginRedirect !== '/' ? postLoginRedirect : '/');
