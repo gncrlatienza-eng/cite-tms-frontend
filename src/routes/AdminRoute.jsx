@@ -26,11 +26,9 @@ const LoadingScreen = ({ message = "Verifying access…" }) => (
 export default function AdminRoute({ children }) {
   const { user, isAdmin, loading, profileLoading, profile } = useAuth();
 
-  // Auth still initializing
   if (loading) return <LoadingScreen message="Verifying access…" />;
-
-  // Only block on profileLoading if profile not yet loaded
   if (profileLoading && !profile) return <LoadingScreen message="Loading profile…" />;
+  if (user && !profile) return <LoadingScreen message="Loading profile…" />;
 
   if (!user || !isAdmin) return <Navigate to="/" replace />;
 

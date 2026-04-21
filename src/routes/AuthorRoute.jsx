@@ -28,9 +28,10 @@ export default function AuthorRoute({ children }) {
 
   if (loading) return <LoadingScreen />;
   if (profileLoading && !profile) return <LoadingScreen />;
+  if (user && !profile) return <LoadingScreen />;
 
   if (!user) return <Navigate to="/" replace />;
-  if (!isAuthor) return <Navigate to="/" replace />;
+  if (!isAuthor) return <Navigate to="/bookmarks" replace />;
 
   return children;
 }

@@ -18,10 +18,8 @@ import AdminRoute from "./routes/AdminRoute";
 import AuthorRoute from "./routes/AuthorRoute";
 import { useAuth } from "./context/AuthContext";
 
-// Routes we never save as "last route"
 const SKIP_SAVE = ["/", "/login", "/terms", "/auth/callback"];
 
-// Saves the current route to localStorage while logged in
 function RouteMemory() {
   const location = useLocation();
   const { user } = useAuth();
@@ -36,8 +34,6 @@ function RouteMemory() {
   return null;
 }
 
-// When a logged-in user lands on "/" (e.g. they typed the URL or refreshed),
-// redirect them back to wherever they were
 function RouteRestorer() {
   const { user, isAdmin, isAuthor, loading, profileLoading } = useAuth();
   const location = useLocation();
@@ -55,6 +51,11 @@ function RouteRestorer() {
 
     if (isAdminRoute  && isAdmin)  { window.location.replace(lastRoute); return; }
     if (isAuthorRoute && isAuthor) { window.location.replace(lastRoute); return; }
+
+    // Clear stale routes so a student never gets sent to author/admin pages
+    if (isAuthorRoute && !isAuthor) { localStorage.removeItem("last_route"); return; }
+    if (isAdminRoute  && !isAdmin)  { localStorage.removeItem("last_route"); return; }
+
     // Student/protected routes
     if (!isAdminRoute && !isAuthorRoute) { window.location.replace(lastRoute); }
   }, [loading, profileLoading, user, location.pathname]);
@@ -62,7 +63,6 @@ function RouteRestorer() {
   return null;
 }
 
-// Full-screen spinner shown while auth resolves — eliminates flash
 function GlobalLoader() {
   return (
     <div style={{
@@ -79,15 +79,14 @@ function GlobalLoader() {
   );
 }
 
-// Redirects already-logged-in users away from public pages
 function PublicRoute({ children }) {
   const { user, isAdmin, isAuthor, loading, profileLoading, profile } = useAuth();
 
-  // Wait for full auth resolution before deciding
   if (loading || (profileLoading && !profile)) return <GlobalLoader />;
 
   if (user && isAdmin)  return <Navigate to="/admin/dashboard"  replace />;
   if (user && isAuthor) return <Navigate to="/author/dashboard" replace />;
+  if (user)             return <Navigate to="/bookmarks"        replace />;
 
   return children;
 }
@@ -95,7 +94,6 @@ function PublicRoute({ children }) {
 function App() {
   const { loading, profileLoading, profile, user } = useAuth();
 
-  // Block ALL rendering until auth resolves — no flash of wrong content
   if (loading || (profileLoading && !profile && user)) return <GlobalLoader />;
 
   return (

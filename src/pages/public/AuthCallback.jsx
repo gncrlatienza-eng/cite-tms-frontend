@@ -35,7 +35,7 @@ export default function AuthCallback() {
         .maybeSingle();
 
       if (termsRecord && termsRecord.has_accepted_terms === false) {
-        let redirectAfter = '/';
+        let redirectAfter = '/bookmarks';
         if (intent === 'admin' || ALLOWED_ADMIN_EMAILS.includes(email)) {
           redirectAfter = '/admin/dashboard';
         } else if (termsRecord.is_author) {
@@ -46,13 +46,7 @@ export default function AuthCallback() {
       }
 
       // ── Admin login ───────────────────────────────────────────────────
-      // Check admin by email regardless of intent
       if (ALLOWED_ADMIN_EMAILS.includes(email)) {
-        if (intent === 'admin' || !intent) {
-          navigate('/admin/dashboard');
-          return;
-        }
-        // Admin tried to sign in as author/student — still send to admin
         navigate('/admin/dashboard');
         return;
       }
@@ -75,11 +69,10 @@ export default function AuthCallback() {
           .maybeSingle();
 
         if (secondaryUser) {
-          // Route based on actual role, not intent
           if (secondaryUser.is_author) {
             navigate('/author/dashboard');
           } else {
-            navigate('/');
+            navigate('/bookmarks');
           }
           return;
         }
@@ -120,16 +113,22 @@ export default function AuthCallback() {
       }
 
       // ── No intent (e.g. signed out and back in) ───────────────────────
-      // Route based on actual role in DB
       if (dlslUser.is_author) {
         navigate('/author/dashboard');
         return;
       }
 
-      // Regular student → home or post-login redirect
+      // Regular student — never fall back to author/admin routes
       const postLoginRedirect = sessionStorage.getItem('post_login_redirect');
       sessionStorage.removeItem('post_login_redirect');
-      navigate(postLoginRedirect && postLoginRedirect !== '/' ? postLoginRedirect : '/');
+      const safeFallback =
+        postLoginRedirect &&
+        postLoginRedirect !== '/' &&
+        !postLoginRedirect.startsWith('/author') &&
+        !postLoginRedirect.startsWith('/admin')
+          ? postLoginRedirect
+          : '/bookmarks';
+      navigate(safeFallback);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
