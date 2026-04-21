@@ -1,5 +1,4 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
 import LandingPage from "./pages/public/LandingPage";
 import LoginPage from "./pages/public/LoginPage";
 import AuthCallback from "./pages/public/AuthCallback";
@@ -35,14 +34,13 @@ function GlobalLoader() {
 }
 
 function PublicRoute({ children }) {
-  const { user, isAdmin, isAuthor, loading, profileLoading, profile } = useAuth();
+  const { user, isAdmin, loading, profileLoading, profile } = useAuth();
 
   if (loading || (profileLoading && !profile)) return <GlobalLoader />;
 
-  // Only redirect admins and authors away from public pages
-  // Students stay on landing page — no redirect
-  if (user && isAdmin)  return <Navigate to="/admin/dashboard" replace />;
-  if (user && isAuthor) return <Navigate to="/author/dashboard" replace />;
+  // Only redirect admins away from public pages
+  // AuthCallback is solely responsible for post-login routing for everyone else
+  if (user && isAdmin) return <Navigate to="/admin/dashboard" replace />;
 
   return children;
 }
