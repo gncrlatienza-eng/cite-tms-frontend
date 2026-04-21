@@ -11,7 +11,10 @@ export default function AuthCallback() {
   const handled = useRef(false);
 
   useEffect(() => {
-    const intent = sessionStorage.getItem('login_intent')
+    // ── Read intent from URL first (reliable on mobile), fallback to storage ──
+    const urlParams = new URLSearchParams(window.location.search);
+    const intent = urlParams.get('intent')
+      || sessionStorage.getItem('login_intent')
       || localStorage.getItem('login_intent');
 
     sessionStorage.removeItem('login_intent');
@@ -39,7 +42,6 @@ export default function AuthCallback() {
         if (intent === 'admin' || ALLOWED_ADMIN_EMAILS.includes(email) || termsRecord.role === 'admin') {
           redirectAfter = '/admin/dashboard';
         } else if (termsRecord.is_author) {
-          // Author always redirects to author dashboard after terms
           redirectAfter = '/author/dashboard';
         }
         navigate(`/terms?new=true&redirect=${encodeURIComponent(redirectAfter)}`);
@@ -156,6 +158,7 @@ export default function AuthCallback() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // ── Also pass intent via URL in handleTryAgain for mobile reliability ──
   const handleTryAgain = async (intent) => {
     handled.current = false;
     setPhase('loading');
@@ -169,7 +172,7 @@ export default function AuthCallback() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?intent=${intent}`,
         queryParams: {
           prompt: 'select_account',
           ...(intent !== 'admin' && intent !== 'author' && { hd: 'dlsl.edu.ph' }),
