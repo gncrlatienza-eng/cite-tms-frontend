@@ -18,52 +18,6 @@ import AdminRoute from "./routes/AdminRoute";
 import AuthorRoute from "./routes/AuthorRoute";
 import { useAuth } from "./context/AuthContext";
 
-const SKIP_SAVE = ["/", "/login", "/terms", "/auth/callback"];
-
-function RouteMemory() {
-  const location = useLocation();
-  const { user } = useAuth();
-
-  useEffect(() => {
-    if (!user) return;
-    const path = location.pathname;
-    if (SKIP_SAVE.includes(path) || path.startsWith("/auth") || path.startsWith("/papers")) return;
-    localStorage.setItem("last_route", path);
-  }, [location.pathname, user]);
-
-  return null;
-}
-
-function RouteRestorer() {
-  const { user, isAdmin, isAuthor, loading, profileLoading, profile } = useAuth();
-  const location = useLocation();
-
-  useEffect(() => {
-    if (loading || profileLoading) return;
-    if (!user || !profile) return; // ← wait for full profile before any routing decision
-
-    if (location.pathname !== "/") return;
-
-    const lastRoute = localStorage.getItem("last_route");
-    if (!lastRoute || lastRoute === "/") return;
-
-    const isAdminRoute  = lastRoute.startsWith("/admin");
-    const isAuthorRoute = lastRoute.startsWith("/author");
-
-    if (isAdminRoute  && isAdmin)  { window.location.replace(lastRoute); return; }
-    if (isAuthorRoute && isAuthor) { window.location.replace(lastRoute); return; }
-
-    // Profile is fully loaded — clear any stale routes that don't match the role
-    if (isAuthorRoute && !isAuthor) { localStorage.removeItem("last_route"); return; }
-    if (isAdminRoute  && !isAdmin)  { localStorage.removeItem("last_route"); return; }
-
-    // Safe student/protected route — restore it
-    if (!isAdminRoute && !isAuthorRoute) { window.location.replace(lastRoute); }
-  }, [loading, profileLoading, user, profile, location.pathname]); // ← profile added to deps
-
-  return null;
-}
-
 function GlobalLoader() {
   return (
     <div style={{
@@ -85,9 +39,10 @@ function PublicRoute({ children }) {
 
   if (loading || (profileLoading && !profile)) return <GlobalLoader />;
 
+  // Only redirect admins and authors away from public pages
+  // Students stay on landing page — no redirect
   if (user && isAdmin)  return <Navigate to="/admin/dashboard" replace />;
   if (user && isAuthor) return <Navigate to="/author/dashboard" replace />;
-  // ← Students are allowed to see public/landing pages
 
   return children;
 }
@@ -98,37 +53,33 @@ function App() {
   if (loading || (profileLoading && !profile && user)) return <GlobalLoader />;
 
   return (
-    <>
-      <RouteMemory />
-      <RouteRestorer />
-      <Routes>
-        {/* Public */}
-        <Route path="/"           element={<PublicRoute><LandingPage /></PublicRoute>} />
-        <Route path="/login"      element={<PublicRoute><LoginPage /></PublicRoute>} />
-        <Route path="/papers"     element={<PapersPage />} />
-        <Route path="/papers/:id" element={<PaperPreviewPage />} />
-        <Route path="/terms"      element={<TermsPage />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
+    <Routes>
+      {/* Public */}
+      <Route path="/"           element={<PublicRoute><LandingPage /></PublicRoute>} />
+      <Route path="/login"      element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Route path="/papers"     element={<PapersPage />} />
+      <Route path="/papers/:id" element={<PaperPreviewPage />} />
+      <Route path="/terms"      element={<TermsPage />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
 
-        {/* Protected */}
-        <Route path="/profile"   element={<ProfilePage />} />
-        <Route path="/bookmarks" element={<BookmarksPage />} />
-        <Route path="/requests"  element={<RequestsPage />} />
+      {/* Protected */}
+      <Route path="/profile"   element={<ProfilePage />} />
+      <Route path="/bookmarks" element={<BookmarksPage />} />
+      <Route path="/requests"  element={<RequestsPage />} />
 
-        {/* Student */}
-        <Route path="/student/upload" element={<UploadPaper />} />
+      {/* Student */}
+      <Route path="/student/upload" element={<UploadPaper />} />
 
-        {/* Author */}
-        <Route path="/author/dashboard" element={<AuthorRoute><AuthorDashboard /></AuthorRoute>} />
-        <Route path="/author/papers"    element={<AuthorRoute><MyPapers /></AuthorRoute>} />
-        <Route path="/author/requests"  element={<AuthorRoute><AccessRequests /></AuthorRoute>} />
+      {/* Author */}
+      <Route path="/author/dashboard" element={<AuthorRoute><AuthorDashboard /></AuthorRoute>} />
+      <Route path="/author/papers"    element={<AuthorRoute><MyPapers /></AuthorRoute>} />
+      <Route path="/author/requests"  element={<AuthorRoute><AccessRequests /></AuthorRoute>} />
 
-        {/* Admin */}
-        <Route path="/admin"           element={<Navigate to="/admin/dashboard" replace />} />
-        <Route path="/admin/login"     element={<Navigate to="/admin/dashboard" replace />} />
-        <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-      </Routes>
-    </>
+      {/* Admin */}
+      <Route path="/admin"           element={<Navigate to="/admin/dashboard" replace />} />
+      <Route path="/admin/login"     element={<Navigate to="/admin/dashboard" replace />} />
+      <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+    </Routes>
   );
 }
 

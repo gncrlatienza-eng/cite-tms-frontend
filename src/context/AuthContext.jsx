@@ -115,8 +115,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = async () => {
-    // Clear all saved state so they start fresh after next login
+    // Clear ALL saved state so next login starts completely fresh
     localStorage.removeItem('last_route');
+    localStorage.removeItem('login_intent');
+    sessionStorage.removeItem('login_intent');
+    sessionStorage.removeItem('post_login_redirect');
     sessionStorage.removeItem('admin_active_tab');
     sessionStorage.removeItem('author_active_tab');
     setUser(null);
