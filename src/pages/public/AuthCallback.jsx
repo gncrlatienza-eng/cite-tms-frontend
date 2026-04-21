@@ -9,6 +9,15 @@ export default function AuthCallback() {
   const [blockedEmail, setBlockedEmail] = useState('');
   const [blockReason, setBlockReason] = useState('');
   const handled = useRef(false);
+  const blocked = useRef(false); // ← prevents re-entry after signOut
+
+  const block = async (email, reason) => {
+    blocked.current = true;
+    await supabase.auth.signOut({ scope: 'global' });
+    setBlockedEmail(email);
+    setBlockReason(reason);
+    setPhase('unauthorized');
+  };
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -21,6 +30,7 @@ export default function AuthCallback() {
 
     const process = async (session) => {
       if (handled.current) return;
+      if (blocked.current) return;
       handled.current = true;
 
       if (!session) { navigate('/'); return; }
@@ -56,7 +66,6 @@ export default function AuthCallback() {
         }
 
         console.log('📜 [AuthCallback] terms not accepted → redirect to:', redirectAfter);
-        console.log('💾 [AuthCallback] active_role set to:', localStorage.getItem('active_role'));
         navigate(`/terms?new=true&redirect=${encodeURIComponent(redirectAfter)}`);
         return;
       }
@@ -72,10 +81,7 @@ export default function AuthCallback() {
       // ── Explicit admin intent but not in allowed list ─────────────────
       if (intent === 'admin') {
         console.log('🚫 [AuthCallback] admin intent but not in allowed list → unauthorized');
-        await supabase.auth.signOut({ scope: 'global' });
-        setBlockedEmail(email);
-        setBlockReason('admin');
-        setPhase('unauthorized');
+        await block(email, 'admin');
         return;
       }
 
@@ -110,18 +116,12 @@ export default function AuthCallback() {
             return;
           }
           console.log('🚫 [AuthCallback] secondary user found but not author/admin → block');
-          await supabase.auth.signOut({ scope: 'global' });
-          setBlockedEmail(email);
-          setBlockReason('domain');
-          setPhase('unauthorized');
+          await block(email, 'domain');
           return;
         }
 
         console.log('🚫 [AuthCallback] secondary email not found in DB → block');
-        await supabase.auth.signOut({ scope: 'global' });
-        setBlockedEmail(email);
-        setBlockReason('domain');
-        setPhase('unauthorized');
+        await block(email, 'domain');
         return;
       }
 
@@ -139,10 +139,7 @@ export default function AuthCallback() {
 
       if (!dlslUser) {
         console.log('🚫 [AuthCallback] DLSL user not found in DB → block');
-        await supabase.auth.signOut({ scope: 'global' });
-        setBlockedEmail(email);
-        setBlockReason('domain');
-        setPhase('unauthorized');
+        await block(email, 'domain');
         return;
       }
 
@@ -155,17 +152,12 @@ export default function AuthCallback() {
           return;
         }
         console.log('🚫 [AuthCallback] not an author → block');
-        await supabase.auth.signOut({ scope: 'global' });
-        setBlockedEmail(email);
-        setBlockReason('not_author');
-        setPhase('unauthorized');
+        await block(email, 'not_author');
         return;
       }
 
       // ── Student intent or no intent ───────────────────────────────────
       console.log('🎓 [AuthCallback] student/no intent branch hit');
-      console.log('   intent:', intent);
-      console.log('   dlslUser.is_author:', dlslUser.is_author, '← if true, wrong login button was used');
 
       if (intent === 'student' || !intent) {
         const postLoginRedirect = sessionStorage.getItem('post_login_redirect');
@@ -186,10 +178,12 @@ export default function AuthCallback() {
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (blocked.current) return; // ← ignore all events once blocked
       if (event === 'SIGNED_IN') process(session);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (blocked.current) return;
       if (session) process(session);
     });
 
@@ -198,6 +192,7 @@ export default function AuthCallback() {
 
   const handleTryAgain = async (intent) => {
     handled.current = false;
+    blocked.current = false; // ← reset so new login attempt can proceed
     setPhase('loading');
     setBlockedEmail('');
     setBlockReason('');
