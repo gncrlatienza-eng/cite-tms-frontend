@@ -3,4 +3,5 @@ export const ALLOWED_ADMIN_EMAILS = [
   'cite.tms.admin@dlsl.edu.ph',
   'georginaramos0317@gmail.com',
   'erna.srocha@gmail.com',
+  'platonshan18@gmail.com',
 ];
