@@ -37,20 +37,14 @@ export default function AuthCallback() {
 
       const email = session.user.email;
 
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('🔐 [AuthCallback] email:', email);
-      console.log('🎯 [AuthCallback] intent:', intent);
-      console.log('📌 [AuthCallback] is DLSL email:', email.endsWith('@dlsl.edu.ph'));
 
       // ── Check has_accepted_terms ──────────────────────────────────────
-      const { data: termsRecord, error: termsError } = await supabase
+      const { data: termsRecord } = await supabase
         .from('users')
         .select('has_accepted_terms, is_author, role')
         .or(`email.eq.${email},secondary_email.eq.${email}`)
         .maybeSingle();
 
-      console.log('📋 [AuthCallback] termsRecord:', termsRecord);
-      console.log('📋 [AuthCallback] termsError:', termsError);
 
       if (termsRecord && termsRecord.has_accepted_terms === false) {
         let redirectAfter = '/';
@@ -65,14 +59,12 @@ export default function AuthCallback() {
           localStorage.setItem('active_role', 'student');
         }
 
-        console.log('📜 [AuthCallback] terms not accepted → redirect to:', redirectAfter);
         navigate(`/terms?new=true&redirect=${encodeURIComponent(redirectAfter)}`);
         return;
       }
 
       // ── Admin login via primary email ─────────────────────────────────
       if (ALLOWED_ADMIN_EMAILS.includes(email)) {
-        console.log('👑 [AuthCallback] admin via primary email → /admin/dashboard');
         localStorage.setItem('active_role', 'admin');
         navigate('/admin/dashboard');
         return;
@@ -80,84 +72,66 @@ export default function AuthCallback() {
 
       // ── Explicit admin intent but not in allowed list ─────────────────
       if (intent === 'admin') {
-        console.log('🚫 [AuthCallback] admin intent but not in allowed list → unauthorized');
         await block(email, 'admin');
         return;
       }
 
       // ── Non-DLSL email (secondary email / external) ───────────────────
       if (!email.endsWith('@dlsl.edu.ph')) {
-        console.log('🔍 [AuthCallback] non-DLSL email → checking secondary_email in DB...');
 
-        const { data: secondaryUser, error: secondaryError } = await supabase
+        const { data: secondaryUser } = await supabase
           .from('users')
           .select('is_author, role')
           .eq('secondary_email', email)
           .maybeSingle();
 
-        console.log('👤 [AuthCallback] secondaryUser:', secondaryUser);
-        console.log('👤 [AuthCallback] secondaryError:', secondaryError);
 
         if (secondaryUser) {
-          console.log('✅ [AuthCallback] secondary user found');
-          console.log('   is_author:', secondaryUser.is_author);
-          console.log('   role:', secondaryUser.role);
 
           if (secondaryUser.role === 'admin') {
-            console.log('👑 [AuthCallback] admin via secondary email → /admin/dashboard');
             localStorage.setItem('active_role', 'admin');
             navigate('/admin/dashboard');
             return;
           }
           if (secondaryUser.is_author) {
-            console.log('✍️  [AuthCallback] author via secondary email → /author/dashboard');
             localStorage.setItem('active_role', 'author');
             navigate('/author/dashboard');
             return;
           }
-          console.log('🚫 [AuthCallback] secondary user found but not author/admin → block');
           await block(email, 'domain');
           return;
         }
 
-        console.log('🚫 [AuthCallback] secondary email not found in DB → block');
         await block(email, 'domain');
         return;
       }
 
       // ── DLSL email ────────────────────────────────────────────────────
-      console.log('🏫 [AuthCallback] DLSL email → checking primary users table...');
 
-      const { data: dlslUser, error: dlslError } = await supabase
+      const { data: dlslUser } = await supabase
         .from('users')
         .select('id, role, is_author')
         .eq('email', email)
         .maybeSingle();
 
-      console.log('🏫 [AuthCallback] dlslUser:', dlslUser);
-      console.log('🏫 [AuthCallback] dlslError:', dlslError);
 
       if (!dlslUser) {
-        console.log('🚫 [AuthCallback] DLSL user not found in DB → block');
         await block(email, 'domain');
         return;
       }
 
       // ── Explicit author intent ────────────────────────────────────────
       if (intent === 'author') {
-        console.log('✍️  [AuthCallback] author intent → is_author:', dlslUser.is_author);
         if (dlslUser.is_author) {
           localStorage.setItem('active_role', 'author');
           navigate('/author/dashboard');
           return;
         }
-        console.log('🚫 [AuthCallback] not an author → block');
         await block(email, 'not_author');
         return;
       }
 
       // ── Student intent or no intent ───────────────────────────────────
-      console.log('🎓 [AuthCallback] student/no intent branch hit');
 
       if (intent === 'student' || !intent) {
         const postLoginRedirect = sessionStorage.getItem('post_login_redirect');
@@ -170,8 +144,6 @@ export default function AuthCallback() {
             ? postLoginRedirect
             : '/';
         localStorage.setItem('active_role', 'student');
-        console.log('💾 [AuthCallback] active_role set to: student');
-        console.log('➡️  [AuthCallback] navigating to:', safeFallback);
         navigate(safeFallback);
         return;
       }
